@@ -46,6 +46,7 @@ body{font-family:'Inter',sans-serif;font-size:13px;color:var(--black);background
 .sb-rect{width:8px;height:29px;background:var(--red);border-radius:2px;flex-shrink:0}
 .sb-brand{color:#fff;font-size:14.5px;font-weight:700;letter-spacing:.2px;line-height:1.1}
 .sb-sub{color:rgba(255,255,255,.28);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.sb-dev{color:rgba(255,255,255,.22);font-size:8px;letter-spacing:1px;text-transform:uppercase;margin-top:5px;align-self:flex-end}
 .nav-sec{padding:13px 0 3px 15px;color:rgba(255,255,255,.2);font-size:9px;letter-spacing:1.5px;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:9px;padding:8px 15px;color:rgba(255,255,255,.5);cursor:pointer;font-size:12.5px;border-left:3px solid transparent;transition:all .15s;position:relative}
 .nav-item:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.05)}
@@ -442,7 +443,7 @@ tr:hover td{background:#fafafa}
 <!-- ═══ APP ═══ -->
 <div id="app">
   <div class="sidebar">
-    <div class="sb-logo"><div class="sb-mark"><div class="sb-rect"></div><div><div class="sb-brand">creare</div><div class="sb-sub">sistemas</div></div></div></div>
+    <div class="sb-logo"><div class="sb-mark"><div class="sb-rect"></div><div><div class="sb-brand">creare</div><div class="sb-sub">sistemas</div></div></div><div class="sb-dev">develop by FFKD</div></div>
     <div class="nav-sec">Principal</div>
     <div class="nav-item active" data-p="dashboard" onclick="nav(this,'dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
     <div class="nav-item" data-p="clientes" onclick="nav(this,'clientes')"><i class="ti ti-building"></i>Clientes<span class="nav-badge" id="nbClientes">0</span></div>
