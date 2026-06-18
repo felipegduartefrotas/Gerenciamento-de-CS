@@ -1056,25 +1056,45 @@ tr:hover td{background:#fafafa}
   <div class="ph"><h2><i class="ti ti-rocket"></i>Onboarding de Novos Clientes</h2>
     <button class="btn-primary" onclick="openM('mNovoOnboarding')"><i class="ti ti-plus"></i>Iniciar Onboarding</button>
   </div>
-  <div class="kpi-grid" id="obKPIs"></div>
-  <div class="two-col" style="margin-bottom:14px" id="obChartSection">
-    <div class="card" style="margin-bottom:0">
-      <div class="card-ttl"><i class="ti ti-chart-donut"></i>Status dos onboardings</div>
-      <div class="chart-wrap" style="height:180px"><canvas id="obStatusChart"></canvas></div>
-    </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="card-ttl"><i class="ti ti-chart-bar"></i>Atingimento por cliente <span class="sub">meta: 100% das etapas</span></div>
-      <div class="chart-wrap" style="height:180px"><canvas id="obProgressChart"></canvas></div>
-    </div>
+  <div class="flt-row" style="margin-bottom:14px">
+    <button class="tl-filter-btn active" data-obt="geral" onclick="trocarAbaOB('geral',this)"><i class="ti ti-building-community"></i>Visão Geral Carteira</button>
+    <button class="tl-filter-btn" data-obt="cliente" onclick="trocarAbaOB('cliente',this)"><i class="ti ti-user-circle"></i>Por Cliente</button>
   </div>
-  <div class="tbl-card">
-    <div class="tbl-head">
-      <div class="tbl-head-ttl"><i class="ti ti-rocket"></i>Clientes em Implantação</div>
-      <div style="display:flex;gap:8px">
-        <select class="flt-sel" id="obFltStatus" onchange="renderOnboarding()"><option value="">Todos</option><option value="nao-iniciado">Não iniciado</option><option value="em-andamento">Em andamento</option><option value="concluido">Concluído</option><option value="atrasado">Atrasado</option></select>
+
+  <!-- ABA GERAL -->
+  <div id="obAbaGeral">
+    <div class="kpi-grid" id="obKPIs"></div>
+    <div class="two-col" style="margin-bottom:14px" id="obChartSection">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-chart-donut"></i>Status dos onboardings</div>
+        <div class="chart-wrap" style="height:180px"><canvas id="obStatusChart"></canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-chart-bar"></i>Atingimento por cliente <span class="sub">meta: 100% das etapas</span></div>
+        <div class="chart-wrap" style="height:180px"><canvas id="obProgressChart"></canvas></div>
       </div>
     </div>
-    <div id="obList" style="padding:0 0 8px"></div>
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="tbl-head-ttl"><i class="ti ti-rocket"></i>Clientes em Implantação</div>
+        <div style="display:flex;gap:8px">
+          <select class="flt-sel" id="obFltStatus" onchange="renderOnboarding()"><option value="">Todos</option><option value="nao-iniciado">Não iniciado</option><option value="em-andamento">Em andamento</option><option value="concluido">Concluído</option><option value="atrasado">Atrasado</option></select>
+        </div>
+      </div>
+      <div id="obList" style="padding:0 0 8px"></div>
+    </div>
+  </div>
+
+  <!-- ABA POR CLIENTE -->
+  <div id="obAbaCliente" style="display:none">
+    <div style="margin-bottom:14px">
+      <select class="flt-sel" id="obClienteSelect" onchange="renderObCliente()" style="font-size:12.5px;padding:6px 10px;min-width:280px">
+        <option value="">— Selecione um cliente —</option>
+      </select>
+    </div>
+    <div id="obClienteContent">
+      <div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-user-circle" style="font-size:36px;display:block;margin-bottom:10px;color:var(--gray4)"></i>Selecione um cliente para ver os detalhes do onboarding.</div>
+    </div>
   </div>
 </div>
 
@@ -3371,6 +3391,145 @@ function salvarOnboarding() {
   renderOnboarding();
 }
 
+function trocarAbaOB(aba, btn) {
+  document.querySelectorAll('[data-obt]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('obAbaGeral').style.display = aba === 'geral' ? '' : 'none';
+  document.getElementById('obAbaCliente').style.display = aba === 'cliente' ? '' : 'none';
+  if (aba === 'cliente') { populateObClienteSelect(); renderObCliente(); }
+}
+
+function populateObClienteSelect() {
+  const obs = CS_DB.get('onboardings') || [];
+  const sel = document.getElementById('obClienteSelect');
+  if (!sel) return;
+  const cur = sel.value;
+  const badge = o => o.status === 'concluido' ? '✅ Concluído' : o.status === 'em-andamento' ? '🔄 Em andamento' : '⏳ Não iniciado';
+  sel.innerHTML = '<option value="">— Selecione um cliente —</option>' +
+    obs.map((o, i) => `<option value="${i}"${cur==i?' selected':''}>${o.empresa} · ${badge(o)}</option>`).join('');
+}
+
+function renderObCliente() {
+  const idxStr = document.getElementById('obClienteSelect')?.value;
+  const cont = document.getElementById('obClienteContent');
+  if (!cont) return;
+  if (idxStr === '' || idxStr == null) {
+    cont.innerHTML = `<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-user-circle" style="font-size:36px;display:block;margin-bottom:10px;color:var(--gray4)"></i>Selecione um cliente para ver os detalhes do onboarding.</div>`;
+    return;
+  }
+  const idx = parseInt(idxStr);
+  const obs = CS_DB.get('onboardings') || [];
+  const ob = obs[idx];
+  if (!ob) return;
+
+  const pct = calcObPct(ob);
+  const concStep = ob.steps.filter(s => s.concluido).length;
+  const totalStep = ob.steps.length;
+  const cor = pct >= 100 ? 'var(--green)' : pct >= 60 ? 'var(--blue)' : pct > 0 ? 'var(--yellow)' : 'var(--gray3)';
+
+  let diasKickoff = '—', diasPrazo = null, prazoTxt = '—';
+  if (ob.kickoff) { const [d,m,y]=ob.kickoff.split('/'); diasKickoff=Math.max(0,Math.floor((new Date()-new Date(`${y}-${m}-${d}`))/86400000)); }
+  if (ob.prazoImpl) { const [d,m,y]=ob.prazoImpl.split('/'); diasPrazo=Math.ceil((new Date(`${y}-${m}-${d}`)-new Date())/86400000); prazoTxt=ob.prazoImpl; }
+
+  const cli = CS_DB.getClienteById(ob.clienteId);
+  const npsData = cli ? CS_DB.getNPSCliente(ob.clienteId).slice().reverse() : [];
+  const npsCalc = CS_DB.calcNPS(npsData);
+
+  // areas para o grafico de etapas
+  const areas = {};
+  ob.steps.forEach(s => { if(!areas[s.area])areas[s.area]={total:0,done:0}; areas[s.area].total++; if(s.concluido)areas[s.area].done++; });
+  const aLabels = Object.keys(areas);
+  const aPcts = aLabels.map(a => Math.round(areas[a].done/areas[a].total*100));
+
+  cont.innerHTML = `
+    <div class="kpi-grid" style="margin-bottom:14px">
+      <div class="kpi ${pct>=100?'green':pct>=60?'blue':'yellow'}">
+        <div class="kpi-lbl">Progresso</div>
+        <div class="kpi-val" style="color:${cor}">${pct}%</div>
+        <div class="kpi-sub">${concStep}/${totalStep} etapas</div>
+      </div>
+      <div class="kpi gray">
+        <div class="kpi-lbl">Dias desde kickoff</div>
+        <div class="kpi-val">${diasKickoff}</div>
+        <div class="kpi-sub">Início: ${ob.kickoff||'—'}</div>
+      </div>
+      <div class="kpi ${diasPrazo!==null&&diasPrazo<0?'red':diasPrazo!==null&&diasPrazo<=7?'yellow':'gray'}">
+        <div class="kpi-lbl">${diasPrazo!==null&&diasPrazo<0?'Atrasado':'Dias até prazo'}</div>
+        <div class="kpi-val" style="${diasPrazo!==null&&diasPrazo<0?'color:var(--red)':''}">${diasPrazo!==null?Math.abs(diasPrazo)+'d':'—'}</div>
+        <div class="kpi-sub">Prazo: ${prazoTxt}</div>
+      </div>
+      <div class="kpi ${npsCalc.score!=null&&npsCalc.score>=50?'green':npsCalc.score!=null&&npsCalc.score>=0?'blue':'gray'}">
+        <div class="kpi-lbl">NPS Score</div>
+        <div class="kpi-val">${npsCalc.score??'—'}</div>
+        <div class="kpi-sub">Meta: 80</div>
+      </div>
+    </div>
+    <div class="two-col" style="margin-bottom:14px">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><span><i class="ti ti-chart-line"></i>Evolução NPS</span></div>
+        <div class="chart-wrap"><canvas id="obCliNPSChart"></canvas></div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-chart-bar"></i>Conclusão por área</div>
+        <div class="chart-wrap"><canvas id="obCliStepsChart"></canvas></div>
+      </div>
+    </div>
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="tbl-head-ttl"><i class="ti ti-rocket"></i>${ob.empresa} — Etapas</div>
+        ${pct>=100?`<button class="btn-primary" onclick="concluirOnboarding(${idx})"><i class="ti ti-check"></i>Marcar Concluído</button>`:''}
+      </div>
+      <div class="ob-card" style="box-shadow:none;border:none">
+        <div class="ob-steps">
+          ${ob.steps.map((step, si) => {
+            const cls = step.concluido ? 'done' : si===ob.steps.findIndex(s=>!s.concluido)?'active':'';
+            const dotCls = step.concluido?'os-done':cls==='active'?'os-active':'os-pend';
+            const ico = step.concluido?'<i class="ti ti-check" style="font-size:11px"></i>':si+1;
+            return `<div class="ob-step ${cls}" onclick="toggleObStep(${idx},${si})">
+              <div class="ob-step-dot ${dotCls}">${ico}</div>
+              <div style="flex:1"><div class="ob-step-ttl">${step.titulo}</div><div class="ob-step-sub">${step.desc}</div></div>
+              <div class="ob-step-meta">
+                <span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:10px">${step.area}</span>
+                ${step.concluido?`<div style="color:var(--green);font-size:10.5px;margin-top:3px">✓ ${step.dataConc||''}</div>`:`<div style="font-size:10.5px;color:var(--gray2);margin-top:3px">Dia +${step.dias}</div>`}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  setTimeout(() => {
+    const npsCtx = document.getElementById('obCliNPSChart')?.getContext('2d');
+    if (npsCtx) {
+      if (npsCtx.canvas._ci) { npsCtx.canvas._ci.destroy(); npsCtx.canvas._ci = null; }
+      if (npsData.length) {
+        const gn = npsCtx.createLinearGradient(0,0,0,160);
+        gn.addColorStop(0,'rgba(209,0,0,0.18)'); gn.addColorStop(1,'rgba(209,0,0,0)');
+        npsCtx.canvas._ci = new Chart(npsCtx, { type:'line', data:{ labels:npsData.map(n=>n.data), datasets:[
+          {label:'Nota',data:npsData.map(n=>n.nota),borderColor:'#D10000',backgroundColor:gn,tension:.3,fill:true,borderWidth:2,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},
+          {label:'Meta (9)',data:npsData.map(()=>9),borderColor:'rgba(100,100,100,0.5)',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,borderDash:[6,4]}
+        ]}, options:{ responsive:true, maintainAspectRatio:false,
+          animation:{duration:700,easing:'easeInOutQuart'},
+          plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:8}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},
+          scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10},stepSize:1}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+      } else {
+        npsCtx.canvas.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--gray3);font-size:12px">Nenhuma pesquisa NPS registrada</div>';
+      }
+    }
+    const stCtx = document.getElementById('obCliStepsChart')?.getContext('2d');
+    if (stCtx && aLabels.length) {
+      if (stCtx.canvas._ci) { stCtx.canvas._ci.destroy(); stCtx.canvas._ci = null; }
+      stCtx.canvas._ci = new Chart(stCtx, { type:'bar', data:{ labels:aLabels, datasets:[
+        {label:'Concluído',data:aPcts,backgroundColor:aPcts.map(p=>p===100?'#1d9e75':p>=50?'#1a6fdb':'#e0880a'),borderRadius:[4,0,0,4],borderSkipped:false},
+        {label:'Restante', data:aPcts.map(p=>100-p),backgroundColor:'rgba(0,0,0,0.07)',borderRadius:[0,4,4,0],borderSkipped:false}
+      ]}, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        animation:{duration:700,easing:'easeInOutQuart'},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9,callbacks:{label:ctx=>ctx.datasetIndex===0?ctx.parsed.x.toFixed(0)+'% concluído':''}}},
+        scales:{x:{stacked:true,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'%'}},y:{stacked:true,grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+    }
+  }, 80);
+}
+
 function renderOnboarding() {
   const obs = CS_DB.get('onboardings') || [];
   const flt = document.getElementById('obFltStatus')?.value || '';
@@ -3523,12 +3682,17 @@ function toggleObStep(idx, si) {
   if (cli) CS_DB._addTimeline(cli.id, 'acao',
     'Onboarding: ' + obs[idx].steps[si].titulo,
     obs[idx].steps[si].concluido ? '✅ Etapa concluída' : '↩ Etapa reaberta');
-  renderOnboarding();
-  // Reabrir o card
-  setTimeout(() => {
-    const body = document.getElementById('ob-body-' + idx);
-    if (body) body.classList.add('open');
-  }, 50);
+  // Re-render aba ativa
+  const abaCliente = document.getElementById('obAbaCliente');
+  if (abaCliente && abaCliente.style.display !== 'none') {
+    renderObCliente();
+  } else {
+    renderOnboarding();
+    setTimeout(() => {
+      const body = document.getElementById('ob-body-' + idx);
+      if (body) body.classList.add('open');
+    }, 50);
+  }
 }
 
 function concluirOnboarding(idx) {
