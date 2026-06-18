@@ -31,6 +31,7 @@ app.use('/api/audios', require('./routes/audios'));
 app.use('/api/kv', require('./routes/kv'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/grupos', require('./routes/grupos'));
+app.use('/api/hs-historico', require('./routes/hs_historico'));
 
 app.use((req, res) => res.status(404).json({ erro: 'Rota não encontrada.' }));
 

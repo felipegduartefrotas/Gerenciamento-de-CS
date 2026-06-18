@@ -353,6 +353,41 @@ const CS_DB = {
     this._cache.clientes.forEach(c => { if (c.grupoId === id) { c.grupoId = null; c.tipoNoGrupo = null; } });
   },
 
+  // ── HISTÓRICO HEALTH SCORE ────────────────────────────────
+  async getHsHistorico(clienteId) {
+    return this._fetch(`/hs-historico/${clienteId}`);
+  },
+
+  // ── WEBHOOK ───────────────────────────────────────────────
+  async dispararWebhook() {
+    return this._fetch('/alertas/disparar-webhook', { method: 'POST' });
+  },
+
+  // ── EXPORTAÇÃO CSV ────────────────────────────────────────
+  exportarCSV(clientes) {
+    const cols = ['empresa','nomeFantasia','cnpj','segmento','tier','status','healthScore',
+                  'mrr','veiculos','mensalidadePorVeiculo','contato','cargo','email',
+                  'telefone','responsavelCS','cidade','uf','renovacao'];
+    const labels = ['Razão Social','Nome Fantasia','CNPJ','Segmento','Tier','Status',
+                    'Health Score','MRR','Veículos','Mensalidade/Veículo','Contato','Cargo',
+                    'E-mail','Telefone','Responsável CS','Cidade','UF','Renovação'];
+    const esc = v => {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s;
+    };
+    const rows = [labels.join(',')];
+    (clientes || this._cache.clientes).forEach(c => {
+      rows.push(cols.map(k => esc(c[k])).join(','));
+    });
+    const bl = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const u = URL.createObjectURL(bl);
+    const a = document.createElement('a');
+    a.href = u; a.download = `clientes_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(u);
+  },
+
   // ── CONFIG ────────────────────────────────────────────────
   getConfig() { return this._cache.config; },
   async saveConfig(c) {

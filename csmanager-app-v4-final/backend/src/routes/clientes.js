@@ -58,6 +58,25 @@ router.put('/:id', async (req, res) => {
       valores
     );
     if (!rows.length) return res.status(404).json({ erro: 'Cliente não encontrado.' });
+
+    // Registra snapshot de HS se o score foi enviado e mudou
+    if (req.body.health_score !== undefined) {
+      const novoScore = parseInt(req.body.health_score, 10);
+      if (!isNaN(novoScore)) {
+        const { rows: ultimo } = await pool.query(
+          `SELECT score FROM health_score_historico WHERE cliente_id = $1
+           ORDER BY registrado_em DESC LIMIT 1`,
+          [req.params.id]
+        );
+        if (!ultimo.length || ultimo[0].score !== novoScore) {
+          await pool.query(
+            'INSERT INTO health_score_historico (cliente_id, score) VALUES ($1, $2)',
+            [req.params.id, novoScore]
+          );
+        }
+      }
+    }
+
     res.json(rows[0]);
   } catch (e) {
     if (e.code === '23505') {

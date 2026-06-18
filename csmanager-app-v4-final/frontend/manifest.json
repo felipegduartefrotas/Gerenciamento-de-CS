@@ -1,0 +1,26 @@
+{
+  "name": "CS Manager — Creare Sistemas",
+  "short_name": "CS Manager",
+  "description": "Plataforma de Customer Success da Creare Sistemas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#D10000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%23D10000' rx='32'/%3E%3Crect x='56' y='48' width='20' height='96' fill='%23fff' rx='4'/%3E%3Crect x='84' y='72' width='52' height='20' fill='%23fff' rx='4'/%3E%3Crect x='84' y='100' width='40' height='20' fill='%23fff' rx='4'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23D10000' rx='80'/%3E%3Crect x='140' y='120' width='52' height='272' fill='%23fff' rx='10'/%3E%3Crect x='204' y='188' width='168' height='52' fill='%23fff' rx='10'/%3E%3Crect x='204' y='272' width='128' height='52' fill='%23fff' rx='10'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "pt-BR"
+}

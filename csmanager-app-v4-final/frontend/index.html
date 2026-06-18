@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CS Manager v4.0 — Creare Sistemas</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#D10000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CS Manager">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -532,6 +536,7 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-clientes">
   <div class="ph"><h2><i class="ti ti-building"></i>Gestão de Clientes</h2>
     <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="CS_DB.exportarCSV()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
       <button class="btn-ghost" onclick="nav(document.querySelector('[data-p=importar]'),'importar')"><i class="ti ti-table-import"></i>Importar Excel</button>
       <button class="btn-primary" onclick="nav(document.querySelector('[data-p=novo-cliente]'),'novo-cliente')"><i class="ti ti-plus"></i>Novo Cliente</button>
     </div>
@@ -883,6 +888,16 @@ tr:hover td{background:#fafafa}
     </div>
     <div style="margin-top:12px;font-size:12px;color:var(--gray2)" id="dbInfo"></div>
     <div style="margin-top:6px;font-size:11.5px;color:var(--gray3)" id="backupStatusInfo"></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-ttl"><i class="ti ti-webhook"></i>Integrações</div>
+    <div class="form-g2">
+      <div class="fg form-full">
+        <label>Webhook URL <span style="font-weight:400;color:var(--gray3)">(Slack, Discord, n8n, Zapier…)</span></label>
+        <div class="iw"><input type="url" id="cfgWebhook" placeholder="https://hooks.slack.com/services/..."><button class="ib-search" onclick="testarWebhook()" title="Testar agora"><i class="ti ti-send"></i></button></div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:4px">Deixe em branco para desativar. O sistema enviará um resumo dos alertas ativos para este endereço.</div>
+      </div>
+    </div>
   </div>
   <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i>Salvar configurações</button></div>
 </div>
@@ -2603,9 +2618,10 @@ function renderSuccess(){}
 function downloadTemplate(){const wb=XLSX.utils.book_new();const headers=CAMPOS.map(c=>c.label+(c.req?' *':''));const ex=['Vale S.A.','Vale','33.592.510/0001-54','Mineração','Grande','A','Ativo','R$82.000','Felipe Duarte','Carlos Lima','carlos.lima@vale.com','(31) 3269-4000','Sudeste','Itabira','380','Telemetria + Videomonitoramento + Safety','Top conta'];const ws=XLSX.utils.aoa_to_sheet([headers,ex]);ws['!cols']=headers.map(()=>({wch:22}));XLSX.utils.book_append_sheet(wb,ws,'Clientes_CS_Manager');XLSX.writeFile(wb,'Template_Importacao_Clientes_Creare.xlsx')}
 
 // ═══ CONFIG ═══
-function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgNPSMeta'))document.getElementById('cfgNPSMeta').value=cfg.metaNPS??75;const stats=CS_DB.getStats();if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados (PostgreSQL): ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações.`;
+function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgNPSMeta'))document.getElementById('cfgNPSMeta').value=cfg.metaNPS??75;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';const stats=CS_DB.getStats();if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados (PostgreSQL): ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações.`;
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
-async function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,metaNPS:parseInt(document.getElementById('cfgNPSMeta').value)??75,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value};try{await CS_DB.saveConfig(cfg);toast('Configurações salvas!');await CS_DB._gerarAlertas();updateStatusBar();renderDashboard()}catch(e){toast('Erro ao salvar configurações: '+e.message,'err')}}
+async function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,metaNPS:parseInt(document.getElementById('cfgNPSMeta').value)??75,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||''};try{await CS_DB.saveConfig(cfg);toast('Configurações salvas!');await CS_DB._gerarAlertas();updateStatusBar();renderDashboard()}catch(e){toast('Erro ao salvar configurações: '+e.message,'err')}}
+async function testarWebhook(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}try{const r=await CS_DB.dispararWebhook();toast(`Webhook disparado com sucesso — ${r.enviados} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 
 // ═══ LOGIN ═══
 async function doLogin(){
@@ -3512,6 +3528,10 @@ function renderCliente360(){
           </div>`).join(''):'<div style="color:var(--gray2);padding:10px 0">Sem atividade registrada.</div>'}
         </div>
       </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução do Health Score <span class="sub" id="c360HsSubtitle"></span></div>
+      <div class="chart-wrap" style="height:150px"><canvas id="c360HsChart"></canvas></div>
     </div>`;
 
   setTimeout(()=>{
@@ -3520,6 +3540,19 @@ function renderCliente360(){
       const npsOrdenado=nps.slice().reverse();
       new Chart(ctx,{type:'line',data:{labels:npsOrdenado.map(n=>n.data),datasets:[{data:npsOrdenado.map(n=>n.nota),borderColor:'#1E5AE0',backgroundColor:'rgba(30,90,224,.12)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#1E5AE0',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9}},grid:{display:false}}}}});
     }
+    // Gráfico de evolução do Health Score
+    CS_DB.getHsHistorico(cid).then(hist=>{
+      const ctx2=document.getElementById('c360HsChart')?.getContext('2d');
+      if(!ctx2)return;
+      const sub=document.getElementById('c360HsSubtitle');
+      if(sub)sub.textContent=hist.length?`${hist.length} registro(s)`:'sem histórico ainda';
+      if(!hist.length){
+        if(ctx2){ctx2.canvas.parentElement.innerHTML='<div style="color:var(--gray3);font-size:12px;padding:20px 0;text-align:center">Histórico registrado automaticamente a cada atualização do cliente.</div>';} return;
+      }
+      const labels=hist.map(h=>new Date(h.registrado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
+      const scores=hist.map(h=>h.score);
+      new Chart(ctx2,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>` HS: ${ctx.parsed.y}`}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
+    }).catch(()=>{});
   },80);
 }
 

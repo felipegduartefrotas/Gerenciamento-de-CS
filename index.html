@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CS Manager v3.0 — Creare Sistemas</title>
+<meta name="theme-color" content="#D10000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CS Manager">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -534,6 +537,7 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-clientes">
   <div class="ph"><h2><i class="ti ti-building"></i>Gestão de Clientes</h2>
     <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="CS_DB.exportarCSV()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
       <button class="btn-ghost" onclick="nav(document.querySelector('[data-p=importar]'),'importar')"><i class="ti ti-table-import"></i>Importar Excel</button>
       <button class="btn-primary" onclick="nav(document.querySelector('[data-p=novo-cliente]'),'novo-cliente')"><i class="ti ti-plus"></i>Novo Cliente</button>
     </div>
@@ -885,6 +889,16 @@ tr:hover td{background:#fafafa}
     <input type="file" id="importBackup" accept=".json" style="display:none" onchange="CS_DB.importarBackup(this.files[0]).then(m=>{toast(m);registrarBackup();initApp()}).catch(e=>toast(e,'err'))">
     <div style="margin-top:12px;font-size:12px;color:var(--gray2)" id="dbInfo"></div>
     <div style="margin-top:6px;font-size:11.5px;color:var(--gray3)" id="backupStatusInfo"></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-ttl"><i class="ti ti-webhook"></i>Integrações</div>
+    <div class="form-g2">
+      <div class="fg form-full">
+        <label>Webhook URL <span style="font-weight:400;color:var(--gray3)">(Slack, Discord, n8n, Zapier…)</span></label>
+        <div class="iw"><input type="url" id="cfgWebhook" placeholder="https://hooks.slack.com/services/..."><button class="ib-search" onclick="testarWebhookV3()" title="Testar agora"><i class="ti ti-send"></i></button></div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:4px">Deixe em branco para desativar. O envio é acionado manualmente via botão de teste.</div>
+      </div>
+    </div>
   </div>
   <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i>Salvar configurações</button></div>
 </div>
@@ -1365,7 +1379,7 @@ tr:hover td{background:#fafafa}
 </div>
 <script>
 // ═══ STORAGE ENGINE EMBUTIDO ═══
-const CS_DB={VERSION:'2.0',PREFIX:'creare_cs_',KEYS:{clientes:'creare_cs_clientes',reunioes:'creare_cs_reunioes',acoes:'creare_cs_acoes',nps:'creare_cs_nps',timeline:'creare_cs_timeline',alertas:'creare_cs_alertas',config:'creare_cs_config',session:'creare_cs_session',meta:'creare_cs_meta',grupos:'creare_cs_grupos'},
+const CS_DB={VERSION:'2.0',PREFIX:'creare_cs_',KEYS:{clientes:'creare_cs_clientes',reunioes:'creare_cs_reunioes',acoes:'creare_cs_acoes',nps:'creare_cs_nps',timeline:'creare_cs_timeline',alertas:'creare_cs_alertas',config:'creare_cs_config',session:'creare_cs_session',meta:'creare_cs_meta',grupos:'creare_cs_grupos',hs_historico:'creare_cs_hs_historico'},
 init(){const m=this.get('meta');if(!m||m.version!==this.VERSION){this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})}else this.set('meta',{...m,lastUpdated:new Date().toISOString()})},
 get(k){try{const r=localStorage.getItem(this.KEYS[k]||k);return r?JSON.parse(r):null}catch{return null}},
 set(k,d){try{localStorage.setItem(this.KEYS[k]||k,JSON.stringify(d));return true}catch(e){return false}},
@@ -1408,7 +1422,7 @@ if(re.length>0){const cm=re.slice(0,3).reduce((t,r)=>t+(r.csat||7),0)/Math.min(r
 if(np.length>0){const nc=this.calcNPS(np);if(nc.score>=75)s+=15;else if(nc.score>=50)s+=8;else if(nc.score>=25)s+=2;else if(nc.score>=0)s-=8;else s-=18;c.ultimoNPS=nc.score}
 const av=ac.filter(a=>a.status!=='Concluído'&&a.prazoISO&&new Date(a.prazoISO)<now);s-=Math.min(av.length*5,20);
 if(c.status==='Expansão')s+=8;if(c.status==='Em Risco')s-=15;if(c.status==='Implantação')s-=5;
-c.healthScore=Math.max(0,Math.min(100,Math.round(s)));this.saveCliente(c);this._gerarAlertas()},
+c.healthScore=Math.max(0,Math.min(100,Math.round(s)));this.saveCliente(c);this.addHsHistorico(c.id,c.healthScore);this._gerarAlertas()},
 getSession(){return this.get('session')},
 saveSession(d){this.set('session',{...d,loginAt:new Date().toISOString()})},
 clearSession(){this.remove('session')},
@@ -1419,6 +1433,11 @@ getGrupos(){return this.get('grupos')||[]},
 getGrupoById(id){return(this.get('grupos')||[]).find(g=>g.id===id)||null},
 saveGrupo(g){const l=this.get('grupos')||[];if(!g.id){g.id='grp_'+Date.now();g.criadoEm=new Date().toISOString();g.nome=g.nome.toUpperCase();l.push(g)}else{const i=l.findIndex(x=>x.id===g.id);g.nome=g.nome.toUpperCase();if(i>=0)l[i]=g;else l.push(g)}this.set('grupos',l);return g},
 deleteGrupo(id){this.set('grupos',(this.get('grupos')||[]).filter(g=>g.id!==id));const cl=this.get('clientes')||[];cl.forEach(c=>{if(c.grupoId===id){c.grupoId=null;c.tipoNoGrupo=null}});this.set('clientes',cl)},
+// ── HISTÓRICO HEALTH SCORE (localStorage) ──────────────────
+getHsHistorico(clienteId){const h=this.get('hs_historico')||{};return(h[clienteId]||[]).slice().sort((a,b)=>new Date(a.registrado_em)-new Date(b.registrado_em))},
+addHsHistorico(clienteId,score){const h=this.get('hs_historico')||{};if(!h[clienteId])h[clienteId]=[];const arr=h[clienteId];if(arr.length&&arr[arr.length-1].score===score)return;arr.push({score,registrado_em:new Date().toISOString()});if(arr.length>60)arr.splice(0,arr.length-60);this.set('hs_historico',h)},
+// ── EXPORTAÇÃO CSV ──────────────────────────────────────────
+exportarCSV(clientes){const cols=['empresa','nomeFantasia','cnpj','segmento','tier','status','healthScore','mrr','veiculos','mensalidadePorVeiculo','contato','cargo','email','telefone','responsavelCS','cidade','uf','renovacao'];const labels=['Razão Social','Nome Fantasia','CNPJ','Segmento','Tier','Status','Health Score','MRR','Veículos','Mensalidade/Veículo','Contato','Cargo','E-mail','Telefone','Responsável CS','Cidade','UF','Renovação'];const esc=v=>{if(v===null||v===undefined)return'';const s=String(v);return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:`${s}`};const rows=[labels.join(',')];(clientes||this.getClientes()).forEach(c=>{rows.push(cols.map(k=>esc(c[k])).join(','))});const bl=new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download=`clientes_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;a.click();URL.revokeObjectURL(u)},
 exportarTudo(){const b={};Object.entries(this.KEYS).forEach(([k,key])=>{b[k]=localStorage.getItem(key)});const bl=new Blob([JSON.stringify(b,null,2)],{type:'application/json'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download=`csmanager_backup_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;a.click();URL.revokeObjectURL(u)},
 importarBackup(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);Object.entries(this.KEYS).forEach(([k,key])=>{if(d[k])localStorage.setItem(key,d[k])});res('Backup restaurado!')}catch{rej('Arquivo inválido.')}};r.readAsText(f)})},
 resetar(){Object.values(this.KEYS).forEach(k=>localStorage.removeItem(k));this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})},
@@ -2715,9 +2734,10 @@ function renderSuccess(){}
 function downloadTemplate(){const wb=XLSX.utils.book_new();const headers=CAMPOS.map(c=>c.label+(c.req?' *':''));const ex=['Vale S.A.','Vale','33.592.510/0001-54','Mineração','Grande','A','Ativo','R$82.000','Felipe Duarte','Carlos Lima','carlos.lima@vale.com','(31) 3269-4000','Sudeste','Itabira','380','Telemetria + Videomonitoramento + Safety','Top conta'];const ws=XLSX.utils.aoa_to_sheet([headers,ex]);ws['!cols']=headers.map(()=>({wch:22}));XLSX.utils.book_append_sheet(wb,ws,'Clientes_CS_Manager');XLSX.writeFile(wb,'Template_Importacao_Clientes_Creare.xlsx')}
 
 // ═══ CONFIG ═══
-function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
+function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
-function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
+function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||''};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
+async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}const cfg=CS_DB.getConfig();const hsMin=Number(cfg.alertaHSMinimo)||50;const diasMin=Number(cfg.alertaDiasSemContato)||30;const clientes=CS_DB.getClientes();const reunioes=CS_DB.getReunioesAll?CS_DB.getReunioesAll():[];const now=new Date();const alertas=[];for(const c of clientes){const reu=reunioes.filter(r=>r.clienteId===c.id);const ult=reu.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];if(ult){const dias=Math.floor((now-new Date(ult.dataISO))/86400000);if(dias>=diasMin)alertas.push({tipo:'sem_contato',empresa:c.empresa,dias})}if(c.healthScore<hsMin)alertas.push({tipo:'hs_baixo',empresa:c.empresa,hs:c.healthScore})}if(!alertas.length){toast('Nenhum alerta ativo no momento.');return}try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sistema:'CS Manager v3 — Creare Sistemas',gerado_em:new Date().toISOString(),total_alertas:alertas.length,alertas})});toast(`Webhook disparado — ${alertas.length} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 
 // ═══ LOGIN ═══
 function doLogin(){
@@ -3450,6 +3470,10 @@ function renderCliente360(){
           </div>`).join(''):'<div style="color:var(--gray2);padding:10px 0">Sem atividade registrada.</div>'}
         </div>
       </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução do Health Score <span class="sub" id="c360HsSubtitle"></span></div>
+      <div class="chart-wrap" style="height:150px"><canvas id="c360HsChart"></canvas></div>
     </div>`;
 
   setTimeout(()=>{
@@ -3457,6 +3481,17 @@ function renderCliente360(){
     if(ctx){
       const npsOrdenado=nps.slice().reverse();
       new Chart(ctx,{type:'line',data:{labels:npsOrdenado.map(n=>n.data),datasets:[{data:npsOrdenado.map(n=>n.nota),borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.3,fill:true,borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}}},x:{ticks:{color:'var(--gray3)',font:{size:9}}}}}});
+    }
+    // Gráfico evolução Health Score
+    const hist=CS_DB.getHsHistorico(cid);
+    const ctx2=document.getElementById('c360HsChart')?.getContext('2d');
+    const sub=document.getElementById('c360HsSubtitle');
+    if(sub)sub.textContent=hist.length?`${hist.length} registro(s)`:'sem histórico ainda';
+    if(ctx2){
+      if(!hist.length){ctx2.canvas.parentElement.innerHTML='<div style="color:var(--gray3);font-size:12px;padding:20px 0;text-align:center">Histórico registrado automaticamente a cada atualização do cliente.</div>';return}
+      const labels=hist.map(h=>new Date(h.registrado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
+      const scores=hist.map(h=>h.score);
+      new Chart(ctx2,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>' HS: '+ctx.parsed.y}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
     }
   },80);
 }

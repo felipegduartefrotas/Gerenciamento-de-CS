@@ -1,4 +1,6 @@
 const express = require('express');
+const https = require('https');
+const http = require('http');
 const pool = require('../db/pool');
 const { autenticar } = require('../middleware/auth');
 
@@ -153,6 +155,69 @@ router.post('/:id/dismiss', async (req, res) => {
     [req.params.id]
   );
   res.json({ ok: true });
+});
+
+// Dispara os alertas ativos para o webhook configurado em "webhookUrl"
+router.post('/disparar-webhook', async (req, res) => {
+  const { rows: cfgRows } = await pool.query(
+    "SELECT valor FROM configuracoes WHERE chave = 'webhookUrl'"
+  );
+  const webhookUrl = cfgRows[0]?.valor?.replace(/^"|"$/g, '') || '';
+  if (!webhookUrl) return res.status(400).json({ erro: 'Webhook URL não configurada.' });
+
+  // Reutiliza a lógica de listagem de alertas (chama o próprio endpoint internamente)
+  // mas aqui fazemos direto para não duplicar código
+  const { rows: cfg } = await pool.query('SELECT chave, valor FROM configuracoes');
+  const c = {};
+  cfg.forEach(r => { c[r.chave] = r.valor; });
+  const diasSemContato = Number(c.alertaDiasSemContato) || 30;
+  const hsMinimo = Number(c.alertaHSMinimo) || 50;
+
+  const clientesRes = await pool.query(
+    `SELECT c.id, c.empresa, c.health_score, c.status,
+            MAX(r.data_iso) AS ultima_reuniao
+     FROM clientes c
+     LEFT JOIN reunioes r ON r.cliente_id = c.id
+     GROUP BY c.id`
+  );
+  const now = new Date();
+  const alertas = [];
+  for (const cl of clientesRes.rows) {
+    if (cl.ultima_reuniao) {
+      const dias = Math.floor((now - new Date(cl.ultima_reuniao)) / 86400000);
+      if (dias >= diasSemContato)
+        alertas.push({ tipo: 'sem_contato', empresa: cl.empresa, dias });
+    }
+    if (cl.health_score < hsMinimo)
+      alertas.push({ tipo: 'hs_baixo', empresa: cl.empresa, hs: cl.health_score });
+  }
+
+  if (!alertas.length) return res.json({ ok: true, enviados: 0 });
+
+  const payload = JSON.stringify({
+    sistema: 'CS Manager — Creare Sistemas',
+    gerado_em: new Date().toISOString(),
+    total_alertas: alertas.length,
+    alertas,
+  });
+
+  try {
+    const url = new URL(webhookUrl);
+    const mod = url.protocol === 'https:' ? https : http;
+    await new Promise((resolve, reject) => {
+      const req2 = mod.request(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+      }, r2 => { r2.resume(); resolve(); });
+      req2.on('error', reject);
+      req2.write(payload);
+      req2.end();
+    });
+    res.json({ ok: true, enviados: alertas.length });
+  } catch (e) {
+    console.error('Webhook error:', e.message);
+    res.status(502).json({ erro: 'Falha ao enviar para o webhook: ' + e.message });
+  }
 });
 
 module.exports = router;
