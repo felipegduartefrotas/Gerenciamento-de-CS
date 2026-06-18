@@ -1057,6 +1057,16 @@ tr:hover td{background:#fafafa}
     <button class="btn-primary" onclick="openM('mNovoOnboarding')"><i class="ti ti-plus"></i>Iniciar Onboarding</button>
   </div>
   <div class="kpi-grid" id="obKPIs"></div>
+  <div class="two-col" style="margin-bottom:14px" id="obChartSection">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-ttl"><i class="ti ti-chart-donut"></i>Status dos onboardings</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="obStatusChart"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-ttl"><i class="ti ti-chart-bar"></i>Atingimento por cliente <span class="sub">meta: 100% das etapas</span></div>
+      <div class="chart-wrap" style="height:180px"><canvas id="obProgressChart"></canvas></div>
+    </div>
+  </div>
   <div class="tbl-card">
     <div class="tbl-head">
       <div class="tbl-head-ttl"><i class="ti ti-rocket"></i>Clientes em Implantação</div>
@@ -2754,7 +2764,12 @@ function renderNPSCliente(){
     if(ctx){
       if(ctx.canvas._chartInstance)ctx.canvas._chartInstance.destroy();
       const ordenado=npsCli.slice().reverse();
-      ctx.canvas._chartInstance=new Chart(ctx,{type:'line',data:{labels:ordenado.map(n=>n.data),datasets:[{data:ordenado.map(n=>n.nota),borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.3,fill:true,borderWidth:2,pointRadius:4,pointBackgroundColor:'var(--red)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}}},x:{ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+      ctx.canvas._chartInstance=new Chart(ctx,{type:'line',data:{labels:ordenado.map(n=>n.data),datasets:[
+        {label:'Nota',data:ordenado.map(n=>n.nota),borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.3,fill:true,borderWidth:2,pointRadius:4,pointBackgroundColor:'var(--red)',pointBorderColor:'#fff',pointBorderWidth:2},
+        {label:'Meta (9)',data:ordenado.map(()=>9),borderColor:'rgba(100,100,100,0.5)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
+      ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeInOutQuart'},
+        plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:10}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},
+        scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
     }
   },80);
 }
@@ -2892,7 +2907,13 @@ function renderNPSChart(period,btn){
   const c=document.getElementById('npsChart')?.getContext('2d');if(!c)return;
   const d=_CPD.nps[period]||_CPD.nps['6m'];
   const g=c.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(209,0,0,0.22)');g.addColorStop(1,'rgba(209,0,0,0)');
-  _npsChartInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[{label:'NPS',data:d.data,borderColor:'#D10000',backgroundColor:g,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+  const meta=d.labels.map(()=>80);
+  _npsChartInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[
+    {label:'NPS Creare',data:d.data,borderColor:'#D10000',backgroundColor:g,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},
+    {label:'Meta (80)',data:meta,borderColor:'rgba(100,100,100,0.5)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},
+    plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:10}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},
+    scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
 }
 
 function renderMRRBar(period,btn){
@@ -2910,7 +2931,13 @@ function renderNPSEvol(period,btn){
   const c=document.getElementById('npsEvolChart')?.getContext('2d');if(!c)return;
   const d=_CPD.nps[period]||_CPD.nps['6m'];
   const ge=c.createLinearGradient(0,0,0,160);ge.addColorStop(0,'rgba(209,0,0,0.2)');ge.addColorStop(1,'rgba(209,0,0,0)');
-  _npsEvolInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[{label:'NPS',data:d.data,borderColor:'#D10000',backgroundColor:ge,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+  const meta=d.labels.map(()=>80);
+  _npsEvolInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[
+    {label:'NPS Creare',data:d.data,borderColor:'#D10000',backgroundColor:ge,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},
+    {label:'Meta (80)',data:meta,borderColor:'rgba(100,100,100,0.5)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},
+    plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:10}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},
+    scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
 }
 
 let execDone=false;
@@ -3365,6 +3392,52 @@ function renderOnboarding() {
     <div class="kpi blue"><div class="kpi-lbl">Em andamento</div><div class="kpi-val">${emAnd}</div></div>
     <div class="kpi green"><div class="kpi-lbl">Concluídos</div><div class="kpi-val">${conc}</div></div>
     <div class="kpi red"><div class="kpi-lbl">Atrasados</div><div class="kpi-val" style="color:var(--red)">${atras}</div></div>`;
+
+  // ── Charts
+  const naoIni = obs.filter(o => o.status === 'nao-iniciado').length;
+  const emAndOk = Math.max(0, emAnd - atras);
+  setTimeout(() => {
+    const sc = document.getElementById('obStatusChart')?.getContext('2d');
+    if (sc) {
+      if (sc.canvas._ci) { sc.canvas._ci.destroy(); sc.canvas._ci = null; }
+      sc.canvas._ci = new Chart(sc, {
+        type: 'doughnut',
+        data: { labels: ['Concluído','Em andamento','Atrasado','Não iniciado'],
+          datasets: [{ data: [conc, emAndOk, atras, naoIni],
+            backgroundColor: ['#1d9e75','#1a6fdb','#D10000','#9E9E9E'],
+            borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          animation: { duration: 700, easing: 'easeInOutBack' }, cutout: '62%',
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 10 }, color: 'var(--gray2)', boxWidth: 10, usePointStyle: true, padding: 8 } },
+            tooltip: { backgroundColor: 'rgba(17,17,17,.85)', cornerRadius: 7, padding: 9 } } }
+      });
+    }
+    const pc = document.getElementById('obProgressChart')?.getContext('2d');
+    if (pc) {
+      if (pc.canvas._ci) { pc.canvas._ci.destroy(); pc.canvas._ci = null; }
+      const ativos = obs.filter(o => o.status === 'em-andamento' || o.status === 'concluido');
+      if (ativos.length) {
+        const pcts = ativos.map(o => calcObPct(o));
+        const nomes = ativos.map(o => o.empresa.split(' ').slice(0,2).join(' '));
+        pc.canvas._ci = new Chart(pc, {
+          type: 'bar',
+          data: { labels: nomes, datasets: [
+            { label: 'Concluído', data: pcts, backgroundColor: pcts.map(p => p >= 100 ? '#1d9e75' : p >= 60 ? '#1a6fdb' : '#e0880a'), borderRadius: [4,0,0,4], borderSkipped: false },
+            { label: 'Restante',  data: pcts.map(p => Math.max(0, 100-p)), backgroundColor: 'rgba(0,0,0,0.07)', borderRadius: [0,4,4,0], borderSkipped: false }
+          ]},
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            animation: { duration: 700, easing: 'easeInOutQuart' },
+            plugins: { legend: { display: false },
+              tooltip: { backgroundColor: 'rgba(17,17,17,.85)', cornerRadius: 7, padding: 9,
+                callbacks: { label: ctx => ctx.datasetIndex === 0 ? ctx.parsed.x.toFixed(0) + '% concluído' : '' } } },
+            scales: {
+              x: { stacked: true, max: 100, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: 'var(--gray3)', font: { size: 10 }, callback: v => v + '%' } },
+              y: { stacked: true, grid: { display: false }, ticks: { color: 'var(--gray3)', font: { size: 10 } } } } }
+        });
+      }
+    }
+  }, 80);
 
   const lista = document.getElementById('obList');
   if (!lista) return;
