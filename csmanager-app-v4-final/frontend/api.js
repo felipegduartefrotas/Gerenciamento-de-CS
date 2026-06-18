@@ -15,7 +15,7 @@ const API_BASE = (window.CSM_API_BASE || '/api');
 
 const CS_DB = {
   VERSION: '4.0-api',
-  _cache: { clientes: [], reunioes: [], acoes: [], nps: [], timeline: {}, alertas: [], config: {} },
+  _cache: { clientes: [], reunioes: [], acoes: [], nps: [], timeline: {}, alertas: [], config: {}, grupos: [] },
   _token: null,
   _usuario: null,
 
@@ -64,18 +64,20 @@ const CS_DB = {
 
   // ── carregamento inicial (popula o cache de uma vez) ─────
   async carregarTudo() {
-    const [clientes, reunioes, acoes, nps, alertas] = await Promise.all([
+    const [clientes, reunioes, acoes, nps, alertas, grupos] = await Promise.all([
       this._fetch('/clientes'),
       this._fetch('/reunioes'),
       this._fetch('/acoes'),
       this._fetch('/nps'),
       this._fetch('/alertas'),
+      this._fetch('/grupos'),
     ]);
     this._cache.clientes = clientes.map(this._normalizarCliente);
     this._cache.reunioes = reunioes.map(this._normalizarReuniao);
     this._cache.acoes = acoes.map(this._normalizarAcao);
     this._cache.nps = nps.map(this._normalizarNps);
     this._cache.alertas = alertas;
+    this._cache.grupos = grupos;
     // Chaves de armazenamento genérico usadas por módulos ainda não totalmente migrados
     await Promise.all([
       this._carregarKv('onboardings'),
@@ -90,6 +92,7 @@ const CS_DB = {
   _normalizarCliente(c) {
     return {
       id: c.id, empresa: c.empresa, nomeFantasia: c.nome_fantasia, cnpj: c.cnpj,
+      grupoId: c.grupo_id, tipoNoGrupo: c.tipo_no_grupo,
       naturezaJuridica: c.natureza_juridica, porte: c.porte, situacaoRF: c.situacao_rf,
       dataAbertura: c.data_abertura, cnae: c.cnae, segmento: c.segmento,
       logradouro: c.logradouro, numero: c.numero, complemento: c.complemento, bairro: c.bairro,
@@ -133,6 +136,7 @@ const CS_DB = {
       mrr: c.mrr, veiculos: c.veiculos, inicio: c.inicio, data_assinatura: c.dataAssinatura,
       vigencia: c.vigencia, produtos: c.produtos, health_score: c.healthScore,
       data_renovacao: c.dataRenovacao || null, renovacao: c.renovacao,
+      grupo_id: c.grupoId || null, tipo_no_grupo: c.tipoNoGrupo || null,
     };
   },
   _normalizarReuniao(r) {
@@ -326,6 +330,28 @@ const CS_DB = {
     if (idx >= 0) this._cache.clientes[idx] = this._normalizarCliente(c);
   },
   async _recalcHS(cid) { await this._atualizarClienteNoCache(cid); }, // compat: recálculo já é feito no backend
+
+  // ── GRUPOS ECONÔMICOS ─────────────────────────────────────
+  getGrupos() { return this._cache.grupos; },
+  getGrupoById(id) { return this._cache.grupos.find(g => g.id === id) || null; },
+  async getGrupoDetalhe(id) { return this._fetch(`/grupos/${id}`); },
+  async saveGrupo(g) {
+    let salvo;
+    if (!g.id) {
+      salvo = await this._fetch('/grupos', { method: 'POST', body: JSON.stringify(g) });
+      this._cache.grupos.push(salvo);
+    } else {
+      salvo = await this._fetch(`/grupos/${g.id}`, { method: 'PUT', body: JSON.stringify(g) });
+      const idx = this._cache.grupos.findIndex(x => x.id === g.id);
+      if (idx >= 0) this._cache.grupos[idx] = salvo; else this._cache.grupos.push(salvo);
+    }
+    return salvo;
+  },
+  async deleteGrupo(id) {
+    await this._fetch(`/grupos/${id}`, { method: 'DELETE' });
+    this._cache.grupos = this._cache.grupos.filter(g => g.id !== id);
+    this._cache.clientes.forEach(c => { if (c.grupoId === id) { c.grupoId = null; c.tipoNoGrupo = null; } });
+  },
 
   // ── CONFIG ────────────────────────────────────────────────
   getConfig() { return this._cache.config; },

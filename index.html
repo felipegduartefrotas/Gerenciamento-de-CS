@@ -47,6 +47,31 @@ body{font-family:'Inter',sans-serif;font-size:13px;color:var(--black);background
 .sb-brand{color:#fff;font-size:14.5px;font-weight:700;letter-spacing:.2px;line-height:1.1}
 .sb-sub{color:rgba(255,255,255,.28);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
 .sb-dev{color:rgba(255,255,255,.22);font-size:8px;letter-spacing:1px;text-transform:uppercase;margin-top:5px;align-self:flex-end}
+
+/* GRUPOS ECONÔMICOS */
+.grupo-card{background:var(--white);border:1px solid var(--gray4);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.grupo-card-header{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:background .15s}
+.grupo-card-header:hover{background:var(--gray5)}
+.grupo-card-header.open{border-bottom-color:var(--gray4)}
+.grupo-chevron{margin-left:auto;color:var(--gray3);font-size:14px;transition:transform .2s}
+.grupo-chevron.open{transform:rotate(180deg)}
+.grupo-nome{font-size:14px;font-weight:600;color:var(--black)}
+.grupo-desc{font-size:11.5px;color:var(--gray2);margin-top:2px}
+.grupo-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 16px;background:var(--gray5);border-bottom:1px solid var(--gray4)}
+.grupo-kpi-lbl{font-size:10px;color:var(--gray2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.grupo-kpi-val{font-size:18px;font-weight:700;color:var(--black)}
+.grupo-kpi-sub{font-size:10.5px;color:var(--gray3);margin-top:2px}
+.grupo-body{padding:14px 16px;display:none}
+.grupo-body.open{display:block}
+.grupo-member{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--gray5);margin-bottom:7px;border:1px solid var(--gray4)}
+.grupo-member.is-matriz{background:var(--redl);border-color:var(--redb)}
+.grupo-member-nome{font-size:12.5px;font-weight:500;color:var(--black);flex:1;cursor:pointer}
+.grupo-member-nome:hover{color:var(--red);text-decoration:underline}
+.gb{display:inline-flex;align-items:center;padding:2px 8px;border-radius:9px;font-size:10px;font-weight:700;flex-shrink:0}
+.gb-matriz{background:var(--red);color:#fff}
+.gb-filial{background:var(--gray4);color:var(--gray)}
+.gb-sem{background:var(--gray5);color:var(--gray3);border:1px solid var(--gray4)}
+.grupo-alerts{margin-top:10px;border-top:1px solid var(--gray4);padding-top:10px}
 .nav-sec{padding:13px 0 3px 15px;color:rgba(255,255,255,.2);font-size:9px;letter-spacing:1.5px;text-transform:uppercase}
 .nav-item{display:flex;align-items:center;gap:9px;padding:8px 15px;color:rgba(255,255,255,.5);cursor:pointer;font-size:12.5px;border-left:3px solid transparent;transition:all .15s;position:relative}
 .nav-item:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.05)}
@@ -457,6 +482,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="alertas" onclick="nav(this,'alertas')"><i class="ti ti-bell"></i>Alertas<span class="nav-badge" id="nbAlertas">0</span></div>
     <div class="nav-sec">Gestão de Contas</div>
     <div class="nav-item" data-p="cliente360" onclick="nav(this,'cliente360')"><i class="ti ti-user-circle"></i>Dashboard do Cliente</div>
+    <div class="nav-item" data-p="grupos" onclick="nav(this,'grupos')"><i class="ti ti-building-community"></i>Grupos Econômicos</div>
     <div class="nav-item" data-p="onboarding" onclick="nav(this,'onboarding')"><i class="ti ti-rocket"></i>Onboarding</div>
     <div class="nav-item" data-p="churn" onclick="nav(this,'churn')"><i class="ti ti-trending-down"></i>Controle de Churn</div>
     <div class="nav-item" data-p="engajamento" onclick="nav(this,'engajamento')"><i class="ti ti-activity"></i>Engajamento</div>
@@ -583,6 +609,11 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>Telefone / WhatsApp</label><input type="text" id="fContTel" placeholder="(00) 00000-0000"></div>
       <div class="fg"><label>Responsável CS <span class="req">*</span></label><select id="fRespCS"><option>Felipe Duarte</option><option>Ana Lima</option><option>Pedro Costa</option></select></div>
       <div class="fg"><label>Responsável Comercial</label><input type="text" id="fRespCom" placeholder="Nome do vendedor"></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:var(--black);margin-bottom:12px;margin-top:4px;display:flex;align-items:center;gap:7px"><i class="ti ti-building-community" style="color:var(--red)"></i>Grupo Econômico</div>
+    <div class="form-g2" style="margin-bottom:10px">
+      <div class="fg"><label>Grupo Econômico</label><select id="fGrupo"><option value="">— Nenhum —</option></select></div>
+      <div class="fg"><label>Tipo no Grupo</label><select id="fTipoGrupo"><option value="">— Não se aplica —</option><option value="matriz">Matriz</option><option value="filial">Filial</option></select></div>
     </div>
     <div style="font-size:13px;font-weight:600;color:var(--black);margin-bottom:12px;display:flex;align-items:center;gap:7px"><i class="ti ti-contract" style="color:var(--red)"></i>Dados contratuais</div>
     <div class="form-g2">
@@ -894,6 +925,11 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>Responsável CS</label><select id="eRespCS"><option>Felipe Duarte</option><option>Ana Lima</option><option>Pedro Costa</option></select></div>
       <div class="fg"><label>Responsável Comercial</label><input type="text" id="eRespCom"></div>
     </div>
+    <div class="sec-div"><i class="ti ti-building-community"></i>Grupo Econômico</div>
+    <div class="form-g2">
+      <div class="fg"><label>Grupo Econômico</label><select id="eGrupo"><option value="">— Nenhum —</option></select></div>
+      <div class="fg"><label>Tipo no Grupo</label><select id="eTipoGrupo"><option value="">— Não se aplica —</option><option value="matriz">Matriz</option><option value="filial">Filial</option></select></div>
+    </div>
     <div class="sec-div"><i class="ti ti-contract"></i>Contrato</div>
     <div class="form-g2">
       <div class="fg"><label>Tier</label><select id="eTier"><option value="">—</option><option>A</option><option>B</option><option>C</option></select></div>
@@ -1024,6 +1060,15 @@ tr:hover td{background:#fafafa}
   <div id="c360Content"></div>
 </div>
 
+<!-- GRUPOS ECONÔMICOS -->
+<div class="page" id="page-grupos">
+  <div class="ph">
+    <h2><i class="ti ti-building-community"></i>Grupos Econômicos</h2>
+    <button class="btn-primary" onclick="openM('mGrupo')"><i class="ti ti-plus"></i>Novo Grupo</button>
+  </div>
+  <div id="gruposListWrap"></div>
+</div>
+
 <!-- RELATÓRIOS -->
 <div class="page" id="page-relatorios">
   <div class="ph"><h2><i class="ti ti-file-report"></i>Relatórios</h2></div>
@@ -1063,6 +1108,20 @@ tr:hover td{background:#fafafa}
 
 <!-- TOAST -->
 <div class="toast-wrap" id="toastWrap"></div>
+<!-- MODAL GRUPO ECONÔMICO -->
+<div class="modal-ov" id="mGrupo">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-ttl"><span><i class="ti ti-building-community"></i><span id="mGrupoTitulo">Novo Grupo Econômico</span></span><span class="modal-close" onclick="closeM('mGrupo')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="mGrupoId">
+    <div class="fg"><label>Nome do Grupo <span class="req">*</span></label><input type="text" id="mGrupoNome" placeholder="Ex: GRUPO VALE S.A."></div>
+    <div class="fg"><label>Descrição</label><textarea id="mGrupoDesc" placeholder="Observações sobre o grupo (segmento, estratégia...)" style="min-height:70px"></textarea></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mGrupo')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarGrupo()"><i class="ti ti-device-floppy"></i>Salvar Grupo</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL REUNIÃO -->
 <div class="modal-ov" id="mReuniao">
   <div class="modal">
@@ -1306,7 +1365,7 @@ tr:hover td{background:#fafafa}
 </div>
 <script>
 // ═══ STORAGE ENGINE EMBUTIDO ═══
-const CS_DB={VERSION:'2.0',PREFIX:'creare_cs_',KEYS:{clientes:'creare_cs_clientes',reunioes:'creare_cs_reunioes',acoes:'creare_cs_acoes',nps:'creare_cs_nps',timeline:'creare_cs_timeline',alertas:'creare_cs_alertas',config:'creare_cs_config',session:'creare_cs_session',meta:'creare_cs_meta'},
+const CS_DB={VERSION:'2.0',PREFIX:'creare_cs_',KEYS:{clientes:'creare_cs_clientes',reunioes:'creare_cs_reunioes',acoes:'creare_cs_acoes',nps:'creare_cs_nps',timeline:'creare_cs_timeline',alertas:'creare_cs_alertas',config:'creare_cs_config',session:'creare_cs_session',meta:'creare_cs_meta',grupos:'creare_cs_grupos'},
 init(){const m=this.get('meta');if(!m||m.version!==this.VERSION){this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})}else this.set('meta',{...m,lastUpdated:new Date().toISOString()})},
 get(k){try{const r=localStorage.getItem(this.KEYS[k]||k);return r?JSON.parse(r):null}catch{return null}},
 set(k,d){try{localStorage.setItem(this.KEYS[k]||k,JSON.stringify(d));return true}catch(e){return false}},
@@ -1356,6 +1415,10 @@ clearSession(){this.remove('session')},
 getConfig(){return this.get('config')||{alertaDiasSemContato:30,alertaHSMinimo:50,alertaNPSMinimo:20,alertaDiasRenovacao:60}},
 saveConfig(c){this.set('config',c)},
 getStats(){const cl=this.get('clientes')||[],re=this.get('reunioes')||[],ac=this.get('acoes')||[],np=this.get('nps')||[],now=new Date();return{totalClientes:cl.length,clientesAtivos:cl.filter(c=>c.status==='Ativo').length,clientesRisco:cl.filter(c=>c.status==='Em Risco').length,hsMedia:cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):0,reunioesTotal:re.length,acoesTotal:ac.length,acoesConcluidas:ac.filter(a=>a.status==='Concluído').length,acoesAtrasadas:ac.filter(a=>a.status!=='Concluído'&&a.prazoISO&&new Date(a.prazoISO)<now).length,npsTotal:np.length,npsMedia:np.length?this.calcNPS(np).score:null}},
+getGrupos(){return this.get('grupos')||[]},
+getGrupoById(id){return(this.get('grupos')||[]).find(g=>g.id===id)||null},
+saveGrupo(g){const l=this.get('grupos')||[];if(!g.id){g.id='grp_'+Date.now();g.criadoEm=new Date().toISOString();g.nome=g.nome.toUpperCase();l.push(g)}else{const i=l.findIndex(x=>x.id===g.id);g.nome=g.nome.toUpperCase();if(i>=0)l[i]=g;else l.push(g)}this.set('grupos',l);return g},
+deleteGrupo(id){this.set('grupos',(this.get('grupos')||[]).filter(g=>g.id!==id));const cl=this.get('clientes')||[];cl.forEach(c=>{if(c.grupoId===id){c.grupoId=null;c.tipoNoGrupo=null}});this.set('clientes',cl)},
 exportarTudo(){const b={};Object.entries(this.KEYS).forEach(([k,key])=>{b[k]=localStorage.getItem(key)});const bl=new Blob([JSON.stringify(b,null,2)],{type:'application/json'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download=`csmanager_backup_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;a.click();URL.revokeObjectURL(u)},
 importarBackup(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);Object.entries(this.KEYS).forEach(([k,key])=>{if(d[k])localStorage.setItem(key,d[k])});res('Backup restaurado!')}catch{rej('Arquivo inválido.')}};r.readAsText(f)})},
 resetar(){Object.values(this.KEYS).forEach(k=>localStorage.removeItem(k));this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})},
@@ -1420,8 +1483,8 @@ function hsColor(n){return n>=70?'var(--green)':n>=40?'var(--yellow)':'var(--red
 function tierB(t){return{A:'tier-a',B:'tier-b',C:'tier-c'}[t]||'tier-c'}
 function npsGrupo(n){return n>=9?{g:'Promotor',c:'var(--green)',bg:'var(--gbg)'}:n>=7?{g:'Neutro',c:'var(--yellow)',bg:'var(--ybg)'}:{g:'Detrator',c:'var(--red)',bg:'var(--redl)'}}
 function npsColor(n){return n>=50?'var(--green)':n>=0?'var(--blue)':'var(--red)'}
-const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',relatorios:'Relatórios'};
-const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',relatorios:'ti-file-report'};
+const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
+const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
 
 // ═══ NAV ═══
 function nav(el,p){
@@ -1442,6 +1505,7 @@ function nav(el,p){
   if(p==='churn')renderChurn();
   if(p==='engajamento'){populateEngSelect();renderEngajamento();}
   if(p==='cliente360'){populateC360Select();renderCliente360();}
+  if(p==='grupos')renderGrupos();
   if(p==='relatorios')populateRelatoriosSelects();
 }
 function openM(id){
@@ -1585,7 +1649,9 @@ function salvarCliente(){
   const c=document.getElementById('fCNPJ').value.trim();
   if(!r||!c){toast('Preencha Razão Social e CNPJ.','err');return}
   const obsInicial=document.getElementById('fObs').value.trim();
-  const cli={empresa:r,cnpj:c,nomeFantasia:document.getElementById('fFantasia').value,naturezaJuridica:document.getElementById('fNatJur').value,porte:document.getElementById('fPorte').value,situacaoRF:document.getElementById('fSit').value,dataAbertura:document.getElementById('fAbert').value,cnae:document.getElementById('fCNAE').value,segmento:document.getElementById('fSeg').value,logradouro:document.getElementById('fLogr').value,numero:document.getElementById('fNum').value,complemento:document.getElementById('fComp').value,bairro:document.getElementById('fBairro').value,cidade:document.getElementById('fCidade').value,uf:document.getElementById('fUF').value,regiao:document.getElementById('fRegiao').value,contato:document.getElementById('fContNome').value,cargo:document.getElementById('fContCargo').value||'',email:document.getElementById('fContEmail').value,telefone:document.getElementById('fContTel').value,responsavelCS:document.getElementById('fRespCS').value,responsavelComercial:document.getElementById('fRespCom').value,tier:document.getElementById('fTier').value,status:document.getElementById('fStatus').value,mensalidadePorVeiculo:document.getElementById('fMensalidade').value,taxaAdesaoPorVeiculo:document.getElementById('fAdesao').value,mrr:document.getElementById('fMRR').value,vigencia:document.getElementById('fVig').value+' meses',inicio:document.getElementById('fInic').value,dataAssinatura:document.getElementById('fInic').value,veiculos:document.getElementById('fVeic').value,produtos:document.getElementById('fProd').value,healthScore:70};
+  const grupoId=document.getElementById('fGrupo')?.value||null;
+  const tipoNoGrupo=document.getElementById('fTipoGrupo')?.value||null;
+  const cli={empresa:r,cnpj:c,nomeFantasia:document.getElementById('fFantasia').value,naturezaJuridica:document.getElementById('fNatJur').value,porte:document.getElementById('fPorte').value,situacaoRF:document.getElementById('fSit').value,dataAbertura:document.getElementById('fAbert').value,cnae:document.getElementById('fCNAE').value,segmento:document.getElementById('fSeg').value,logradouro:document.getElementById('fLogr').value,numero:document.getElementById('fNum').value,complemento:document.getElementById('fComp').value,bairro:document.getElementById('fBairro').value,cidade:document.getElementById('fCidade').value,uf:document.getElementById('fUF').value,regiao:document.getElementById('fRegiao').value,contato:document.getElementById('fContNome').value,cargo:document.getElementById('fContCargo').value||'',email:document.getElementById('fContEmail').value,telefone:document.getElementById('fContTel').value,responsavelCS:document.getElementById('fRespCS').value,responsavelComercial:document.getElementById('fRespCom').value,tier:document.getElementById('fTier').value,status:document.getElementById('fStatus').value,mensalidadePorVeiculo:document.getElementById('fMensalidade').value,taxaAdesaoPorVeiculo:document.getElementById('fAdesao').value,mrr:document.getElementById('fMRR').value,vigencia:document.getElementById('fVig').value+' meses',inicio:document.getElementById('fInic').value,dataAssinatura:document.getElementById('fInic').value,veiculos:document.getElementById('fVeic').value,produtos:document.getElementById('fProd').value,healthScore:70,grupoId:grupoId||undefined,tipoNoGrupo:tipoNoGrupo||undefined};
   CS_DB.saveCliente(cli);
   CS_DB._addTimeline(cli.id,'sistema','Cliente cadastrado',`Cadastro inicial criado por ${CS_DB.getSession()?.nome||'Felipe Duarte'}. MRR calculado: ${cli.mrr||'—'}.`);
   if(obsInicial)CS_DB._addTimeline(cli.id,'comentario','Observação registrada',obsInicial);
@@ -1594,7 +1660,7 @@ function salvarCliente(){
   limparCadastro();
   nav(document.querySelector('[data-p=clientes]'),'clientes');
 }
-function limparCadastro(){['fCNPJ','fRazao','fFantasia','fNatJur','fSit','fAbert','fCNAE','fLogr','fNum','fComp','fBairro','fCidade','fRegiao','fContNome','fContCargo','fContEmail','fContTel','fRespCom','fMensalidade','fAdesao','fMRR','fVig','fInic','fVeic','fProd','fObs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});['fPorte','fSeg','fUF','fTier','fStatus','fRespCS'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0});document.getElementById('fMRRFormulaWrap').style.display='none';document.getElementById('cnpjResult').style.display='none';['cnpjLoad','cnpjErr','cepLoad','cepErr','cepOk'].forEach(id=>sd(id,false));document.getElementById('mapF').style.display='none';document.getElementById('mapPH').style.display='flex';document.getElementById('mapInfo').style.display='none';document.getElementById('mapF').src=''}
+function limparCadastro(){['fCNPJ','fRazao','fFantasia','fNatJur','fSit','fAbert','fCNAE','fLogr','fNum','fComp','fBairro','fCidade','fRegiao','fContNome','fContCargo','fContEmail','fContTel','fRespCom','fMensalidade','fAdesao','fMRR','fVig','fInic','fVeic','fProd','fObs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});['fPorte','fSeg','fUF','fTier','fStatus','fRespCS','fGrupo','fTipoGrupo'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0});document.getElementById('fMRRFormulaWrap').style.display='none';document.getElementById('cnpjResult').style.display='none';['cnpjLoad','cnpjErr','cepLoad','cepErr','cepOk'].forEach(id=>sd(id,false));document.getElementById('mapF').style.display='none';document.getElementById('mapPH').style.display='flex';document.getElementById('mapInfo').style.display='none';document.getElementById('mapF').src=''}
 
 // ═══ REUNIÕES ═══
 function populateReuniaoSelect(){const s=document.getElementById('rCliente');if(!s)return;const cl=CS_DB.getClientes();s.innerHTML=cl.map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');resetParticipantes()}
@@ -2675,7 +2741,7 @@ function initApp(){
   CS_DB.init();
   seedOnboardingsIfEmpty();
   renderDashboard();renderClientes();renderReunioes();renderKanban();renderAlertas();
-  buildRatings();populateTlSelect();populateObSelect();populateEngSelect();
+  buildRatings();populateTlSelect();populateObSelect();populateEngSelect();populateGrupoSelect();
   document.getElementById('rData').value=new Date().toLocaleDateString('pt-BR');
   const nd=document.getElementById('npsDataInput');if(nd)nd.value=new Date().toLocaleDateString('pt-BR');
   updateStatusBar();
@@ -2725,6 +2791,10 @@ function abrirEditar(id) {
       for (let opt of el.options) { if (opt.value === c[key] || opt.text === c[key]) { opt.selected = true; break; } }
     }
   });
+  const eGrupoEl=document.getElementById('eGrupo');
+  if(eGrupoEl){const grupos=CS_DB.getGrupos();eGrupoEl.innerHTML='<option value="">— Nenhum —</option>'+grupos.map(g=>`<option value="${g.id}"${c.grupoId===g.id?' selected':''}>${g.nome}</option>`).join('')}
+  const eTipoGrupoEl=document.getElementById('eTipoGrupo');
+  if(eTipoGrupoEl&&c.tipoNoGrupo){for(let opt of eTipoGrupoEl.options){if(opt.value===c.tipoNoGrupo){opt.selected=true;break}}}
   document.getElementById('eCNPJOriginal')?.remove();
   const hiddenOrig=document.createElement('input');
   hiddenOrig.type='hidden';hiddenOrig.id='eCNPJOriginal';hiddenOrig.value=c.cnpj||'';
@@ -2795,6 +2865,9 @@ function salvarEdicao() {
   c.produtos           = document.getElementById('eProdutos').value;
   c.responsavelCS      = document.getElementById('eRespCS').value;
   c.responsavelComercial = document.getElementById('eRespCom').value;
+  const eGrupoV=document.getElementById('eGrupo');const eTipoGrupoV=document.getElementById('eTipoGrupo');
+  if(eGrupoV)c.grupoId=eGrupoV.value||null;
+  if(eTipoGrupoV)c.tipoNoGrupo=eTipoGrupoV.value||null;
   if (!c.empresa) { toast('Razão Social é obrigatória.', 'err'); return; }
 
   const novaObs = document.getElementById('eObs').value.trim();
@@ -3643,6 +3716,66 @@ function initEngCharts(reu, nps) {
 }
 
 window.CS_DB=CS_DB;
+// ═══ GRUPOS ECONÔMICOS (v3 localStorage) ═══
+function populateGrupoSelect(){
+  const grupos=CS_DB.getGrupos();
+  ['fGrupo','eGrupo'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const val=el.value;
+    el.innerHTML='<option value="">— Nenhum —</option>'+grupos.map(g=>`<option value="${g.id}">${g.nome}</option>`).join('');
+    el.value=val;
+  });
+}
+function renderGrupos(){
+  const grupos=CS_DB.getGrupos();
+  const wrap=document.getElementById('gruposListWrap');
+  if(!grupos.length){wrap.innerHTML=`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-building-community" style="font-size:36px;display:block;margin-bottom:12px;color:var(--gray4)"></i><div style="font-size:14px;font-weight:500">Nenhum grupo econômico cadastrado</div><div style="font-size:12px;margin-top:6px">Clique em "Novo Grupo" para começar.</div></div>`;return;}
+  wrap.innerHTML=grupos.map(g=>{
+    const membros=CS_DB.getClientes().filter(c=>c.grupoId===g.id);
+    const mrrTotal=membros.reduce((s,c)=>s+((parseFloat(c.mensalidadePorVeiculo)||0)*(parseFloat(c.veiculos)||0)),0);
+    const hsMedia=membros.length?Math.round(membros.reduce((s,c)=>s+(c.healthScore||70),0)/membros.length):null;
+    const npsAll=CS_DB.getAllNPS().filter(n=>membros.some(c=>c.id===n.clienteId));
+    const npsCalc=CS_DB.calcNPS(npsAll);
+    const npsStr=npsCalc.total?`${npsCalc.score>=0?'+':''}${npsCalc.score}`:'—';
+    const hsColor=hsMedia===null?'var(--gray3)':hsMedia>=70?'var(--green)':hsMedia>=40?'var(--yellow)':'var(--red)';
+    const alertasGrupo=(CS_DB.getAlertas()||[]).filter(a=>membros.some(c=>c.id===a.clienteId));
+    return `<div class="grupo-card">
+      <div class="grupo-card-header" onclick="toggleGrupo('gc-${g.id}','gch-${g.id}')">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(209,0,0,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-building-community" style="color:var(--red);font-size:18px"></i></div>
+        <div><div class="grupo-nome">${g.nome}</div>${g.descricao?`<div class="grupo-desc">${g.descricao}</div>`:''}</div>
+        <div style="display:flex;gap:8px;margin-left:auto;margin-right:8px;align-items:center">
+          <button class="btn-ghost" style="padding:4px 10px;font-size:11.5px" onclick="event.stopPropagation();editarGrupo('${g.id}')"><i class="ti ti-edit"></i>Editar</button>
+          <button class="btn-ghost" style="padding:4px 10px;font-size:11.5px;color:var(--red)" onclick="event.stopPropagation();excluirGrupo('${g.id}','${g.nome}')"><i class="ti ti-trash"></i></button>
+        </div>
+        <i class="ti ti-chevron-down grupo-chevron" id="gch-${g.id}"></i>
+      </div>
+      <div class="grupo-kpis">
+        <div><div class="grupo-kpi-lbl">Empresas</div><div class="grupo-kpi-val">${membros.length}</div><div class="grupo-kpi-sub">${membros.filter(c=>c.tipoNoGrupo==='matriz').length} matriz · ${membros.filter(c=>c.tipoNoGrupo==='filial').length} filiais</div></div>
+        <div><div class="grupo-kpi-lbl">MRR Consolidado</div><div class="grupo-kpi-val" style="font-size:15px">R$ ${mrrTotal.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})}</div></div>
+        <div><div class="grupo-kpi-lbl">Health Score Médio</div><div class="grupo-kpi-val" style="color:${hsColor}">${hsMedia??'—'}</div></div>
+        <div><div class="grupo-kpi-lbl">NPS Consolidado</div><div class="grupo-kpi-val">${npsStr}</div><div class="grupo-kpi-sub">${npsCalc.total} respostas</div></div>
+      </div>
+      <div class="grupo-body" id="gc-${g.id}">
+        <div style="font-size:12px;font-weight:600;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Empresas do grupo</div>
+        ${membros.length?membros.sort((a,b)=>a.tipoNoGrupo==='matriz'?-1:b.tipoNoGrupo==='matriz'?1:0).map(c=>{
+          const gbClass=c.tipoNoGrupo==='matriz'?'gb-matriz':c.tipoNoGrupo==='filial'?'gb-filial':'gb-sem';
+          const gbLabel=c.tipoNoGrupo==='matriz'?'Matriz':c.tipoNoGrupo==='filial'?'Filial':'Sem tipo';
+          return `<div class="grupo-member ${c.tipoNoGrupo==='matriz'?'is-matriz':''}">
+            <div class="hs-pill ${c.healthScore>=70?'hs-g':c.healthScore>=40?'hs-y':'hs-r'}" style="width:28px;height:28px;font-size:10px">${c.healthScore}</div>
+            <div class="grupo-member-nome" onclick="irParaCliente360('${c.id}')">${c.empresa}</div>
+            <span class="gb ${gbClass}">${gbLabel}</span>
+            <span class="badge ${c.status==='Ativo'?'b-ativo':c.status==='Em Risco'?'b-risco':c.status==='Implantação'?'b-impl':c.status==='Expansão'?'b-exp':'b-cancel'}">${c.status}</span>
+          </div>`;}).join(''):'<div style="color:var(--gray3);font-size:12px;padding:8px 0">Nenhuma empresa vinculada.</div>'}
+        ${alertasGrupo.length?`<div class="grupo-alerts"><div style="font-size:12px;font-weight:600;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Alertas do grupo (${alertasGrupo.length})</div>${alertasGrupo.slice(0,5).map(a=>`<div class="al-item ${a.tipo}"><i class="ti ${a.icone} al-ic ${a.tipo}"></i><div><div class="al-ttl">${a.titulo}</div><div class="al-sub">${a.subtitulo||''}</div></div><div class="al-tag"><span class="badge ${a.tipo==='danger'?'b-risco':a.tipo==='warn'?'b-exp':'b-impl'}">${a.tag}</span></div></div>`).join('')}</div>`:''}
+      </div>
+    </div>`;}).join('');
+}
+function toggleGrupo(bodyId,chevronId){const body=document.getElementById(bodyId);const chev=document.getElementById(chevronId);const header=chev.closest('.grupo-card-header');const isOpen=body.classList.toggle('open');chev.classList.toggle('open',isOpen);header.classList.toggle('open',isOpen)}
+function editarGrupo(id){const g=CS_DB.getGrupoById(id);if(!g)return;document.getElementById('mGrupoId').value=g.id;document.getElementById('mGrupoNome').value=g.nome;document.getElementById('mGrupoDesc').value=g.descricao||'';document.getElementById('mGrupoTitulo').textContent='Editar Grupo';openM('mGrupo')}
+function salvarGrupo(){const id=document.getElementById('mGrupoId').value;const nome=document.getElementById('mGrupoNome').value.trim();const descricao=document.getElementById('mGrupoDesc').value.trim();if(!nome){toast('Informe o nome do grupo.','warn');return}CS_DB.saveGrupo({id:id||undefined,nome,descricao});closeM('mGrupo');renderGrupos();populateGrupoSelect();toast('Grupo salvo!')}
+function excluirGrupo(id,nome){if(!confirm(`Excluir o grupo "${nome}"?\nAs empresas vinculadas não serão apagadas — apenas desvinculadas.`))return;CS_DB.deleteGrupo(id);renderGrupos();populateGrupoSelect();toast('Grupo excluído.')}
+function irParaCliente360(clienteId){const el=document.querySelector('[data-p=cliente360]');nav(el,'cliente360');setTimeout(()=>{const sel=document.getElementById('selC360');if(sel){sel.value=clienteId;sel.dispatchEvent(new Event('change'))}},150)}
+
 window.onload=()=>{document.getElementById('loginScreen').style.display='flex';document.getElementById('app').style.display='none'};
 </script>
 </body>
