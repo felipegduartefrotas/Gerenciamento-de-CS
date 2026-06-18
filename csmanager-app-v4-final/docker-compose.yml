@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: csmanager
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: csmanager
+    volumes:
+      # Volume nomeado: os dados do banco sobrevivem a "docker compose down" e a updates da imagem.
+      # Só são perdidos se o volume for explicitamente removido (docker compose down -v).
+      - csmanager_db_data:/var/lib/postgresql/data
+      # Scripts rodados automaticamente APENAS na primeira vez que o volume é criado (banco vazio).
+      # Se você já tem um banco com dados, esses scripts não rodam de novo — não há risco de
+      # sobrescrever ou apagar dados existentes ao subir o compose novamente.
+      - ./db-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U csmanager"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - csmanager_net
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: csmanager
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: csmanager
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3001
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - csmanager_net
+    # A porta do backend NÃO é exposta ao host diretamente — só o frontend (Nginx) fala com ele,
+    # através da rede interna do Docker. Isso reduz a superfície de ataque do servidor.
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - csmanager_net
+
+networks:
+  csmanager_net:
+    driver: bridge
+
+volumes:
+  csmanager_db_data:

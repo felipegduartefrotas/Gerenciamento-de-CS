@@ -1,0 +1,10 @@
+{
+  "name": "csmanager-migracao",
+  "version": "1.0.0",
+  "description": "Script de migração de dados do CS Manager antigo (localStorage) para o novo (PostgreSQL)",
+  "main": "migrar.js",
+  "dependencies": {
+    "pg": "^8.21.0",
+    "pg-mem": "^3.0.14"
+  }
+}
