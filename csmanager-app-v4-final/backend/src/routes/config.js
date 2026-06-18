@@ -14,14 +14,26 @@ router.get('/', async (req, res) => {
 
 router.put('/', async (req, res) => {
   const entradas = Object.entries(req.body || {});
-  for (const [chave, valor] of entradas) {
-    await pool.query(
-      `INSERT INTO configuracoes (chave, valor) VALUES ($1, $2)
-       ON CONFLICT (chave) DO UPDATE SET valor = $2`,
-      [chave, JSON.stringify(valor)]
-    );
+  if (!entradas.length) return res.json({ ok: true });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const [chave, valor] of entradas) {
+      await client.query(
+        `INSERT INTO configuracoes (chave, valor) VALUES ($1, $2)
+         ON CONFLICT (chave) DO UPDATE SET valor = $2`,
+        [chave, JSON.stringify(valor)]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error('Erro ao salvar configurações:', e);
+    res.status(500).json({ erro: 'Erro ao salvar configurações.' });
+  } finally {
+    client.release();
   }
-  res.json({ ok: true });
 });
 
 module.exports = router;
