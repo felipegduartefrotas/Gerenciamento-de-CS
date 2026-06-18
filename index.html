@@ -440,6 +440,40 @@ tr:hover td{background:#fafafa}
 .mrr-bar-val{min-width:50px;text-align:right;font-weight:600;font-size:11.5px}
 
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--gray4);border-radius:2px}
+
+/* SORT */
+.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.sortable:hover{background:var(--gray5)}
+.sortable.asc::after{content:' ↑';color:var(--red)}
+.sortable.desc::after{content:' ↓';color:var(--red)}
+
+/* AGENDA */
+.agenda-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.agenda-day{background:var(--white);border:1px solid var(--gray4);border-radius:10px;overflow:hidden;min-height:100px}
+.agenda-day-hdr{padding:8px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--gray5);color:var(--gray2)}
+.agenda-day-hdr.hoje{background:var(--red);color:#fff}
+.agenda-reuniao{padding:6px 10px;font-size:11.5px;border-bottom:1px solid var(--gray4);cursor:pointer}
+.agenda-reuniao:last-child{border-bottom:none}
+.agenda-reuniao:hover{background:var(--gray5)}
+.agenda-vazio{padding:10px;font-size:11px;color:var(--gray3);text-align:center}
+
+/* SEARCH DROPDOWN */
+.search-wrap{position:relative}
+.sd-drop{position:absolute;top:calc(100% + 4px);right:0;width:320px;background:var(--white);border:1px solid var(--gray4);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:400;display:none;overflow:hidden;max-height:300px;overflow-y:auto}
+.sd-drop.open{display:block}
+.sd-sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:7px 12px;color:var(--gray3);background:var(--gray5)}
+.sd-item{display:flex;align-items:center;gap:9px;padding:8px 12px;cursor:pointer;font-size:12.5px;color:var(--black)}
+.sd-item:hover{background:var(--gray5)}
+.sd-item i{color:var(--red);font-size:14px;flex-shrink:0}
+
+/* RANKING */
+.rank-card{background:var(--white);border:1px solid var(--gray4);border-radius:10px;overflow:hidden}
+.rank-hdr{padding:10px 14px;font-size:12px;font-weight:600;color:var(--black);background:var(--gray5);border-bottom:1px solid var(--gray4);display:flex;align-items:center;gap:6px}
+.rank-hdr i{color:var(--red)}
+.rank-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--gray4);font-size:12px}
+.rank-row:last-child{border-bottom:none}
+.rank-pos{width:20px;height:20px;border-radius:50%;background:var(--gray5);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gray2);flex-shrink:0}
+.rank-pos.top{background:var(--red);color:#fff}
 </style>
 </head>
 <body>
@@ -478,6 +512,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="novo-cliente" onclick="nav(this,'novo-cliente')"><i class="ti ti-building-plus"></i>Novo Cliente</div>
     <div class="nav-item" data-p="reunioes" onclick="nav(this,'reunioes')"><i class="ti ti-calendar"></i>Reuniões</div>
     <div class="nav-item" data-p="planos" onclick="nav(this,'planos')"><i class="ti ti-clipboard-list"></i>Planos de Ação</div>
+    <div class="nav-item" data-p="agenda" onclick="nav(this,'agenda')"><i class="ti ti-calendar-week"></i>Agenda</div>
     <div class="nav-item" data-p="timeline" onclick="nav(this,'timeline')"><i class="ti ti-timeline"></i>Timeline</div>
     <div class="nav-sec">Analytics</div>
     <div class="nav-item" data-p="nps" onclick="nav(this,'nps')"><i class="ti ti-star"></i>NPS / Satisfação</div>
@@ -504,7 +539,10 @@ tr:hover td{background:#fafafa}
     <div class="topbar">
       <div class="tb-title" id="tbTitle"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
       <div class="tb-right">
-        <input class="tb-search" placeholder="Buscar cliente..." oninput="globalSearch(this.value)">
+        <div class="search-wrap">
+          <input class="tb-search" id="globalSearchInput" placeholder="Buscar... (Ctrl+K)" oninput="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off">
+          <div class="sd-drop" id="searchDropdown"></div>
+        </div>
         <div class="ib" onclick="nav(document.querySelector('[data-p=alertas]'),'alertas')"><i class="ti ti-bell"></i><div class="ndot" id="ndot"></div></div>
         <div class="ib" onclick="nav(document.querySelector('[data-p=config]'),'config')"><i class="ti ti-settings"></i></div>
         <div class="av" id="av">FD</div>
@@ -519,6 +557,7 @@ tr:hover td{background:#fafafa}
     <div class="card" style="margin-bottom:0"><div class="card-ttl"><span><i class="ti ti-chart-line"></i>Evolução NPS</span><span class="sub">6 meses</span></div><div class="chart-wrap"><canvas id="npsChart"></canvas></div></div>
     <div class="card" style="margin-bottom:0"><div class="card-ttl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="hs-list" id="hsList"></div></div>
   </div>
+  <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="dashRanking"></div>
   <div style="margin-top:14px"></div>
   <div class="tbl-card">
     <div class="tbl-head">
@@ -548,7 +587,16 @@ tr:hover td{background:#fafafa}
     <select class="flt-sel" id="fltHS" onchange="renderClientes()"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
     <input class="flt-inp" id="fltQ" placeholder="Buscar empresa ou CNPJ..." oninput="renderClientes()">
   </div>
-  <div class="tbl-card"><table><thead><tr><th>Empresa</th><th>CNPJ</th><th>Segmento</th><th>Tier</th><th>Status</th><th>HS</th><th>NPS</th><th>MRR</th><th>CS</th><th>Última Reunião</th><th></th></tr></thead>
+  <div class="tbl-card"><table><thead><tr>
+    <th class="sortable" data-col="empresa" onclick="sortClientes('empresa')">Empresa</th>
+    <th>CNPJ</th><th>Segmento</th>
+    <th class="sortable" data-col="tier" onclick="sortClientes('tier')">Tier</th>
+    <th class="sortable" data-col="status" onclick="sortClientes('status')">Status</th>
+    <th class="sortable" data-col="healthScore" onclick="sortClientes('healthScore')">HS</th>
+    <th class="sortable" data-col="ultimoNPS" onclick="sortClientes('ultimoNPS')">NPS</th>
+    <th class="sortable" data-col="mrr" onclick="sortClientes('mrr')">MRR</th>
+    <th>CS</th><th>Última Reunião</th><th></th>
+  </tr></thead>
   <tbody id="clienteTbody"></tbody></table></div>
 </div>
 
@@ -821,6 +869,15 @@ tr:hover td{background:#fafafa}
 <!-- ALERTAS -->
 <div class="page" id="page-alertas">
   <div class="ph"><h2><i class="ti ti-bell"></i>Central de Alertas</h2><span id="alertasCount" style="font-size:12.5px;color:var(--gray2)">0 alertas</span></div>
+  <div id="alertasFiltros" class="flt-row" style="margin-bottom:12px">
+    <button class="tl-filter-btn active" onclick="filtrarAlertas('')">Todos</button>
+    <button class="tl-filter-btn" onclick="filtrarAlertas('sem_contato')"><i class="ti ti-clock"></i>Sem Contato</button>
+    <button class="tl-filter-btn" onclick="filtrarAlertas('hs_baixo')"><i class="ti ti-trending-down"></i>HS Baixo</button>
+    <button class="tl-filter-btn" onclick="filtrarAlertas('nps_critico')"><i class="ti ti-mood-sad"></i>NPS Crítico</button>
+    <button class="tl-filter-btn" onclick="filtrarAlertas('renovacao')"><i class="ti ti-calendar-exclamation"></i>Renovação</button>
+    <button class="tl-filter-btn" onclick="filtrarAlertas('acoes_atrasadas')"><i class="ti ti-clipboard-x"></i>Ações Atrasadas</button>
+    <button class="tl-filter-btn" onclick="filtrarAlertas('reuniao_hoje')"><i class="ti ti-calendar-event"></i>Reunião Hoje</button>
+  </div>
   <div id="alertasList"></div>
 </div>
 
@@ -889,6 +946,16 @@ tr:hover td{background:#fafafa}
     <input type="file" id="importBackup" accept=".json" style="display:none" onchange="CS_DB.importarBackup(this.files[0]).then(m=>{toast(m);registrarBackup();initApp()}).catch(e=>toast(e,'err'))">
     <div style="margin-top:12px;font-size:12px;color:var(--gray2)" id="dbInfo"></div>
     <div style="margin-top:6px;font-size:11.5px;color:var(--gray3)" id="backupStatusInfo"></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-ttl"><i class="ti ti-lock"></i>Segurança — Trocar Senha</div>
+    <div style="font-size:12px;color:var(--gray2);margin-bottom:12px">A senha é armazenada apenas localmente neste navegador.</div>
+    <div class="form-g2">
+      <div class="fg"><label>Senha atual</label><input type="password" id="cfgSenhaAtual" placeholder="Senha atual"></div>
+      <div class="fg"><label>Nova senha</label><input type="password" id="cfgNovaSenha" placeholder="Mín. 8 caracteres"></div>
+      <div class="fg"><label>Confirmar nova senha</label><input type="password" id="cfgConfirmarSenha" placeholder="Repita a nova senha"></div>
+    </div>
+    <button class="btn-primary" onclick="trocarSenhaV3()"><i class="ti ti-lock"></i>Atualizar senha</button>
   </div>
   <div class="card" style="margin-bottom:12px">
     <div class="card-ttl"><i class="ti ti-webhook"></i>Integrações</div>
@@ -1106,6 +1173,18 @@ tr:hover td{background:#fafafa}
     <div class="card-ttl"><i class="ti ti-history"></i>Relatórios gerados recentemente</div>
     <div id="relHistorico" style="font-size:12.5px;color:var(--gray2)">Nenhum relatório gerado nesta sessão ainda.</div>
   </div>
+</div>
+
+<!-- AGENDA -->
+<div class="page" id="page-agenda">
+  <div class="ph"><h2><i class="ti ti-calendar-week"></i>Agenda Semanal</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-ghost" onclick="agendaNavSemana(-1)"><i class="ti ti-chevron-left"></i>Anterior</button>
+      <button class="btn-ghost" onclick="agendaIrHoje()"><i class="ti ti-calendar-today"></i>Hoje</button>
+      <button class="btn-ghost" onclick="agendaNavSemana(1)">Próxima<i class="ti ti-chevron-right"></i></button>
+    </div>
+  </div>
+  <div id="agendaContent"></div>
 </div>
 
     </div><!-- /content -->
@@ -1502,8 +1581,8 @@ function hsColor(n){return n>=70?'var(--green)':n>=40?'var(--yellow)':'var(--red
 function tierB(t){return{A:'tier-a',B:'tier-b',C:'tier-c'}[t]||'tier-c'}
 function npsGrupo(n){return n>=9?{g:'Promotor',c:'var(--green)',bg:'var(--gbg)'}:n>=7?{g:'Neutro',c:'var(--yellow)',bg:'var(--ybg)'}:{g:'Detrator',c:'var(--red)',bg:'var(--redl)'}}
 function npsColor(n){return n>=50?'var(--green)':n>=0?'var(--blue)':'var(--red)'}
-const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
-const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
+const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda Semanal',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
+const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
 
 // ═══ NAV ═══
 function nav(el,p){
@@ -1517,6 +1596,7 @@ function nav(el,p){
   if(p==='alertas')renderAlertas();
   if(p==='timeline')populateTlSelect();
   if(p==='planos')renderKanban();
+  if(p==='agenda')renderAgenda();
   if(p==='reunioes'){renderReunioes();renderReunioesAgendadas();}
   if(p==='clientes')renderClientes();
   if(p==='config')loadConfig();
@@ -1614,12 +1694,59 @@ function renderDashboard(){
     <div class="hs-track"><div class="hs-fill" style="width:${c.healthScore}%;background:${hsColor(c.healthScore)}"></div></div>
     <span class="hs-num" style="color:${hsColor(c.healthScore)}">${c.healthScore}</span>
   </div>`).join('');
+
+  // Ranking
+  const now2=new Date();
+  const rEl=document.getElementById('dashRanking');
+  if(rEl){
+    const byMRR=[...cl].sort((a,b)=>(parseFloat(b.mrr?.replace(/\D/g,''))||0)-(parseFloat(a.mrr?.replace(/\D/g,''))||0)).slice(0,5);
+    const byHS=[...cl].sort((a,b)=>a.healthScore-b.healthScore).slice(0,5);
+    const re2=CS_DB.getAllReunioes();
+    const semContato=[...cl].sort((a,b)=>{
+      const ra=re2.filter(r=>r.clienteId===a.id)[0];const rb=re2.filter(r=>r.clienteId===b.id)[0];
+      const da=ra?Math.floor((now2-new Date(ra.dataISO))/86400000):999;
+      const db=rb?Math.floor((now2-new Date(rb.dataISO))/86400000):999;
+      return db-da;
+    }).slice(0,5);
+    const mkRank=(ttl,icon,items,valFn,colFn)=>`<div class="rank-card">
+      <div class="rank-hdr"><i class="ti ${icon}"></i>${ttl}</div>
+      ${items.map((c,i)=>`<div class="rank-row">
+        <span class="rank-pos ${i===0?'top':''}">${i+1}</span>
+        <span style="flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.empresa.split(' ')[0]}</span>
+        <span style="font-weight:700;color:${colFn(c)}">${valFn(c)}</span>
+      </div>`).join('')}
+    </div>`;
+    rEl.innerHTML=
+      mkRank('Top MRR','ti-currency-dollar',byMRR,c=>c.mrr,()=>'var(--green)')+
+      mkRank('HS Crítico','ti-trending-down',byHS,c=>c.healthScore,c=>hsColor(c.healthScore))+
+      mkRank('Sem Contato','ti-clock',semContato,c=>{const r=re2.filter(x=>x.clienteId===c.id)[0];return r?Math.floor((now2-new Date(r.dataISO))/86400000)+'d':'s/reu';},c=>{const r=re2.filter(x=>x.clienteId===c.id)[0];const d=r?Math.floor((now2-new Date(r.dataISO))/86400000):999;return d>45?'var(--red)':d>30?'var(--yellow)':'var(--gray2)';});
+  }
+}
+
+// ═══ SORT STATE ═══
+let _clienteSort={col:'',dir:'asc'};
+function sortClientes(col){
+  if(_clienteSort.col===col)_clienteSort.dir=_clienteSort.dir==='asc'?'desc':'asc';
+  else{_clienteSort.col=col;_clienteSort.dir='asc';}
+  document.querySelectorAll('.sortable').forEach(th=>{th.classList.remove('asc','desc');if(th.dataset.col===col)th.classList.add(_clienteSort.dir)});
+  renderClientes();
+}
+function _sortList(list){
+  if(!_clienteSort.col)return list;
+  const col=_clienteSort.col;const dir=_clienteSort.dir==='asc'?1:-1;
+  return [...list].sort((a,b)=>{
+    let va=a[col]??'',vb=b[col]??'';
+    if(col==='mrr'){va=parseFloat(String(va).replace(/\D/g,''))||0;vb=parseFloat(String(vb).replace(/\D/g,''))||0;}
+    else if(col==='healthScore'||col==='ultimoNPS'){va=Number(va)||0;vb=Number(vb)||0;}
+    else{va=String(va).toLowerCase();vb=String(vb).toLowerCase();}
+    return va<vb?-dir:va>vb?dir:0;
+  });
 }
 
 // ═══ CLIENTES ═══
 function renderClientes(){
   const f={status:document.getElementById('fltStatus')?.value||'',tier:document.getElementById('fltTier')?.value||'',hs:document.getElementById('fltHS')?.value||'',q:document.getElementById('fltQ')?.value||''};
-  const list=CS_DB.getClientes(f);
+  const list=_sortList(CS_DB.getClientes(f));
   const re=CS_DB.getAllReunioes();
   document.getElementById('clienteTbody').innerHTML=list.map(c=>{
     const ultimaReu=re.filter(r=>r.clienteId===c.id)[0];
@@ -1639,7 +1766,121 @@ function renderClientes(){
   }).join('');
 }
 function abrirTimeline(id){nav(document.querySelector('[data-p=timeline]'),'timeline');setTimeout(()=>{document.getElementById('tlCliente').value=id;renderTimeline()},100)}
-function globalSearch(q){if(q.length>0){nav(document.querySelector('[data-p=clientes]'),'clientes');document.getElementById('fltQ').value=q;renderClientes()}}
+function globalSearch(q){
+  const drop=document.getElementById('searchDropdown');
+  if(!q||q.length<2){drop.classList.remove('open');return}
+  const qL=q.toLowerCase();
+  const cl=CS_DB.getClientes().filter(c=>c.empresa.toLowerCase().includes(qL)||(c.cnpj||'').includes(q));
+  const re=CS_DB.getAllReunioes().filter(r=>r.empresa.toLowerCase().includes(qL)).slice(0,3);
+  const ac=(CS_DB.get('acoes')||[]).filter(a=>a.descricao.toLowerCase().includes(qL)).slice(0,3);
+  let html='';
+  if(cl.length){html+=`<div class="sd-sec"><i class="ti ti-building"></i> Clientes</div>`;html+=cl.slice(0,5).map(c=>`<div class="sd-item" onclick="fecharSearchDropdown();abrirEditar('${c.id}')"><i class="ti ti-building"></i><span>${c.empresa}</span><span style="margin-left:auto;font-size:11px;color:var(--gray2)">${c.status}</span></div>`).join('')}
+  if(re.length){html+=`<div class="sd-sec"><i class="ti ti-calendar"></i> Reuniões</div>`;html+=re.map(r=>`<div class="sd-item" onclick="fecharSearchDropdown();abrirTimeline('${r.clienteId}')"><i class="ti ti-calendar"></i><span>${r.empresa} — ${r.tipo}</span><span style="margin-left:auto;font-size:11px;color:var(--gray2)">${r.data}</span></div>`).join('')}
+  if(ac.length){html+=`<div class="sd-sec"><i class="ti ti-clipboard-list"></i> Ações</div>`;html+=ac.map(a=>`<div class="sd-item" onclick="fecharSearchDropdown();nav(document.querySelector('[data-p=planos]'),'planos')"><i class="ti ti-clipboard-list"></i><span>${a.descricao}</span><span style="margin-left:auto;font-size:11px;color:var(--gray2)">${a.empresa}</span></div>`).join('')}
+  if(!html)html=`<div style="padding:14px;text-align:center;font-size:12.5px;color:var(--gray2)">Nenhum resultado para "${q}"</div>`;
+  drop.innerHTML=html;drop.classList.add('open');
+}
+function fecharSearchDropdown(){const d=document.getElementById('searchDropdown');if(d)d.classList.remove('open')}
+
+// ═══ ALERTAS — FILTROS ═══
+let _alertaFiltro='';
+function filtrarAlertas(cat){
+  _alertaFiltro=cat;
+  document.querySelectorAll('#alertasFiltros .tl-filter-btn').forEach(b=>{
+    const onclick=b.getAttribute('onclick')||'';
+    b.classList.toggle('active',onclick.includes(`'${cat}'`));
+  });
+  _renderAlertasList();
+}
+function _renderAlertasList(){
+  const list=_alertaFiltro?alertasAtuais.filter(a=>a.categoria===_alertaFiltro||(_alertaFiltro==='renovacao'&&(a.categoria==='renovacao'||a.categoria==='vencido'))||(_alertaFiltro==='reuniao_hoje'&&(a.categoria==='reuniao_hoje'||a.categoria==='reuniao_atrasada'))):alertasAtuais;
+  document.getElementById('alertasList').innerHTML=list.length?list.map(a=>`<div class="al-item ${a.tipo}" style="cursor:pointer" onclick="abrirTratativaAlerta('${a.id}')">
+    <i class="ti ${a.icone} al-ic ${a.tipo}"></i>
+    <div style="flex:1"><div class="al-ttl">${a.titulo}</div><div class="al-sub">${a.subtitulo}</div></div>
+    <div class="al-tag"><span class="badge ${a.tipo==='danger'?'b-risco':''}" style="${a.tipo==='warn'?'background:var(--ybg);color:var(--yellow)':a.tipo==='info'?'background:var(--bbg);color:var(--blue)':''}">${a.tag}</span></div>
+    <i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:8px;flex-shrink:0"></i>
+  </div>`).join(''):`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:10px"></i>Nenhum alerta nesta categoria.</div>`;
+}
+
+// ═══ NOTIFICATIONS ═══
+let _notifJaDisparadas=new Set();
+function initNotificacoes(){
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+}
+function dispararNotificacaoAlertas(alertas){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  alertas.filter(a=>a.tipo==='danger'&&!_notifJaDisparadas.has(a.id)).forEach(a=>{
+    _notifJaDisparadas.add(a.id);
+    new Notification('CS Manager — Alerta Urgente',{body:a.titulo,icon:'/favicon.ico'});
+  });
+}
+
+// ═══ AGENDA ═══
+let _agendaSemana=0;
+function renderAgenda(){
+  const now=new Date();
+  const dom=new Date(now);
+  const dow=dom.getDay();
+  dom.setDate(dom.getDate()-(dow===0?6:dow-1)+_agendaSemana*7);
+  const dias=[];for(let i=0;i<7;i++){const d=new Date(dom);d.setDate(dom.getDate()+i);dias.push(d);}
+  const reunioes=CS_DB.getAllReunioes();
+  const agendadas=(CS_DB.get('acoes')||[]).filter(a=>a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada');
+  const semLabel=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const hojeStr=now.toLocaleDateString('pt-BR');
+  const el=document.getElementById('agendaContent');
+  if(!el)return;
+  el.innerHTML=`<div style="margin-bottom:10px;font-size:13px;font-weight:600;color:var(--black)">${dias[0].toLocaleDateString('pt-BR',{day:'2-digit',month:'long'})} — ${dias[6].toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  <div class="agenda-grid">${dias.map((d,i)=>{
+    const dStr=d.toLocaleDateString('pt-BR');
+    const ehHoje=dStr===hojeStr;
+    const rRea=reunioes.filter(r=>r.data===dStr);
+    const rAg=agendadas.filter(a=>a.reuniaoData===dStr||a.prazo===dStr);
+    const items=[...rRea.map(r=>`<div class="agenda-reuniao"><div style="font-weight:500">${r.empresa.split(' ')[0]}</div><div style="color:var(--gray2);font-size:11px">${r.tipo}</div></div>`),...rAg.map(a=>`<div class="agenda-reuniao" style="border-left:2px solid var(--blue)"><div style="font-weight:500">${a.empresa||''}</div><div style="color:var(--blue);font-size:11px">${a.reuniaoTipo||'Reunião'} ${a.reuniaoHora||''}</div></div>`)];
+    return`<div class="agenda-day">
+      <div class="agenda-day-hdr ${ehHoje?'hoje':''}">${semLabel[i]} ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>
+      ${items.length?items.join(''):'<div class="agenda-vazio">—</div>'}
+    </div>`;
+  }).join('')}</div>`;
+}
+function agendaNavSemana(d){_agendaSemana+=d;renderAgenda()}
+function agendaIrHoje(){_agendaSemana=0;renderAgenda()}
+
+// ═══ RENOVAÇÃO RÁPIDA ═══
+function confirmarRenovacaoRapida(clienteId,alertaId){
+  const novaData=prompt('Informe a nova data de renovação (DD/MM/AAAA):');
+  if(!novaData||!novaData.includes('/'))return;
+  const [d,m,y]=novaData.split('/');
+  const iso=`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  const c=CS_DB.getClienteById(clienteId);
+  if(!c){toast('Cliente não encontrado.','err');return}
+  c.renovacao=novaData;c.dataRenovacao=iso;
+  CS_DB.saveCliente(c);
+  CS_DB._addTimeline(clienteId,'sistema','Renovação confirmada',`Nova data de renovação: ${novaData}`);
+  const dismissed=CS_DB.get('alertasDismissed')||[];
+  if(!dismissed.includes(alertaId))dismissed.push(alertaId);
+  CS_DB.set('alertasDismissed',dismissed);
+  closeM('mTratativaAlerta');
+  toast(`Renovação de ${c.empresa} confirmada até ${novaData}!`);
+  renderAlertas();updateStatusBar();
+}
+
+// ═══ TROCAR SENHA (v3 local) ═══
+function trocarSenhaV3(){
+  const atual=document.getElementById('cfgSenhaAtual')?.value;
+  const nova=document.getElementById('cfgNovaSenha')?.value;
+  const conf=document.getElementById('cfgConfirmarSenha')?.value;
+  if(!atual||!nova||!conf){toast('Preencha todos os campos.','err');return}
+  if(nova.length<8){toast('A nova senha deve ter ao menos 8 caracteres.','err');return}
+  if(nova!==conf){toast('As senhas não coincidem.','err');return}
+  // v3 is localStorage-only — just save as a config field (no server-side auth)
+  const cfg=CS_DB.getConfig();
+  cfg.senhaLocal=nova;
+  CS_DB.saveConfig(cfg);
+  document.getElementById('cfgSenhaAtual').value='';
+  document.getElementById('cfgNovaSenha').value='';
+  document.getElementById('cfgConfirmarSenha').value='';
+  toast('Senha local atualizada!');
+}
 
 function calcularMRRCadastro(){
   const mensalidade=parseFloat(document.getElementById('fMensalidade').value)||0;
@@ -2492,12 +2733,8 @@ function renderAlertas(){
   const al=CS_DB._gerarAlertas();
   alertasAtuais=al;
   document.getElementById('alertasCount').textContent=`${al.length} alertas ativos`;
-  document.getElementById('alertasList').innerHTML=al.length?al.map(a=>`<div class="al-item ${a.tipo}" style="cursor:pointer" onclick="abrirTratativaAlerta('${a.id}')">
-    <i class="ti ${a.icone} al-ic ${a.tipo}"></i>
-    <div style="flex:1"><div class="al-ttl">${a.titulo}</div><div class="al-sub">${a.subtitulo}</div></div>
-    <div class="al-tag"><span class="badge ${a.tipo==='danger'?'b-risco':''}" style="${a.tipo==='warn'?'background:var(--ybg);color:var(--yellow)':a.tipo==='info'?'background:var(--bbg);color:var(--blue)':''}">${a.tag}</span></div>
-    <i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:8px;flex-shrink:0"></i>
-  </div>`).join(''):`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:10px"></i>Nenhum alerta ativo. Carteira saudável!</div>`;
+  dispararNotificacaoAlertas(al);
+  _renderAlertasList();
 }
 
 // ════════════════════════════════════════════════
@@ -2532,7 +2769,8 @@ function abrirTratativaAlerta(alertaId){
       break;
     case 'renovacao':
     case 'vencido':
-      botoes=`<button class="btn-primary" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos');setTimeout(()=>{openM('mAcao');document.getElementById('acCliente').value='${a.clienteId}'},100)"><i class="ti ti-clipboard-plus"></i>Criar ação de renovação</button>
+      botoes=`<button class="btn-primary" style="width:100%;margin-bottom:8px;justify-content:center;background:var(--green)" onclick="confirmarRenovacaoRapida('${a.clienteId}','${a.id}')"><i class="ti ti-check"></i>Confirmar renovação agora</button>
+      <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos');setTimeout(()=>{openM('mAcao');document.getElementById('acCliente').value='${a.clienteId}'},100)"><i class="ti ti-clipboard-plus"></i>Criar ação de renovação</button>
       <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');abrirEditar('${a.clienteId}')"><i class="ti ti-edit"></i>Editar dados contratuais do cliente</button>`;
       break;
     case 'acoes_atrasadas':
@@ -2764,6 +3002,14 @@ function initApp(){
   buildRatings();populateTlSelect();populateObSelect();populateEngSelect();populateGrupoSelect();
   document.getElementById('rData').value=new Date().toLocaleDateString('pt-BR');
   const nd=document.getElementById('npsDataInput');if(nd)nd.value=new Date().toLocaleDateString('pt-BR');
+  initNotificacoes();
+  // Keyboard shortcuts
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();const s=document.getElementById('globalSearchInput');if(s){s.focus();s.select();}}
+    if(e.key==='Escape'){document.querySelectorAll('.modal-ov.open').forEach(m=>m.classList.remove('open'));fecharSearchDropdown();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();nav(document.querySelector('[data-p=novo-cliente]'),'novo-cliente');}
+    if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='A'){e.preventDefault();nav(document.querySelector('[data-p=alertas]'),'alertas');}
+  });
   updateStatusBar();
   setTimeout(()=>{const c=document.getElementById('npsChart')?.getContext('2d');if(!c||c._done)return;c._done=true;new Chart(c,{type:'line',data:{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],datasets:[{data:[45,52,55,60,58,61],borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.4,fill:true,borderWidth:2,pointRadius:3},{data:[78,80,81,83,82,84],borderColor:'var(--gray)',backgroundColor:'rgba(61,61,61,.05)',tension:.4,fill:false,borderWidth:2,pointRadius:3,borderDash:[4,3]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},color:'var(--gray2)',boxWidth:12}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}}},x:{ticks:{color:'var(--gray3)',font:{size:10}}}}}})},150);
   setInterval(updateStatusBar,30000);

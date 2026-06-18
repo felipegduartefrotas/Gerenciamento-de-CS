@@ -363,6 +363,39 @@ const CS_DB = {
     return this._fetch('/alertas/disparar-webhook', { method: 'POST' });
   },
 
+  // ── TROCA DE SENHA ────────────────────────────────────────
+  async trocarSenha(senhaAtual, novaSenha) {
+    return this._fetch('/auth/trocar-senha', { method: 'POST', body: JSON.stringify({ senhaAtual, novaSenha }) });
+  },
+
+  // ── EXPORTAÇÃO CSV REUNIÕES ───────────────────────────────
+  exportarCSVReunioes() {
+    const re = this._cache.reunioes;
+    const cl = new Map(this._cache.clientes.map(c => [c.id, c.empresa]));
+    const cols = ['empresa','data','tipo','csat','obs','responsavel'];
+    const labels = ['Empresa','Data','Tipo','CSAT','Observações','Responsável'];
+    const esc = v => { if(v===null||v===undefined)return''; const s=String(v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:`${s}`; };
+    const rows = [labels.join(',')];
+    re.forEach(r => rows.push([cl.get(r.clienteId)||'',r.data||'',r.tipo||'',r.csat??'',r.obs||'',r.responsavel||''].map(esc).join(',')));
+    const bl = new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const u = URL.createObjectURL(bl);
+    const a = document.createElement('a');a.href=u;a.download=`reunioes_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;a.click();URL.revokeObjectURL(u);
+  },
+
+  // ── EXPORTAÇÃO CSV NPS ────────────────────────────────────
+  exportarCSVNPS() {
+    const np = this._cache.nps;
+    const cl = new Map(this._cache.clientes.map(c => [c.id, c.empresa]));
+    const cols = ['empresa','data','nota','comentario','responsavel'];
+    const labels = ['Empresa','Data','Nota','Comentário','Responsável'];
+    const esc = v => { if(v===null||v===undefined)return''; const s=String(v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:`${s}`; };
+    const rows = [labels.join(',')];
+    np.forEach(n => rows.push([cl.get(n.clienteId)||'',n.data||'',n.nota??'',n.comentario||'',n.responsavel||''].map(esc).join(',')));
+    const bl = new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    const u = URL.createObjectURL(bl);
+    const a = document.createElement('a');a.href=u;a.download=`nps_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;a.click();URL.revokeObjectURL(u);
+  },
+
   // ── EXPORTAÇÃO CSV ────────────────────────────────────────
   exportarCSV(clientes) {
     const cols = ['empresa','nomeFantasia','cnpj','segmento','tier','status','healthScore',

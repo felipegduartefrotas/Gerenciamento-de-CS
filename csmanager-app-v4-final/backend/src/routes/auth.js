@@ -48,4 +48,21 @@ router.get('/me', autenticar, (req, res) => {
   res.json({ usuario: req.usuario });
 });
 
+router.post('/trocar-senha', autenticar, async (req, res) => {
+  const { senhaAtual, novaSenha } = req.body;
+  if (!senhaAtual || !novaSenha) {
+    return res.status(400).json({ erro: 'Informe a senha atual e a nova senha.' });
+  }
+  if (novaSenha.length < 8) {
+    return res.status(400).json({ erro: 'A nova senha deve ter ao menos 8 caracteres.' });
+  }
+  const { rows } = await pool.query('SELECT senha_hash FROM usuarios WHERE id = $1', [req.usuario.id]);
+  if (!rows.length) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+  const ok = await bcrypt.compare(senhaAtual, rows[0].senha_hash);
+  if (!ok) return res.status(401).json({ erro: 'Senha atual incorreta.' });
+  const hash = await bcrypt.hash(novaSenha, 10);
+  await pool.query('UPDATE usuarios SET senha_hash = $1 WHERE id = $2', [hash, req.usuario.id]);
+  res.json({ ok: true });
+});
+
 module.exports = router;

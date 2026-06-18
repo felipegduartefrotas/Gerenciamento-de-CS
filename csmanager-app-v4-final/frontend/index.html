@@ -51,6 +51,10 @@ body{font-family:'Inter',sans-serif;font-size:13px;color:var(--black);background
 .sb-brand{color:#fff;font-size:14.5px;font-weight:700;letter-spacing:.2px;line-height:1.1}
 .sb-sub{color:rgba(255,255,255,.28);font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
 .sb-dev{color:rgba(255,255,255,.22);font-size:8px;letter-spacing:1px;text-transform:uppercase;margin-top:5px;align-self:flex-end}
+.sortable{cursor:pointer;user-select:none;white-space:nowrap}.sortable:hover{background:var(--gray5)}.sortable.asc i:before{content:"\eab0"}.sortable.desc i:before{content:"\eab1"}
+.agenda-day{background:var(--white);border:1px solid var(--gray4);border-radius:10px;overflow:hidden;margin-bottom:8px}.agenda-day-hdr{padding:9px 13px;font-weight:600;font-size:12.5px;background:var(--gray5);display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--gray4)}.agenda-day-hdr.hoje{background:var(--red);color:#fff}.agenda-reuniao{padding:9px 13px;border-bottom:1px solid var(--gray5);display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;transition:background .15s}.agenda-reuniao:hover{background:var(--gray5)}.agenda-reuniao:last-child{border-bottom:none}
+.sd-item{padding:9px 12px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--gray5);cursor:pointer;font-size:12.5px;transition:background .12s}.sd-item:hover{background:var(--gray5)}.sd-item:last-child{border-bottom:none}.sd-cat{font-size:10px;color:var(--gray3);min-width:50px}
+.rank-card{background:var(--white);border:1px solid var(--gray4);border-radius:10px;overflow:hidden}.rank-hdr{padding:10px 13px;font-size:12px;font-weight:600;border-bottom:1px solid var(--gray4);display:flex;align-items:center;gap:6px}.rank-row{display:flex;align-items:center;gap:8px;padding:8px 13px;border-bottom:1px solid var(--gray5);font-size:12px;cursor:pointer;transition:background .12s}.rank-row:hover{background:var(--gray5)}.rank-row:last-child{border-bottom:none}.rank-pos{font-weight:700;color:var(--gray3);min-width:18px;font-size:11px}
 
 /* GRUPOS ECONÔMICOS */
 .grupo-card{background:var(--white);border:1px solid var(--gray4);border-radius:10px;overflow:hidden;margin-bottom:14px}
@@ -476,6 +480,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="novo-cliente" onclick="nav(this,'novo-cliente')"><i class="ti ti-building-plus"></i>Novo Cliente</div>
     <div class="nav-item" data-p="reunioes" onclick="nav(this,'reunioes')"><i class="ti ti-calendar"></i>Reuniões</div>
     <div class="nav-item" data-p="planos" onclick="nav(this,'planos')"><i class="ti ti-clipboard-list"></i>Planos de Ação</div>
+    <div class="nav-item" data-p="agenda" onclick="nav(this,'agenda')"><i class="ti ti-calendar-week"></i>Agenda</div>
     <div class="nav-item" data-p="timeline" onclick="nav(this,'timeline')"><i class="ti ti-timeline"></i>Timeline</div>
     <div class="nav-sec">Analytics</div>
     <div class="nav-item" data-p="nps" onclick="nav(this,'nps')"><i class="ti ti-star"></i>NPS / Satisfação</div>
@@ -490,6 +495,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="relatorios" onclick="nav(this,'relatorios')"><i class="ti ti-file-report"></i>Relatórios</div>
     <div class="nav-sec">Ferramentas</div>
     <div class="nav-item" data-p="importar" onclick="nav(this,'importar')"><i class="ti ti-table-import"></i>Importar Excel</div>
+    <div class="nav-item" id="navUsuarios" data-p="usuarios" onclick="nav(this,'usuarios')" style="display:none"><i class="ti ti-users"></i>Usuários</div>
     <div class="nav-item" data-p="config" onclick="nav(this,'config')"><i class="ti ti-settings"></i>Configurações</div>
     <div class="sb-foot">
       <div class="sb-foot-row" onclick="toggleTheme()"><i class="ti ti-moon" id="thIcon"></i><span id="thLbl">Modo escuro</span></div>
@@ -503,7 +509,10 @@ tr:hover td{background:#fafafa}
     <div class="topbar">
       <div class="tb-title" id="tbTitle"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
       <div class="tb-right">
-        <input class="tb-search" placeholder="Buscar cliente..." oninput="globalSearch(this.value)">
+        <div style="position:relative">
+          <input class="tb-search" id="globalSearchInput" placeholder="Buscar… (Ctrl+K)" oninput="globalSearch(this.value)" onfocus="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off">
+          <div id="searchDropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;min-width:320px;background:var(--white);border:1px solid var(--gray4);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:2000;overflow:hidden;max-height:360px;overflow-y:auto"></div>
+        </div>
         <div class="ib" onclick="nav(document.querySelector('[data-p=alertas]'),'alertas')"><i class="ti ti-bell"></i><div class="ndot" id="ndot"></div></div>
         <div class="ib" onclick="nav(document.querySelector('[data-p=config]'),'config')"><i class="ti ti-settings"></i></div>
         <div class="av" id="av">FD</div>
@@ -530,6 +539,7 @@ tr:hover td{background:#fafafa}
     <table><thead><tr><th>Empresa</th><th>Tier</th><th>Status</th><th>Health</th><th>NPS</th><th>MRR</th><th>CS</th><th>Ação</th></tr></thead>
     <tbody id="dashTbody"></tbody></table>
   </div>
+  <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="dashRanking"></div>
 </div>
 
 <!-- CLIENTES -->
@@ -547,7 +557,16 @@ tr:hover td{background:#fafafa}
     <select class="flt-sel" id="fltHS" onchange="renderClientes()"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
     <input class="flt-inp" id="fltQ" placeholder="Buscar empresa ou CNPJ..." oninput="renderClientes()">
   </div>
-  <div class="tbl-card"><table><thead><tr><th>Empresa</th><th>CNPJ</th><th>Segmento</th><th>Tier</th><th>Status</th><th>HS</th><th>NPS</th><th>MRR</th><th>CS</th><th>Última Reunião</th><th></th></tr></thead>
+  <div class="tbl-card"><table><thead><tr>
+    <th class="sortable" onclick="sortClientes('empresa')" data-col="empresa">Empresa <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th>CNPJ</th><th>Segmento</th>
+    <th class="sortable" onclick="sortClientes('tier')" data-col="tier">Tier <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('status')" data-col="status">Status <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('healthScore')" data-col="healthScore">HS <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('ultimoNPS')" data-col="ultimoNPS">NPS <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('mrr')" data-col="mrr">MRR <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th>CS</th><th>Última Reunião</th><th></th>
+  </tr></thead>
   <tbody id="clienteTbody"></tbody></table></div>
 </div>
 
@@ -643,6 +662,7 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-reunioes">
   <div class="ph"><h2><i class="ti ti-calendar"></i>Reuniões</h2>
     <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="CS_DB.exportarCSVReunioes()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
       <button class="btn-ghost" onclick="abrirAgendarReuniao()"><i class="ti ti-calendar-plus"></i>Agendar Reunião Futura</button>
       <button class="btn-primary" onclick="openM('mReuniao')"><i class="ti ti-plus"></i>Registrar Reunião Realizada</button>
     </div>
@@ -721,7 +741,10 @@ tr:hover td{background:#fafafa}
 <!-- NPS -->
 <div class="page" id="page-nps">
   <div class="ph"><h2><i class="ti ti-star"></i>NPS & Satisfação</h2>
-    <button class="btn-primary" onclick="openM('mNPS')"><i class="ti ti-plus"></i>Registrar NPS</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="CS_DB.exportarCSVNPS()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
+      <button class="btn-primary" onclick="openM('mNPS')"><i class="ti ti-plus"></i>Registrar NPS</button>
+    </div>
   </div>
   <div class="flt-row" style="margin-bottom:14px">
     <button class="tl-filter-btn active" data-npstab="geral" onclick="trocarAbaNPS('geral',this)"><i class="ti ti-building-community"></i>Visão Geral Creare</button>
@@ -822,6 +845,15 @@ tr:hover td{background:#fafafa}
 <!-- ALERTAS -->
 <div class="page" id="page-alertas">
   <div class="ph"><h2><i class="ti ti-bell"></i>Central de Alertas</h2><span id="alertasCount" style="font-size:12.5px;color:var(--gray2)">0 alertas</span></div>
+  <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap" id="alertasFiltros">
+    <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px;background:var(--red);color:#fff;border-color:var(--red)" data-cat="" onclick="filtrarAlertas('')">Todos</button>
+    <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="sem_contato" onclick="filtrarAlertas('sem_contato')"><i class="ti ti-clock"></i> Sem contato</button>
+    <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="hs_baixo" onclick="filtrarAlertas('hs_baixo')"><i class="ti ti-trending-down"></i> HS Baixo</button>
+    <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="nps_critico" onclick="filtrarAlertas('nps_critico')"><i class="ti ti-mood-sad"></i> NPS Crítico</button>
+    <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="renovacao,vencido" onclick="filtrarAlertas('renovacao,vencido')"><i class="ti ti-calendar-exclamation"></i> Renovação</button>
+    <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="acoes_atrasadas" onclick="filtrarAlertas('acoes_atrasadas')"><i class="ti ti-clipboard-x"></i> Ações</button>
+    <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="reuniao_hoje,reuniao_atrasada" onclick="filtrarAlertas('reuniao_hoje,reuniao_atrasada')"><i class="ti ti-calendar-event"></i> Reuniões</button>
+  </div>
   <div id="alertasList"></div>
 </div>
 
@@ -888,6 +920,15 @@ tr:hover td{background:#fafafa}
     </div>
     <div style="margin-top:12px;font-size:12px;color:var(--gray2)" id="dbInfo"></div>
     <div style="margin-top:6px;font-size:11.5px;color:var(--gray3)" id="backupStatusInfo"></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-ttl"><i class="ti ti-lock"></i>Segurança — Trocar Senha</div>
+    <div class="form-g2">
+      <div class="fg form-full"><label>Senha atual</label><input type="password" id="cfgSenhaAtual" placeholder="••••••••"></div>
+      <div class="fg"><label>Nova senha <span class="req">*</span></label><input type="password" id="cfgNovaSenha" placeholder="mín. 8 caracteres"></div>
+      <div class="fg"><label>Confirmar nova senha</label><input type="password" id="cfgConfirmarSenha" placeholder="repita a nova senha"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn-primary" onclick="trocarSenha()"><i class="ti ti-lock-check"></i>Trocar senha</button></div>
   </div>
   <div class="card" style="margin-bottom:12px">
     <div class="card-ttl"><i class="ti ti-webhook"></i>Integrações</div>
@@ -1073,6 +1114,27 @@ tr:hover td{background:#fafafa}
   <div id="c360Content"></div>
 </div>
 
+<!-- AGENDA SEMANAL -->
+<div class="page" id="page-agenda">
+  <div class="ph"><h2><i class="ti ti-calendar-week"></i>Agenda</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-ghost" onclick="agendaNavSemana(-1)"><i class="ti ti-chevron-left"></i></button>
+      <span id="agendaSemanaLabel" style="font-size:13px;font-weight:600;min-width:200px;text-align:center"></span>
+      <button class="btn-ghost" onclick="agendaNavSemana(1)"><i class="ti ti-chevron-right"></i></button>
+      <button class="btn-ghost" onclick="agendaIrHoje()"><i class="ti ti-home"></i>Hoje</button>
+    </div>
+  </div>
+  <div id="agendaContent"></div>
+</div>
+
+<!-- GESTÃO DE USUÁRIOS (admin) -->
+<div class="page" id="page-usuarios">
+  <div class="ph"><h2><i class="ti ti-users"></i>Gestão de Usuários</h2>
+    <button class="btn-primary" onclick="openM('mNovoUsuario')"><i class="ti ti-plus"></i>Novo Usuário</button>
+  </div>
+  <div id="usuariosList"></div>
+</div>
+
 <!-- GRUPOS ECONÔMICOS -->
 <div class="page" id="page-grupos">
   <div class="ph">
@@ -1131,6 +1193,23 @@ tr:hover td{background:#fafafa}
     <div class="btn-row">
       <button class="btn-ghost" onclick="closeM('mGrupo')">Cancelar</button>
       <button class="btn-primary" onclick="salvarGrupo()"><i class="ti ti-device-floppy"></i>Salvar Grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO USUÁRIO -->
+<div class="modal-ov" id="mNovoUsuario">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-ttl"><span><i class="ti ti-user-plus"></i>Novo Usuário</span><span class="modal-close" onclick="closeM('mNovoUsuario')"><i class="ti ti-x"></i></span></div>
+    <div class="form-g2">
+      <div class="fg form-full"><label>Nome <span class="req">*</span></label><input type="text" id="uNome" placeholder="Nome completo"></div>
+      <div class="fg form-full"><label>E-mail <span class="req">*</span></label><input type="email" id="uEmail" placeholder="nome@creare.com.br"></div>
+      <div class="fg"><label>Senha <span class="req">*</span></label><input type="password" id="uSenha" placeholder="mín. 8 caracteres"></div>
+      <div class="fg"><label>Perfil</label><select id="uPapel"><option value="consultor">Consultor</option><option value="admin">Admin</option></select></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mNovoUsuario')">Cancelar</button>
+      <button class="btn-primary" onclick="criarUsuario()"><i class="ti ti-user-plus"></i>Criar usuário</button>
     </div>
   </div>
 </div>
@@ -1408,8 +1487,8 @@ function hsColor(n){return n>=70?'var(--green)':n>=40?'var(--yellow)':'var(--red
 function tierB(t){return{A:'tier-a',B:'tier-b',C:'tier-c'}[t]||'tier-c'}
 function npsGrupo(n){return n>=9?{g:'Promotor',c:'var(--green)',bg:'var(--gbg)'}:n>=7?{g:'Neutro',c:'var(--yellow)',bg:'var(--ybg)'}:{g:'Detrator',c:'var(--red)',bg:'var(--redl)'}}
 function npsColor(n){return n>=50?'var(--green)':n>=0?'var(--blue)':'var(--red)'}
-const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
-const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
+const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios',usuarios:'Gestão de Usuários'};
+const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report',usuarios:'ti-users'};
 
 // ═══ NAV ═══
 function nav(el,p){
@@ -1432,6 +1511,8 @@ function nav(el,p){
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='grupos')renderGrupos();
   if(p==='relatorios')populateRelatoriosSelects();
+  if(p==='agenda')renderAgenda();
+  if(p==='usuarios')renderUsuarios();
 }
 function openM(id){
   if(id==='mReuniao')populateReuniaoSelect();
@@ -1519,12 +1600,25 @@ function renderDashboard(){
     <div class="hs-track"><div class="hs-fill" style="width:${c.healthScore}%;background:${hsColor(c.healthScore)}"></div></div>
     <span class="hs-num" style="color:${hsColor(c.healthScore)}">${c.healthScore}</span>
   </div>`).join('');
+
+  // Ranking
+  const re=CS_DB.getAllReunioes();const now=new Date();
+  const clComMRR=cl.map(c=>({...c,mrrNum:parseFloat((c.mrr||'').replace(/[^\d.,]/g,'').replace(',','.'))||0}));
+  const top5MRR=[...clComMRR].sort((a,b)=>b.mrrNum-a.mrrNum).slice(0,5);
+  const top5HS=[...cl].sort((a,b)=>a.healthScore-b.healthScore).slice(0,5);
+  const clComDias=cl.map(c=>{const r=re.filter(x=>x.clienteId===c.id).sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];const dias=r?Math.floor((now-new Date(r.dataISO))/86400000):9999;return{...c,dias};});
+  const top5Sem=[...clComDias].sort((a,b)=>b.dias-a.dias).slice(0,5);
+  const rEl=document.getElementById('dashRanking');if(!rEl)return;
+  rEl.innerHTML=`
+  <div class="rank-card"><div class="rank-hdr" style="color:var(--green)"><i class="ti ti-trophy"></i>Top MRR</div>${top5MRR.map((c,i)=>`<div class="rank-row" onclick="abrirEditar('${c.id}')"><span class="rank-pos">#${i+1}</span><span style="flex:1;font-weight:${i===0?700:400}">${c.empresa.split(' ')[0]}</span><span style="color:var(--green);font-weight:600">${c.mrr||'—'}</span></div>`).join('')}</div>
+  <div class="rank-card"><div class="rank-hdr" style="color:var(--red)"><i class="ti ti-trending-down"></i>HS mais baixo</div>${top5HS.map((c,i)=>`<div class="rank-row" onclick="abrirEditar('${c.id}')"><span class="rank-pos">#${i+1}</span><span style="flex:1">${c.empresa.split(' ')[0]}</span><span class="hs-pill ${hsCls(c.healthScore)}">${c.healthScore}</span></div>`).join('')}</div>
+  <div class="rank-card"><div class="rank-hdr" style="color:var(--yellow)"><i class="ti ti-clock"></i>Sem contato há mais tempo</div>${top5Sem.map((c,i)=>`<div class="rank-row" onclick="abrirEditar('${c.id}')"><span class="rank-pos">#${i+1}</span><span style="flex:1">${c.empresa.split(' ')[0]}</span><span style="color:${c.dias>45?'var(--red)':'var(--yellow)';};font-size:11.5px">${c.dias===9999?'Sem reunião':c.dias+'d'}</span></div>`).join('')}</div>`;
 }
 
 // ═══ CLIENTES ═══
 function renderClientes(){
   const f={status:document.getElementById('fltStatus')?.value||'',tier:document.getElementById('fltTier')?.value||'',hs:document.getElementById('fltHS')?.value||'',q:document.getElementById('fltQ')?.value||''};
-  const list=CS_DB.getClientes(f);
+  const list=_sortList(CS_DB.getClientes(f));
   const re=CS_DB.getAllReunioes();
   document.getElementById('clienteTbody').innerHTML=list.map(c=>{
     const ultimaReu=re.filter(r=>r.clienteId===c.id)[0];
@@ -1544,7 +1638,32 @@ function renderClientes(){
   }).join('');
 }
 function abrirTimeline(id){nav(document.querySelector('[data-p=timeline]'),'timeline');setTimeout(()=>{document.getElementById('tlCliente').value=id;renderTimeline()},100)}
-function globalSearch(q){if(q.length>0){nav(document.querySelector('[data-p=clientes]'),'clientes');document.getElementById('fltQ').value=q;renderClientes()}}
+let _clienteSort={col:'empresa',dir:'asc'};
+function sortClientes(col){
+  if(_clienteSort.col===col){_clienteSort.dir=_clienteSort.dir==='asc'?'desc':'asc'}else{_clienteSort={col,dir:'asc'}}
+  document.querySelectorAll('.sortable').forEach(th=>{th.classList.remove('asc','desc');if(th.dataset.col===col)th.classList.add(_clienteSort.dir)});
+  renderClientes();
+}
+function _sortList(list){const{col,dir}=_clienteSort;return list.slice().sort((a,b)=>{let va=a[col],vb=b[col];if(col==='mrr'){va=parseFloat((va||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;vb=parseFloat((vb||'').replace(/[^\d.,]/g,'').replace(',','.'))||0;}else if(typeof va==='number'||typeof vb==='number'){va=va??-1;vb=vb??-1}else{va=(va||'').toLowerCase();vb=(vb||'').toLowerCase();}return dir==='asc'?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});}
+
+function globalSearch(q){
+  const dd=document.getElementById('searchDropdown');
+  if(!q||q.length<2){if(dd)dd.style.display='none';return}
+  const cl=CS_DB.getClientes();const re=CS_DB.getAllReunioes();const ac=CS_DB.getAllAcoes();
+  const lq=q.toLowerCase();
+  const rCl=cl.filter(c=>(c.empresa||'').toLowerCase().includes(lq)||(c.cnpj||'').includes(lq)).slice(0,5);
+  const rRe=re.filter(r=>(r.tipo||'').toLowerCase().includes(lq)||(r.obs||'').toLowerCase().includes(lq)).slice(0,3);
+  const rAc=ac.filter(a=>(a.descricao||'').toLowerCase().includes(lq)).slice(0,3);
+  if(!dd)return;
+  if(!rCl.length&&!rRe.length&&!rAc.length){dd.innerHTML=`<div style="padding:14px;text-align:center;color:var(--gray3);font-size:12.5px">Nenhum resultado para "${q}"</div>`;dd.style.display='block';return}
+  let html='';
+  if(rCl.length){html+=`<div style="padding:6px 12px;font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.5px">Clientes</div>`;html+=rCl.map(c=>`<div class="sd-item" onclick="fecharSearchDropdown();document.getElementById('globalSearchInput').value='';nav(document.querySelector('[data-p=cliente360]'),'cliente360');setTimeout(()=>{document.getElementById('c360Select').value='${c.id}';renderCliente360()},80)"><i class="ti ti-building" style="color:var(--red)"></i><span style="flex:1">${c.empresa}</span><span class="badge ${stClass(c.status)}">${c.status}</span></div>`).join('')}
+  if(rRe.length){html+=`<div style="padding:6px 12px;font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--gray5)">Reuniões</div>`;html+=rRe.map(r=>{const c=CS_DB.getClienteById(r.clienteId);return`<div class="sd-item" onclick="fecharSearchDropdown()"><i class="ti ti-calendar" style="color:var(--blue)"></i><span style="flex:1">${r.tipo} — ${c?.empresa||''}</span><span style="font-size:11px;color:var(--gray3)">${r.data||''}</span></div>`}).join('')}
+  if(rAc.length){html+=`<div style="padding:6px 12px;font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--gray5)">Ações</div>`;html+=rAc.map(a=>{const c=CS_DB.getClienteById(a.clienteId);return`<div class="sd-item" onclick="fecharSearchDropdown();nav(document.querySelector('[data-p=planos]'),'planos')"><i class="ti ti-clipboard" style="color:var(--green)"></i><span style="flex:1">${a.descricao}</span><span style="font-size:11px;color:var(--gray3)">${c?.empresa||''}</span></div>`}).join('')}
+  html+=`<div style="padding:7px 12px;border-top:1px solid var(--gray4);font-size:11.5px;color:var(--blue);cursor:pointer;text-align:center" onclick="fecharSearchDropdown();nav(document.querySelector('[data-p=clientes]'),'clientes');document.getElementById('fltQ').value='${q}';renderClientes()">Ver todos na lista de clientes <i class="ti ti-arrow-right" style="font-size:11px"></i></div>`;
+  dd.innerHTML=html;dd.style.display='block';
+}
+function fecharSearchDropdown(){const dd=document.getElementById('searchDropdown');if(dd)dd.style.display='none';}
 
 function calcularMRRCadastro(){
   const mensalidade=parseFloat(document.getElementById('fMensalidade').value)||0;
@@ -2330,16 +2449,29 @@ async function salvarNPS(){
 
 // ═══ ALERTAS ═══
 let alertasAtuais=[];
-async function renderAlertas(){
-  const al=await CS_DB._gerarAlertas();
-  alertasAtuais=al;
-  document.getElementById('alertasCount').textContent=`${al.length} alertas ativos`;
+let _alertaFiltroAtual='';
+function filtrarAlertas(cat){
+  _alertaFiltroAtual=cat;
+  document.querySelectorAll('#alertasFiltros button').forEach(b=>{const isActive=b.dataset.cat===cat;b.style.background=isActive?'var(--red)':'';b.style.color=isActive?'#fff':'';b.style.borderColor=isActive?'var(--red)':''});
+  _renderAlertasList();
+}
+function _renderAlertasList(){
+  const cats=_alertaFiltroAtual?_alertaFiltroAtual.split(','):null;
+  const al=cats?alertasAtuais.filter(a=>cats.includes(a.categoria)):alertasAtuais;
   document.getElementById('alertasList').innerHTML=al.length?al.map(a=>`<div class="al-item ${a.tipo}" style="cursor:pointer" onclick="abrirTratativaAlerta('${a.id}')">
     <i class="ti ${a.icone} al-ic ${a.tipo}"></i>
     <div style="flex:1"><div class="al-ttl">${a.titulo}</div><div class="al-sub">${a.subtitulo}</div></div>
     <div class="al-tag"><span class="badge ${a.tipo==='danger'?'b-risco':''}" style="${a.tipo==='warn'?'background:var(--ybg);color:var(--yellow)':a.tipo==='info'?'background:var(--bbg);color:var(--blue)':''}">${a.tag}</span></div>
     <i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:8px;flex-shrink:0"></i>
-  </div>`).join(''):`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:10px"></i>Nenhum alerta ativo. Carteira saudável!</div>`;
+  </div>`).join(''):`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:10px"></i>${_alertaFiltroAtual?'Nenhum alerta desta categoria.':'Nenhum alerta ativo. Carteira saudável!'}</div>`;
+}
+async function renderAlertas(){
+  const al=await CS_DB._gerarAlertas();
+  alertasAtuais=al;
+  document.getElementById('alertasCount').textContent=`${al.length} alertas ativos`;
+  _renderAlertasList();
+  // Notificação nativa para alertas críticos novos
+  dispararNotificacaoAlertas(al);
 }
 
 // ════════════════════════════════════════════════
@@ -2374,8 +2506,9 @@ function abrirTratativaAlerta(alertaId){
       break;
     case 'renovacao':
     case 'vencido':
-      botoes=`<button class="btn-primary" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos');setTimeout(()=>{openM('mAcao');document.getElementById('acCliente').value='${a.clienteId}'},100)"><i class="ti ti-clipboard-plus"></i>Criar ação de renovação</button>
-      <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');abrirEditar('${a.clienteId}')"><i class="ti ti-edit"></i>Editar dados contratuais do cliente</button>`;
+      botoes=`<button class="btn-primary" style="width:100%;margin-bottom:8px;justify-content:center" onclick="confirmarRenovacaoRapida('${a.clienteId}','${alertaId}')"><i class="ti ti-circle-check"></i>Confirmar renovação agora</button>
+      <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos');setTimeout(()=>{openM('mAcao');document.getElementById('acCliente').value='${a.clienteId}'},100)"><i class="ti ti-clipboard-plus"></i>Criar ação de renovação</button>
+      <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');abrirEditar('${a.clienteId}')"><i class="ti ti-edit"></i>Editar dados contratuais</button>`;
       break;
     case 'acoes_atrasadas':
       botoes=`<button class="btn-primary" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos')"><i class="ti ti-layout-kanban"></i>Ver ações em atraso no Kanban</button>`;
@@ -2743,6 +2876,13 @@ async function initApp(){
   updateStatusBar();
   setTimeout(()=>renderNpsEvolutionChart(),150);
   setInterval(updateStatusBar,30000);
+  // Mostrar nav Usuários só para admin
+  const sess=CS_DB.getSession();
+  if(sess?.papel==='admin'){const nu=document.getElementById('navUsuarios');if(nu)nu.style.display='flex';}
+  // Solicitar permissão de notificações
+  initNotificacoes();
+  // Registrar Service Worker
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
 }
 
 
@@ -3942,6 +4082,144 @@ function irParaCliente360(clienteId) {
     if (sel) { sel.value = clienteId; sel.dispatchEvent(new Event('change')); }
   }, 150);
 }
+
+// ════════════════════════════════════════════════
+// TROCA DE SENHA
+// ════════════════════════════════════════════════
+async function trocarSenha(){
+  const atual=document.getElementById('cfgSenhaAtual')?.value;
+  const nova=document.getElementById('cfgNovaSenha')?.value;
+  const conf=document.getElementById('cfgConfirmarSenha')?.value;
+  if(!atual||!nova){toast('Preencha todos os campos de senha.','err');return}
+  if(nova.length<8){toast('A nova senha deve ter ao menos 8 caracteres.','err');return}
+  if(nova!==conf){toast('As senhas não coincidem.','err');return}
+  try{
+    await CS_DB._fetch('/auth/trocar-senha',{method:'POST',body:JSON.stringify({senhaAtual:atual,novaSenha:nova})});
+    toast('Senha alterada com sucesso!');
+    ['cfgSenhaAtual','cfgNovaSenha','cfgConfirmarSenha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  }catch(e){toast(e.message||'Erro ao trocar senha.','err')}
+}
+
+// ════════════════════════════════════════════════
+// NOTIFICAÇÕES NATIVAS DO BROWSER
+// ════════════════════════════════════════════════
+let _notifJaDisparadas=new Set();
+function initNotificacoes(){
+  if('Notification' in window&&Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+function dispararNotificacaoAlertas(alertas){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const criticos=alertas.filter(a=>a.tipo==='danger');
+  for(const a of criticos){
+    if(_notifJaDisparadas.has(a.id))continue;
+    _notifJaDisparadas.add(a.id);
+    try{new Notification('CS Manager — Alerta Crítico',{body:a.titulo,icon:'/manifest.json',tag:a.id});}catch{}
+  }
+}
+
+// ════════════════════════════════════════════════
+// AGENDA SEMANAL
+// ════════════════════════════════════════════════
+let _agendaSemana=0; // 0 = semana atual, -1 = anterior, +1 = próxima
+function agendaNavSemana(d){_agendaSemana+=d;renderAgenda();}
+function agendaIrHoje(){_agendaSemana=0;renderAgenda();}
+function renderAgenda(){
+  const hoje=new Date();
+  const inicioSemana=new Date(hoje);
+  inicioSemana.setDate(hoje.getDate()-hoje.getDay()+1+_agendaSemana*7); // Segunda-feira
+  inicioSemana.setHours(0,0,0,0);
+  const fimSemana=new Date(inicioSemana);fimSemana.setDate(inicioSemana.getDate()+6);fimSemana.setHours(23,59,59,999);
+  const lbl=document.getElementById('agendaSemanaLabel');
+  if(lbl)lbl.textContent=`${inicioSemana.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})} — ${fimSemana.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}`;
+  const todos=CS_DB.getAllReunioes();
+  const cl=CS_DB.getClientes();
+  const clMap=new Map(cl.map(c=>[c.id,c]));
+  const diasSemana=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  let html='';
+  for(let d=0;d<7;d++){
+    const dia=new Date(inicioSemana);dia.setDate(inicioSemana.getDate()+d);
+    const diaStr=dia.toISOString().split('T')[0];
+    const isHoje=dia.toDateString()===hoje.toDateString();
+    const reus=todos.filter(r=>r.dataISO&&r.dataISO.startsWith(diaStr));
+    html+=`<div class="agenda-day"><div class="agenda-day-hdr ${isHoje?'hoje':''}"><i class="ti ti-calendar-day"></i>${diasSemana[d]}, ${dia.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}${reus.length?` <span style="margin-left:auto;font-size:11px;background:rgba(255,255,255,.25);padding:1px 7px;border-radius:10px">${reus.length}</span>`:''}</div>`;
+    if(reus.length){
+      html+=reus.map(r=>{const c=clMap.get(r.clienteId);const csatIcon=r.csat>=4?'ti-star':r.csat>=3?'ti-star-half':'ti-star-off';return`<div class="agenda-reuniao" onclick="abrirTimeline('${r.clienteId}')"><i class="ti ti-calendar-event" style="color:var(--blue);font-size:16px"></i><div style="flex:1"><div style="font-weight:600">${c?.empresa||'—'}</div><div style="color:var(--gray2);font-size:11.5px">${r.tipo||'Reunião'} ${r.hora?'· '+r.hora:''}</div></div><span class="badge ${stClass(c?.status||'Ativo')}">${c?.status||''}</span></div>`}).join('');
+    }else{
+      html+=`<div style="padding:10px 13px;color:var(--gray3);font-size:12px;font-style:italic">Sem reuniões</div>`;
+    }
+    html+='</div>';
+  }
+  const el=document.getElementById('agendaContent');if(el)el.innerHTML=html;
+}
+
+// ════════════════════════════════════════════════
+// GESTÃO DE USUÁRIOS
+// ════════════════════════════════════════════════
+async function renderUsuarios(){
+  const el=document.getElementById('usuariosList');if(!el)return;
+  try{
+    const usuarios=await CS_DB._fetch('/usuarios');
+    el.innerHTML=`<div class="tbl-card"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th></th></tr></thead><tbody>${
+      usuarios.map(u=>`<tr>
+        <td style="font-weight:600">${u.nome}</td>
+        <td style="color:var(--gray2)">${u.email}</td>
+        <td><span class="badge">${u.papel}</span></td>
+        <td><span class="badge ${u.ativo?'b-ativo':'b-risco'}">${u.ativo?'Ativo':'Inativo'}</span></td>
+        <td style="white-space:nowrap">
+          ${u.ativo?`<span class="lnk" style="color:var(--red)" onclick="toggleUsuario('${u.id}',false)">Desativar</span>`:`<span class="lnk" style="color:var(--green)" onclick="toggleUsuario('${u.id}',true)">Reativar</span>`}
+        </td></tr>`).join('')
+    }</tbody></table></div>`;
+  }catch(e){el.innerHTML=`<div style="color:var(--red);padding:20px">${e.message}</div>`;}
+}
+async function criarUsuario(){
+  const nome=document.getElementById('uNome').value.trim();
+  const email=document.getElementById('uEmail').value.trim();
+  const senha=document.getElementById('uSenha').value;
+  const papel=document.getElementById('uPapel').value;
+  if(!nome||!email||!senha){toast('Preencha todos os campos.','err');return}
+  try{
+    await CS_DB._fetch('/usuarios',{method:'POST',body:JSON.stringify({nome,email,senha,papel})});
+    toast('Usuário criado com sucesso!');closeM('mNovoUsuario');
+    ['uNome','uEmail','uSenha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    renderUsuarios();
+  }catch(e){toast(e.message||'Erro ao criar usuário.','err')}
+}
+async function toggleUsuario(id,ativo){
+  try{
+    await CS_DB._fetch(`/usuarios/${id}`,{method:'PATCH',body:JSON.stringify({ativo})});
+    toast(ativo?'Usuário reativado.':'Usuário desativado.','warn');
+    renderUsuarios();
+  }catch(e){toast(e.message,'err')}
+}
+
+// ════════════════════════════════════════════════
+// CONFIRMAÇÃO RÁPIDA DE RENOVAÇÃO
+// ════════════════════════════════════════════════
+async function confirmarRenovacaoRapida(clienteId,alertaId){
+  const novaData=prompt('Nova data de renovação (AAAA-MM-DD):',new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split('T')[0]);
+  if(!novaData)return;
+  try{
+    const c=CS_DB.getClienteById(clienteId);
+    await CS_DB.saveCliente({...c,dataRenovacao:novaData,renovacao:new Date(novaData).toLocaleDateString('pt-BR',{month:'2-digit',year:'numeric'})});
+    await CS_DB.dismissAlerta(alertaId);
+    await CS_DB._addTimeline(clienteId,'contrato','Renovação confirmada',`Nova vigência até ${novaData}. Registrado via alerta.`);
+    closeM('mTratativaAlerta');toast('Renovação confirmada e alerta resolvido!');
+    renderAlertas();updateStatusBar();
+  }catch(e){toast(e.message,'err')}
+}
+
+// ════════════════════════════════════════════════
+// ATALHOS DE TECLADO
+// ════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();const si=document.getElementById('globalSearchInput');if(si){si.focus();si.select();}}
+  if(e.key==='Escape'){document.querySelectorAll('.modal-ov.open').forEach(m=>m.classList.remove('open'));fecharSearchDropdown();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='n'&&!e.shiftKey){e.preventDefault();nav(document.querySelector('[data-p=novo-cliente]'),'novo-cliente');}
+  if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='A'){e.preventDefault();nav(document.querySelector('[data-p=alertas]'),'alertas');}
+});
 
 window.CS_DB=CS_DB;
 window.onload=async ()=>{
