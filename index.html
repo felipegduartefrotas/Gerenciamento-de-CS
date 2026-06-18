@@ -389,6 +389,12 @@ tr:hover td{background:#fafafa}
 .rank-row.clickable{cursor:pointer;transition:background .15s}
 .rank-row.clickable:hover{background:var(--gray5)}
 
+/* CHART PERIOD BUTTONS */
+.cpb{display:flex;gap:3px;margin-left:auto}
+.cpb-btn{background:none;border:1px solid var(--gray4);border-radius:5px;padding:2px 8px;font-size:10.5px;font-weight:600;cursor:pointer;color:var(--gray2);transition:background .12s,color .12s,border-color .12s}
+.cpb-btn:hover{background:var(--gray5)}
+.cpb-btn.active{background:var(--red);border-color:var(--red);color:#fff}
+
 /* DARK */
 .dark-mode{--black:#f0f0f0;--dark:#1C1C1C;--gray:#aaa;--gray2:#888;--gray3:#666;--gray4:#2e2e2e;--gray5:#1a1a1a;--white:#1f1f1f}
 .dark-mode .topbar,.dark-mode .tbl-card,.dark-mode .card,.dark-mode .kpi,.dark-mode .modal{background:#1f1f1f;border-color:#2e2e2e}
@@ -567,7 +573,7 @@ tr:hover td{background:#fafafa}
 <div class="page active" id="page-dashboard">
   <div class="kpi-grid" id="dashKPIs"></div>
   <div class="two-col">
-    <div class="card" style="margin-bottom:0"><div class="card-ttl"><span><i class="ti ti-chart-line"></i>Evolução NPS</span><span class="sub">6 meses</span></div><div class="chart-wrap"><canvas id="npsChart"></canvas></div></div>
+    <div class="card" style="margin-bottom:0"><div class="card-ttl"><span><i class="ti ti-chart-line"></i>Evolução NPS</span><div class="cpb"><button class="cpb-btn" onclick="renderNPSChart('1m',this)">Mês</button><button class="cpb-btn" onclick="renderNPSChart('3m',this)">Tri</button><button class="cpb-btn active" onclick="renderNPSChart('6m',this)">Sem</button><button class="cpb-btn" onclick="renderNPSChart('12m',this)">Ano</button></div></div><div class="chart-wrap"><canvas id="npsChart"></canvas></div></div>
     <div class="card" style="margin-bottom:0"><div class="card-ttl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="hs-list" id="hsList"></div></div>
   </div>
   <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="dashRanking"></div>
@@ -813,7 +819,7 @@ tr:hover td{background:#fafafa}
         </div>
       </div>
       <div class="card" style="margin-bottom:0">
-        <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução NPS <span class="sub">últimas pesquisas — todos os clientes</span></div>
+        <div class="card-ttl"><span><i class="ti ti-chart-line"></i>Evolução NPS</span><div class="cpb"><button class="cpb-btn" onclick="renderNPSEvol('1m',this)">Mês</button><button class="cpb-btn" onclick="renderNPSEvol('3m',this)">Tri</button><button class="cpb-btn active" onclick="renderNPSEvol('6m',this)">Sem</button><button class="cpb-btn" onclick="renderNPSEvol('12m',this)">Ano</button></div></div>
         <div class="chart-wrap"><canvas id="npsEvolChart"></canvas></div>
         <div style="margin-top:14px"><div class="card-ttl" style="font-size:12px;margin-bottom:8px"><i class="ti ti-chart-bar"></i>Distribuição por grupo</div>
         <div class="chart-wrap" style="height:100px"><canvas id="npsDistChart"></canvas></div></div>
@@ -873,7 +879,7 @@ tr:hover td{background:#fafafa}
   <div class="kpi-grid" id="execKPIs"></div>
   <div class="exec-grid">
     <div class="card"><div class="card-ttl"><i class="ti ti-chart-donut"></i>Distribuição MRR <span class="sub">por status</span></div><div class="chart-wrap"><canvas id="mrrPie"></canvas></div></div>
-    <div class="card"><div class="card-ttl"><i class="ti ti-chart-bar"></i>Evolução MRR <span class="sub">6 meses</span></div><div class="chart-wrap"><canvas id="mrrBar"></canvas></div></div>
+    <div class="card"><div class="card-ttl"><span><i class="ti ti-chart-bar"></i>Evolução MRR</span><div class="cpb"><button class="cpb-btn" onclick="renderMRRBar('1m',this)">Mês</button><button class="cpb-btn" onclick="renderMRRBar('3m',this)">Tri</button><button class="cpb-btn active" onclick="renderMRRBar('6m',this)">Sem</button><button class="cpb-btn" onclick="renderMRRBar('12m',this)">Ano</button></div></div><div class="chart-wrap"><canvas id="mrrBar"></canvas></div></div>
     <div class="card"><div class="card-ttl"><i class="ti ti-alert-triangle"></i>Contas em risco</div><div id="riscoList"></div></div>
     <div class="card"><div class="card-ttl"><i class="ti ti-chart-bar-off"></i>Problemas recorrentes <span class="sub">tri.</span></div><div class="chart-wrap" style="height:130px"><canvas id="probBar"></canvas></div></div>
   </div>
@@ -2861,6 +2867,52 @@ function dispensarAlerta(){
 }
 
 // ═══ EXECUTIVO ═══
+// ═══ PERIOD CHART DATA ═══
+const _CPD={
+  nps:{
+    '1m':{labels:['S1','S2','S3','S4'],data:[59,60,60,61]},
+    '3m':{labels:['Abr','Mai','Jun'],data:[60,58,61]},
+    '6m':{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],data:[45,52,55,60,58,61]},
+    '12m':{labels:['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'],data:[38,41,43,45,44,43,45,52,55,60,58,61]}
+  },
+  mrr:{
+    '1m':{labels:['S1','S2','S3','S4'],data:[484,485,486,487]},
+    '3m':{labels:['Abr','Mai','Jun'],data:[471,480,487]},
+    '6m':{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],data:[441,455,462,471,480,487]},
+    '12m':{labels:['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'],data:[398,411,419,425,432,438,441,455,462,471,480,487]}
+  }
+};
+let _npsChartInst=null,_mrrBarInst=null,_npsEvolInst=null;
+
+function _cpbActivate(btn){if(!btn)return;btn.closest('.cpb')?.querySelectorAll('.cpb-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+
+function renderNPSChart(period,btn){
+  _cpbActivate(btn);
+  if(_npsChartInst){_npsChartInst.destroy();_npsChartInst=null;}
+  const c=document.getElementById('npsChart')?.getContext('2d');if(!c)return;
+  const d=_CPD.nps[period]||_CPD.nps['6m'];
+  const g=c.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(209,0,0,0.22)');g.addColorStop(1,'rgba(209,0,0,0)');
+  _npsChartInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[{label:'NPS',data:d.data,borderColor:'#D10000',backgroundColor:g,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+}
+
+function renderMRRBar(period,btn){
+  _cpbActivate(btn);
+  if(_mrrBarInst){_mrrBarInst.destroy();_mrrBarInst=null;}
+  const c=document.getElementById('mrrBar')?.getContext('2d');if(!c)return;
+  const d=_CPD.mrr[period]||_CPD.mrr['6m'];
+  const g=c.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(209,0,0,0.9)');g.addColorStop(1,'rgba(209,0,0,0.45)');
+  _mrrBarInst=new Chart(c,{type:'bar',data:{labels:d.labels,datasets:[{label:'MRR (K)',data:d.data,backgroundColor:g,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9,callbacks:{label:ctx=>'R$'+ctx.parsed.y+'K'}}},scales:{y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'K'}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+}
+
+function renderNPSEvol(period,btn){
+  _cpbActivate(btn);
+  if(_npsEvolInst){_npsEvolInst.destroy();_npsEvolInst=null;}
+  const c=document.getElementById('npsEvolChart')?.getContext('2d');if(!c)return;
+  const d=_CPD.nps[period]||_CPD.nps['6m'];
+  const ge=c.createLinearGradient(0,0,0,160);ge.addColorStop(0,'rgba(209,0,0,0.2)');ge.addColorStop(1,'rgba(209,0,0,0)');
+  _npsEvolInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[{label:'NPS',data:d.data,borderColor:'#D10000',backgroundColor:ge,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+}
+
 let execDone=false;
 function initExec(){
   if(execDone)return;execDone=true;
@@ -2873,8 +2925,7 @@ function initExec(){
   document.getElementById('riscoList').innerHTML=cl.filter(c=>c.status==='Em Risco').map(c=>`<div class="risk-row"><div><div class="risk-co">${c.empresa}</div><div class="risk-sub">HS: ${c.healthScore} · NPS: ${c.ultimoNPS??'—'} · MRR: ${c.mrr}</div></div><span class="badge b-risco" style="margin-left:auto">Crítico</span></div>`).join('');
   const c1=document.getElementById('mrrPie')?.getContext('2d');
   if(c1)new Chart(c1,{type:'doughnut',data:{labels:['Saudável','Atenção','Risco','Implant.'],datasets:[{data:[cl.filter(c=>c.healthScore>=70).length,cl.filter(c=>c.healthScore>=40&&c.healthScore<70).length,cl.filter(c=>c.status==='Em Risco').length,cl.filter(c=>c.status==='Implantação').length],backgroundColor:['#1d9e75','#e0880a','#D10000','#555'],borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeInOutBack'},cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,padding:8,usePointStyle:true}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}}}});
-  const c2=document.getElementById('mrrBar')?.getContext('2d');
-  if(c2){const g2=c2.createLinearGradient(0,0,0,160);g2.addColorStop(0,'rgba(209,0,0,0.9)');g2.addColorStop(1,'rgba(209,0,0,0.45)');new Chart(c2,{type:'bar',data:{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],datasets:[{label:'MRR (K)',data:[441,455,462,471,480,487],backgroundColor:g2,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9,callbacks:{label:ctx=>'R$'+ctx.parsed.y+'K'}}},scales:{y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'K'}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}})}
+  renderMRRBar('6m');
   const c3=document.getElementById('probBar')?.getContext('2d');
   if(c3)new Chart(c3,{type:'bar',data:{labels:['Latência','Playback','BI','ERP','Treinamento','Sensor'],datasets:[{data:[14,11,9,7,6,5],backgroundColor:['#D10000','#c44','#a55','#888','#aaa','#ccc'],borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},y:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}})
 }
@@ -2883,8 +2934,7 @@ function initExec(){
 let npsChartsDone=false;
 function initNPSCharts(){
   if(npsChartsDone)return;npsChartsDone=true;
-  const c1=document.getElementById('npsEvolChart')?.getContext('2d');
-  if(c1){const ge=c1.createLinearGradient(0,0,0,160);ge.addColorStop(0,'rgba(209,0,0,0.2)');ge.addColorStop(1,'rgba(209,0,0,0)');new Chart(c1,{type:'line',data:{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],datasets:[{label:'NPS',data:[45,52,55,60,58,61],borderColor:'#D10000',backgroundColor:ge,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}})}
+  renderNPSEvol('6m');
   const npsAll=CS_DB.getAllNPS();const calc=CS_DB.calcNPS(npsAll);
   const c2=document.getElementById('npsDistChart')?.getContext('2d');
   if(c2)new Chart(c2,{type:'bar',data:{labels:['Detratores','Neutros','Promotores'],datasets:[{data:[calc.detPct,calc.neuPct,calc.promPct],backgroundColor:['rgba(209,0,0,.85)','rgba(138,96,0,.85)','rgba(29,158,117,.85)'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9,callbacks:{label:ctx=>ctx.parsed.y+'%'}}},scales:{y:{max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'%'}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
@@ -3047,19 +3097,7 @@ function initApp(){
     if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='A'){e.preventDefault();nav(document.querySelector('[data-p=alertas]'),'alertas');}
   });
   updateStatusBar();
-  setTimeout(()=>{
-    const c=document.getElementById('npsChart')?.getContext('2d');
-    if(!c||c._done)return;c._done=true;
-    const g1=c.createLinearGradient(0,0,0,160);g1.addColorStop(0,'rgba(209,0,0,0.22)');g1.addColorStop(1,'rgba(209,0,0,0)');
-    new Chart(c,{type:'line',data:{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],
-      datasets:[
-        {label:'NPS Creare',data:[45,52,55,60,58,61],borderColor:'#D10000',backgroundColor:g1,tension:.45,fill:true,borderWidth:2.5,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},
-        {label:'Meta',data:[78,80,81,83,82,84],borderColor:'#9E9E9E',backgroundColor:'transparent',tension:.3,fill:false,borderWidth:1.5,pointRadius:3,pointHoverRadius:5,borderDash:[5,4]}
-      ]},options:{responsive:true,maintainAspectRatio:false,
-        animation:{duration:900,easing:'easeInOutQuart'},
-        plugins:{legend:{labels:{font:{size:11},color:'var(--gray2)',boxWidth:10,usePointStyle:true}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',titleFont:{size:12},bodyFont:{size:11},cornerRadius:7,padding:9}},
-        scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
-  },150);
+  setTimeout(()=>{ renderNPSChart('6m'); },150);
   setInterval(updateStatusBar,30000);
 }
 
