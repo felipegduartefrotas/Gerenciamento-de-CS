@@ -528,6 +528,15 @@ tr:hover td{background:#fafafa}
 .sortable:hover{background:var(--gray5)}
 .sortable.asc::after{content:' ↑';color:var(--red)}
 .sortable.desc::after{content:' ↓';color:var(--red)}
+/* VALIDAÇÃO VISUAL */
+.campo-erro{border-color:var(--red)!important;background:var(--redl)!important}
+.campo-erro:focus{box-shadow:0 0 0 2px rgba(209,0,0,.15)!important}
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:44px 0;color:var(--gray3)}
+.empty-state i{font-size:36px;display:block;margin-bottom:10px;color:var(--gray4)}
+.empty-state p{font-size:13px;margin-bottom:10px}
+/* NAV BADGE ZERO */
+.nav-badge:empty,.nav-badge[data-zero]{display:none}
 
 /* AGENDA */
 .agenda-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
@@ -662,7 +671,7 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-clientes">
   <div class="ph"><h2><i class="ti ti-building"></i>Gestão de Clientes</h2>
     <div style="display:flex;gap:8px">
-      <button class="btn-ghost" onclick="CS_DB.exportarCSV()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
+      <button class="btn-ghost" onclick="exportarClientesFiltrados()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
       <button class="btn-ghost" onclick="nav(document.querySelector('[data-p=importar]'),'importar')"><i class="ti ti-table-import"></i>Importar Excel</button>
       <button class="btn-primary" onclick="nav(document.querySelector('[data-p=novo-cliente]'),'novo-cliente')"><i class="ti ti-plus"></i>Novo Cliente</button>
     </div>
@@ -1865,8 +1874,8 @@ function updateStatusBar(){
     if(backupInfo.urgente){lastSaveEl.innerHTML=`<span style="color:#ff8080;cursor:pointer" onclick="CS_DB.exportarTudo();registrarBackup()"><i class="ti ti-alert-triangle"></i> ${backupInfo.texto} — clique para exportar</span>`;}
     else if(backupInfo.atencao){lastSaveEl.innerHTML=`<span style="color:#ffd480;cursor:pointer" onclick="CS_DB.exportarTudo();registrarBackup()"><i class="ti ti-clock"></i> ${backupInfo.texto} — clique para exportar</span>`;}
     else{lastSaveEl.textContent=backupInfo.texto;}
-    document.getElementById('nbClientes').textContent=cl.length;
-    document.getElementById('nbAlertas').textContent=al.length;
+    const nbCl=document.getElementById('nbClientes');if(nbCl){nbCl.textContent=cl.length;nbCl.toggleAttribute('data-zero',cl.length===0);}
+    const alDyn=CS_DB._gerarAlertas();const nbAl=document.getElementById('nbAlertas');if(nbAl){const dangerCt=alDyn.filter(a=>a.tipo==='danger').length;nbAl.textContent=alDyn.length;nbAl.toggleAttribute('data-zero',alDyn.length===0);nbAl.style.background=dangerCt?'var(--red)':'var(--yellow)';nbAl.style.color=dangerCt?'#fff':'var(--dark)';}
     document.getElementById('ndot').style.display=(al.filter(a=>a.tipo==='danger').length||backupInfo.urgente)?'block':'none';
   }catch(e){}
 }
@@ -1894,11 +1903,12 @@ function renderDashboard(){
   const cl=CS_DB.getClientes();const npsAll=CS_DB.getAllNPS();const ac=CS_DB.getAllAcoes();
   const npsCalc=CS_DB.calcNPS(npsAll);
   const hsMedia=cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):0;
-  const mrrRisco=cl.filter(c=>c.status==='Em Risco').reduce((s,c)=>s+(parseFloat(c.mrr?.replace(/\D/g,''))||0),0);
+  const clRisco=cl.filter(c=>calcChurnScore(c)>=40);
+  const mrrRisco=clRisco.reduce((s,c)=>s+(parseFloat(c.mrr?.replace(/\D/g,''))||0),0);
   const _navFlt=(status)=>`nav(document.querySelector('[data-p=clientes]'),'clientes');setTimeout(()=>{document.getElementById('fltStatus').value='${status}';renderClientes()},100)`;
   document.getElementById('dashKPIs').innerHTML=`
     <div class="kpi green clickable" onclick="${_navFlt('Ativo')}" title="Ver clientes ativos"><div class="kpi-lbl"><i class="ti ti-building-community"></i>Clientes Ativos<i class="ti ti-arrow-right" style="margin-left:auto;font-size:12px;color:var(--gray3)"></i></div><div class="kpi-val">${cl.filter(c=>c.status==='Ativo').length}</div><div class="kpi-sub up">de ${cl.length} total</div></div>
-    <div class="kpi red clickable" onclick="${_navFlt('Em Risco')}" title="Ver clientes em risco"><div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Em Risco<i class="ti ti-arrow-right" style="margin-left:auto;font-size:12px;color:var(--gray3)"></i></div><div class="kpi-val" style="color:var(--red)">${cl.filter(c=>c.status==='Em Risco').length}</div><div class="kpi-sub dn">R$${Math.round(mrrRisco/1000)}K em risco</div></div>
+    <div class="kpi red clickable" onclick="nav(document.querySelector('[data-p=churn]'),'churn')" title="Ver análise de risco"><div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Churn Risk ≥40%<i class="ti ti-arrow-right" style="margin-left:auto;font-size:12px;color:var(--gray3)"></i></div><div class="kpi-val" style="color:var(--red)">${clRisco.length}</div><div class="kpi-sub dn">R$${Math.round(mrrRisco/1000)}K expostos</div></div>
     <div class="kpi blue clickable" onclick="nav(document.querySelector('[data-p=nps]'),'nps')" title="Ver NPS"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS Médio<i class="ti ti-arrow-right" style="margin-left:auto;font-size:12px;color:var(--gray3)"></i></div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub ${npsCalc.score>=50?'up':'dn'}">${npsCalc.score!==null?CS_DB.npsZona(npsCalc.score).label:'Sem dados'}</div></div>
     <div class="kpi gray clickable" onclick="nav(document.querySelector('[data-p=exec]'),'exec')" title="Ver dashboard executivo"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score Médio<i class="ti ti-arrow-right" style="margin-left:auto;font-size:12px;color:var(--gray3)"></i></div><div class="kpi-val" style="color:${hsColor(hsMedia)}">${hsMedia}</div><div class="kpi-sub ${hsMedia>=70?'up':'dn'}">${hsMedia>=70?'Carteira saudável':hsMedia>=40?'Atenção':'Crítico'}</div></div>`;
 
@@ -1985,6 +1995,10 @@ function renderClientes(){
   if(mrrMin!=='')list=list.filter(c=>parseInt((c.mrr||'0').replace(/\D/g,''))>=mrrMin);
   if(regiao)list=list.filter(c=>(c.estado||'').toLowerCase().includes(regiao.toLowerCase())||(c.cidade||'').toLowerCase().includes(regiao.toLowerCase()));
   const re=CS_DB.getAllReunioes();
+  if(!list.length){
+    document.getElementById('clienteTbody').innerHTML=`<tr><td colspan="14"><div class="empty-state"><i class="ti ti-building-off"></i><p>Nenhum cliente encontrado com os filtros aplicados.</p><button class="lnk" onclick="limparFiltrosClientes()">Limpar filtros</button></div></td></tr>`;
+    return;
+  }
   document.getElementById('clienteTbody').innerHTML=list.map(c=>{
     const ultimaReu=re.filter(r=>r.clienteId===c.id)[0];
     return`<tr>
@@ -2031,6 +2045,25 @@ function limparFiltrosClientes(){
   ['fltStatus','fltTier','fltHS'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['fltQ','fltNPSMin','fltNPSMax','fltMRRMin','fltRegiao'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   renderClientes();
+}
+function exportarClientesFiltrados(){
+  const npsMin=parseInt(document.getElementById('fltNPSMin')?.value)||'';
+  const npsMax=parseInt(document.getElementById('fltNPSMax')?.value)||'';
+  const mrrMin=parseInt((document.getElementById('fltMRRMin')?.value||'').replace(/\D/g,''))||'';
+  const regiao=document.getElementById('fltRegiao')?.value||'';
+  const f={status:document.getElementById('fltStatus')?.value||'',tier:document.getElementById('fltTier')?.value||'',hs:document.getElementById('fltHS')?.value||'',q:document.getElementById('fltQ')?.value||''};
+  let list=_sortList(CS_DB.getClientes(f));
+  if(npsMin!=='')list=list.filter(c=>(c.ultimoNPS??-1)>=npsMin);
+  if(npsMax!=='')list=list.filter(c=>(c.ultimoNPS??11)<=npsMax);
+  if(mrrMin!=='')list=list.filter(c=>parseInt((c.mrr||'0').replace(/\D/g,''))>=mrrMin);
+  if(regiao)list=list.filter(c=>(c.estado||'').toLowerCase().includes(regiao.toLowerCase())||(c.cidade||'').toLowerCase().includes(regiao.toLowerCase()));
+  CS_DB.exportarCSV(list);
+  toast(`${list.length} cliente(s) exportados para CSV.`);
+}
+function validarCampos(ids){
+  let ok=true;
+  ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;if(!el.value.trim()){el.classList.add('campo-erro');if(ok)el.focus();ok=false;}else el.classList.remove('campo-erro');});
+  return ok;
 }
 function globalSearch(q){
   const drop=document.getElementById('searchDropdown');
@@ -2192,7 +2225,7 @@ function calcularMRRCadastro(){
 function salvarCliente(){
   const r=document.getElementById('fRazao').value.trim();
   const c=document.getElementById('fCNPJ').value.trim();
-  if(!r||!c){toast('Preencha Razão Social e CNPJ.','err');return}
+  if(!validarCampos(['fRazao','fCNPJ'])){toast('Preencha os campos obrigatórios marcados em vermelho.','err');return}
   const obsInicial=document.getElementById('fObs').value.trim();
   const grupoId=document.getElementById('fGrupo')?.value||null;
   const tipoNoGrupo=document.getElementById('fTipoGrupo')?.value||null;
@@ -2247,6 +2280,7 @@ function renderReunioes(){
   const kpis=document.getElementById('reunKPIs');
   if(kpis){const m=new Date().getMonth();const este=re.filter(r=>new Date(r.dataISO).getMonth()===m);const csatMed=re.length?Math.round(re.slice(0,5).reduce((s,r)=>s+(r.csat||0),0)/Math.min(re.length,5)*10)/10:0;const npsMed=re.length?CS_DB.calcNPS(re.map(r=>({nota:r.nps}))).score:null;
   kpis.innerHTML=`<div class="kpi red"><div class="kpi-lbl">Este mês</div><div class="kpi-val">${este.length}</div></div><div class="kpi green"><div class="kpi-lbl">CSAT médio</div><div class="kpi-val">${csatMed||'—'}</div></div><div class="kpi blue"><div class="kpi-lbl">NPS médio</div><div class="kpi-val" style="color:${npsColor(npsMed??0)}">${npsMed??'—'}</div></div><div class="kpi gray"><div class="kpi-lbl">Total registradas</div><div class="kpi-val">${re.length}</div></div>`}
+  if(!re.length){document.getElementById('reunTbody').innerHTML=`<tr><td colspan="9"><div class="empty-state"><i class="ti ti-calendar-off"></i><p>Nenhuma reunião registrada ainda.</p><button class="lnk" onclick="openM('mReuniao')">Registrar primeira reunião</button></div></td></tr>`;return;}
   document.getElementById('reunTbody').innerHTML=re.map(r=>{const g=npsGrupo(r.nps);return`<tr>
     <td style="color:var(--gray2);font-size:11.5px">${r.data}</td>
     <td style="font-weight:600">${r.empresa}</td>
@@ -3408,7 +3442,10 @@ function initApp(){
     if(e.key==='Escape'){document.querySelectorAll('.modal-ov.open').forEach(m=>m.classList.remove('open'));fecharSearchDropdown();}
     if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();nav(document.querySelector('[data-p=novo-cliente]'),'novo-cliente');}
     if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='A'){e.preventDefault();nav(document.querySelector('[data-p=alertas]'),'alertas');}
+    if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();const s=document.getElementById('fltQ');if(s){nav(document.querySelector('[data-p=clientes]'),'clientes');setTimeout(()=>s.focus(),80);}}
   });
+  // Limpar campo-erro ao digitar
+  document.addEventListener('input',e=>{if(e.target.classList.contains('campo-erro')&&e.target.value.trim())e.target.classList.remove('campo-erro');});
   updateStatusBar();
   setTimeout(()=>{ renderNPSChart('6m'); },150);
   setInterval(updateStatusBar,30000);
