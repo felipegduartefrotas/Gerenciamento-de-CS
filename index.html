@@ -1533,7 +1533,7 @@ tr:hover td{background:#fafafa}
     <div class="modal-ttl"><span><i class="ti ti-star"></i>Registrar Pesquisa NPS</span><span class="modal-close" onclick="closeM('mNPS')"><i class="ti ti-x"></i></span></div>
     <div class="form-g2" style="margin-bottom:10px">
       <div class="fg"><label>Cliente</label><select id="npsCliente"></select></div>
-      <div class="fg"><label>Data</label><input type="text" id="npsDataInput"></div>
+      <div class="fg" style="position:relative"><label>Data</label><div class="iw"><input type="text" id="npsDataInput" placeholder="DD/MM/AAAA" oninput="_textToDP('npsDataInput','npsDataPk')"><button class="ib-search" type="button" onclick="_openDP('npsDataPk')" title="Calendário"><i class="ti ti-calendar"></i></button></div><input type="date" id="npsDataPk" style="position:absolute;opacity:0;width:1px;height:1px;top:36px;left:0;pointer-events:none" onchange="_dpToText('npsDataInput','npsDataPk')"></div>
       <div class="fg"><label>Respondente</label><input type="text" id="npsResp" placeholder="Nome do contato"></div>
       <div class="fg"><label>Cargo</label><input type="text" id="npsCargoR" placeholder="Ex: Gerente de Frota"></div>
     </div>
@@ -2219,8 +2219,8 @@ function salvarStatusInline(id,status,el){
   el.closest('.status-inline-drop').remove();
   const c=CS_DB.getClienteById(id);if(!c)return;
   c.status=status;
-  CS_DB.salvarCliente(c);
-  registrarEventoTimeline({clienteId:id,titulo:`Status atualizado para "${status}"`,tipo:'edicao',dataISO:new Date().toISOString()});
+  CS_DB.saveCliente(c);
+  CS_DB._addTimeline(id,'edicao',`Status atualizado para "${status}"`,`Por ${CS_DB.getSession()?.nome||'Sistema'}`);
   renderClientes();
   toast(`Status de ${c.empresa} → ${status}`,'ok');
 }
@@ -3830,7 +3830,7 @@ function initApp(){
   renderDashboard();renderClientes();renderReunioes();renderKanban();renderAlertas();
   buildRatings();populateTlSelect();populateObSelect();populateEngSelect();populateGrupoSelect();
   _setDateDP('rData','rDataPk',new Date().toLocaleDateString('pt-BR'));
-  const nd=document.getElementById('npsDataInput');if(nd)nd.value=new Date().toLocaleDateString('pt-BR');
+  _setDateDP('npsDataInput','npsDataPk',new Date().toLocaleDateString('pt-BR'));
   initNotificacoes();
   // Keyboard shortcuts
   document.addEventListener('keydown',e=>{
@@ -5818,8 +5818,8 @@ window.CS_DB=CS_DB;
 // ════════════════════════════════════════════════
 const VOC_STATUS=[
   {id:'capturado',     label:'Capturado',          cor:'var(--gray3)',  bg:'var(--gray5)',  icone:'ti-download'},
-  {id:'enviado_produto',label:'Enviado ao Produto', cor:'var(--blue)',   bg:'var(--bluel)',  icone:'ti-send'},
-  {id:'em_analise',   label:'Em Análise',           cor:'var(--yellow)', bg:'var(--yell)',   icone:'ti-zoom-question'},
+  {id:'enviado_produto',label:'Enviado ao Produto', cor:'var(--blue)',   bg:'var(--bbg)',    icone:'ti-send'},
+  {id:'em_analise',   label:'Em Análise',           cor:'var(--yellow)', bg:'var(--ybg)',    icone:'ti-zoom-question'},
   {id:'implementado', label:'Implementado',          cor:'var(--green)',  bg:'var(--gbg)',    icone:'ti-check'},
 ];
 
