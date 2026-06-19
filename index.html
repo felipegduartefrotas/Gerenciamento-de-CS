@@ -1765,6 +1765,13 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 <script>
+// ═══ DIAGNÓSTICO DE CARREGAMENTO ═══
+(function(){
+  var btn=document.querySelector('.lb-btn');
+  if(btn){btn.style.background='#1d9e75';btn.textContent='✓ JS carregado — clique para entrar';}
+  var hint=document.querySelector('.lb-hint');
+  if(hint){hint.textContent='JavaScript OK · v'+new Date().toLocaleTimeString();}
+})();
 // ═══ STORAGE ENGINE EMBUTIDO ═══
 const CS_DB={VERSION:'2.0',PREFIX:'creare_cs_',KEYS:{clientes:'creare_cs_clientes',reunioes:'creare_cs_reunioes',acoes:'creare_cs_acoes',nps:'creare_cs_nps',timeline:'creare_cs_timeline',alertas:'creare_cs_alertas',config:'creare_cs_config',session:'creare_cs_session',meta:'creare_cs_meta',grupos:'creare_cs_grupos',hs_historico:'creare_cs_hs_historico'},
 init(){const m=this.get('meta');if(!m||m.version!==this.VERSION){this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})}else this.set('meta',{...m,lastUpdated:new Date().toISOString()})},
