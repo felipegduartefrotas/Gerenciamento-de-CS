@@ -1765,13 +1765,7 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 <script>
-// ═══ DIAGNÓSTICO DE CARREGAMENTO ═══
-(function(){
-  var btn=document.querySelector('.lb-btn');
-  if(btn){btn.style.background='#1d9e75';btn.textContent='✓ JS carregado — clique para entrar';}
-  var hint=document.querySelector('.lb-hint');
-  if(hint){hint.textContent='JavaScript OK · v'+new Date().toLocaleTimeString();}
-})();
+function _part1Loaded(){return true;}
 // ═══ STORAGE ENGINE EMBUTIDO ═══
 const CS_DB={VERSION:'2.0',PREFIX:'creare_cs_',KEYS:{clientes:'creare_cs_clientes',reunioes:'creare_cs_reunioes',acoes:'creare_cs_acoes',nps:'creare_cs_nps',timeline:'creare_cs_timeline',alertas:'creare_cs_alertas',config:'creare_cs_config',session:'creare_cs_session',meta:'creare_cs_meta',grupos:'creare_cs_grupos',hs_historico:'creare_cs_hs_historico'},
 init(){const m=this.get('meta');if(!m||m.version!==this.VERSION){this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})}else this.set('meta',{...m,lastUpdated:new Date().toISOString()})},
@@ -3812,7 +3806,9 @@ function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cf
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
 function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||''};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
 async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}const cfg=CS_DB.getConfig();const hsMin=Number(cfg.alertaHSMinimo)||50;const diasMin=Number(cfg.alertaDiasSemContato)||30;const clientes=CS_DB.getClientes();const reunioes=CS_DB.getReunioesAll?CS_DB.getReunioesAll():[];const now=new Date();const alertas=[];for(const c of clientes){const reu=reunioes.filter(r=>r.clienteId===c.id);const ult=reu.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];if(ult){const dias=Math.floor((now-new Date(ult.dataISO))/86400000);if(dias>=diasMin)alertas.push({tipo:'sem_contato',empresa:c.empresa,dias})}if(c.healthScore<hsMin)alertas.push({tipo:'hs_baixo',empresa:c.empresa,hs:c.healthScore})}if(!alertas.length){toast('Nenhum alerta ativo no momento.');return}try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sistema:'CS Manager v3 — Creare Sistemas',gerado_em:new Date().toISOString(),total_alertas:alertas.length,alertas})});toast(`Webhook disparado — ${alertas.length} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
-
+</script>
+<script>
+function _part2Loaded(){return true;}
 // ═══ LOGIN ═══
 function doLogin(){
   try{
@@ -6231,22 +6227,24 @@ window.onerror=function(msg,src,line,col,err){
 window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promise rejection:',e.reason);});
 </script>
 <script>
-// Diagnóstico e fallback do botão de login
+// Diagnóstico binário e fallback do botão de login
 (function(){
+  var p1=typeof _part1Loaded==='function';
+  var p2=typeof _part2Loaded==='function';
+  var dl=typeof doLogin==='function';
   var btn=document.querySelector('.lb-btn');
   if(!btn)return;
-  if(typeof doLogin!=='function'){
-    // Script principal não carregou — exibe erro visível
+  if(!dl){
     btn.style.background='#8a0000';
-    btn.textContent='⚠ Erro de carregamento — clique para detalhes';
+    btn.textContent='⚠ Erro JS — clique para detalhes';
     btn.onclick=function(){
-      alert('O JavaScript principal não carregou corretamente.\n\n'
-        +'Isso impede o acesso ao sistema.\n\n'
-        +'Abra o console do navegador (F12 > Console) e recarregue a página para ver o erro.\n\n'
-        +'Status: typeof doLogin = '+typeof doLogin);
+      alert('DIAGNÓSTICO DE PARSE ERROR:\n\n'
+        +'Parte 1 (CS_DB + render): '+(p1?'✓ OK':'✗ FALHOU')+'\n'
+        +'Parte 2 (login + initApp): '+(p2?'✓ OK':'✗ FALHOU')+'\n'
+        +'doLogin definido: '+(dl?'Sim':'Não')+'\n\n'
+        +'Informe ao suporte qual parte falhou.');
     };
   }else{
-    // Script carregado — cobre o botão com tratamento de erros
     btn.onclick=function(){
       try{doLogin();}catch(err){alert('Erro ao entrar: '+err.message);}
     };
