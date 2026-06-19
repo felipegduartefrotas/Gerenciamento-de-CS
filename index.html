@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1768,7 +1768,7 @@ tr:hover td{background:#fafafa}
 // ═══ STORAGE ENGINE EMBUTIDO ═══
 const CS_DB={VERSION:'2.0',PREFIX:'creare_cs_',KEYS:{clientes:'creare_cs_clientes',reunioes:'creare_cs_reunioes',acoes:'creare_cs_acoes',nps:'creare_cs_nps',timeline:'creare_cs_timeline',alertas:'creare_cs_alertas',config:'creare_cs_config',session:'creare_cs_session',meta:'creare_cs_meta',grupos:'creare_cs_grupos',hs_historico:'creare_cs_hs_historico'},
 init(){const m=this.get('meta');if(!m||m.version!==this.VERSION){this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})}else this.set('meta',{...m,lastUpdated:new Date().toISOString()})},
-get(k){try{const r=localStorage.getItem(this.KEYS[k]||k);return r?JSON.parse(r):null}catch{return null}},
+get(k){try{const r=localStorage.getItem(this.KEYS[k]||k);return r?JSON.parse(r):null}catch(_e){return null}},
 set(k,d){try{localStorage.setItem(this.KEYS[k]||k,JSON.stringify(d));return true}catch(e){return false}},
 remove(k){localStorage.removeItem(this.KEYS[k]||k)},
 getClientes(f={}){let l=this.get('clientes')||[];if(f.status)l=l.filter(c=>c.status===f.status);if(f.tier)l=l.filter(c=>c.tier===f.tier);if(f.hs==='alto')l=l.filter(c=>c.healthScore>=70);if(f.hs==='medio')l=l.filter(c=>c.healthScore>=40&&c.healthScore<70);if(f.hs==='baixo')l=l.filter(c=>c.healthScore<40);if(f.q)l=l.filter(c=>c.empresa.toLowerCase().includes(f.q.toLowerCase())||(c.cnpj||'').includes(f.q));return l},
@@ -1826,7 +1826,7 @@ addHsHistorico(clienteId,score){const h=this.get('hs_historico')||{};if(!h[clien
 // ── EXPORTAÇÃO CSV ──────────────────────────────────────────
 exportarCSV(clientes){const cols=['empresa','nomeFantasia','cnpj','segmento','tier','status','healthScore','mrr','veiculos','mensalidadePorVeiculo','contato','cargo','email','telefone','responsavelCS','cidade','uf','renovacao'];const labels=['Razão Social','Nome Fantasia','CNPJ','Segmento','Tier','Status','Health Score','MRR','Veículos','Mensalidade/Veículo','Contato','Cargo','E-mail','Telefone','Responsável CS','Cidade','UF','Renovação'];const esc=v=>{if(v===null||v===undefined)return'';const s=String(v);return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:`${s}`};const rows=[labels.join(',')];(clientes||this.getClientes()).forEach(c=>{rows.push(cols.map(k=>esc(c[k])).join(','))});const bl=new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download=`clientes_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;a.click();URL.revokeObjectURL(u)},
 exportarTudo(){const b={};Object.entries(this.KEYS).forEach(([k,key])=>{b[k]=localStorage.getItem(key)});const bl=new Blob([JSON.stringify(b,null,2)],{type:'application/json'});const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download=`csmanager_backup_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;a.click();URL.revokeObjectURL(u)},
-importarBackup(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);Object.entries(this.KEYS).forEach(([k,key])=>{if(d[k])localStorage.setItem(key,d[k])});res('Backup restaurado!')}catch{rej('Arquivo inválido.')}};r.readAsText(f)})},
+importarBackup(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);Object.entries(this.KEYS).forEach(([k,key])=>{if(d[k])localStorage.setItem(key,d[k])});res('Backup restaurado!')}catch(_e){rej('Arquivo inválido.')}};r.readAsText(f)})},
 resetar(){Object.values(this.KEYS).forEach(k=>localStorage.removeItem(k));this._seedData();this.set('meta',{version:this.VERSION,createdAt:new Date().toISOString(),lastUpdated:new Date().toISOString()})},
 _seedData(){const ago=(d)=>new Date(Date.now()-d*86400000).toISOString();const cl=[
 {id:'cli_001',empresa:'Vale S.A.',cnpj:'33.592.510/0001-54',segmento:'Mineração',tier:'A',status:'Ativo',healthScore:88,mrr:'R$82.000',veiculos:380,responsavelCS:'Felipe Duarte',contato:'Carlos Lima',email:'carlos.lima@vale.com.br',telefone:'(31) 3269-4000',cidade:'Itabira',uf:'MG',regiao:'Sudeste',produtos:'Telemetria + Videomonitoramento + Safety',inicio:'01/01/2024',vigencia:'36 meses',renovacao:'01/2027',dataRenovacao:'2027-01-01',ultimoNPS:72},
@@ -2362,7 +2362,7 @@ function agendaIrHoje(){_agendaSemana=0;renderAgenda()}
 function _openDP(pickerId){
   const pk=document.getElementById(pickerId);
   if(!pk)return;
-  try{pk.showPicker();}catch{pk.click();}
+  try{pk.showPicker();}catch(_e){pk.click();}
 }
 function _dpToText(textId,pickerId){
   const v=document.getElementById(pickerId)?.value;
@@ -3578,7 +3578,7 @@ async function gerarIA(){
   const g=npsN!==null?npsGrupo(npsN):null;
   const prompt=`Você é assistente de Customer Success da Creare Sistemas (telemetria avançada e videomonitoramento para frotas). Gere em português PT-BR um resumo executivo objetivo (máx 200 palavras) de reunião ${document.getElementById('rTipo')?.value||'de CS'}${cli?' com '+cli.empresa:''}${npsN!==null?`, NPS do cliente: ${npsN}/10 (${g.g})`:''}. Pontos positivos: ${document.getElementById('rPosi')?.value||'N/A'}. Problemas: ${document.getElementById('rProb')?.value||'Nenhum'}. Melhorias: ${document.getElementById('rMel')?.value||'N/A'}. Use seções: [Situação] [NPS e Satisfação] [Pontos de Atenção] [Ações Solicitadas] [Próximos Passos].`;
   try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});const d=await r.json();box.textContent=d.content?.map(i=>i.text||'').join('')||'Resumo gerado.';}
-  catch{box.textContent=`[Situação]\n${cli?cli.empresa+' demonstra':'Cliente demonstra'} ${npsN!==null&&npsN>=9?'alto':'médio'} nível de satisfação na reunião de hoje${npsN!==null?`. NPS registrado: ${npsN}/10 — ${g.g}`:''}.${document.getElementById('rPosi')?.value?'\n\n[Pontos Positivos]\n'+document.getElementById('rPosi').value:''}\n\n[Próximos Passos]\nAcompanhar ações definidas e agendar próxima reunião.`;}
+  catch(_e){box.textContent=`[Situação]\n${cli?cli.empresa+' demonstra':'Cliente demonstra'} ${npsN!==null&&npsN>=9?'alto':'médio'} nível de satisfação na reunião de hoje${npsN!==null?`. NPS registrado: ${npsN}/10 — ${g.g}`:''}.${document.getElementById('rPosi')?.value?'\n\n[Pontos Positivos]\n'+document.getElementById('rPosi').value:''}\n\n[Próximos Passos]\nAcompanhar ações definidas e agendar próxima reunião.`;}
   document.getElementById('btnCopiar').style.display='inline-flex';document.getElementById('btnEnviar').style.display='inline-flex';
 }
 
@@ -3611,7 +3611,7 @@ async function buscarCNPJ(){
     document.getElementById('cnpjResult').style.display='block';
     document.getElementById('cnpjResult').innerHTML=`<div class="cr-hdr"><div class="cr-av">${ini}</div><div><div class="cr-name">${d.razao_social||''}</div><div class="cr-type">${d.nome_fantasia?d.nome_fantasia+' · ':''}<span class="${sit.toLowerCase()==='ativa'?'s-ativo':'s-inativo'}">${sit}</span></div></div></div><div class="cr-grid"><div class="cr-field"><div class="cr-f-lbl">CNAE</div><div class="cr-f-val">${d.estabelecimento?.atividade_principal?.id||'—'}</div></div><div class="cr-field"><div class="cr-f-lbl">Natureza</div><div class="cr-f-val">${d.natureza_juridica?.descricao||'—'}</div></div><div class="cr-field"><div class="cr-f-lbl">Abertura</div><div class="cr-f-val">${d.estabelecimento?.data_inicio_atividade?formatDate(d.estabelecimento.data_inicio_atividade):'—'}</div></div></div>`;
     toast('CNPJ encontrado! Dados preenchidos automaticamente.');
-  }catch{sd('cnpjLoad',false);sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ não encontrado. Preencha manualmente.'}}
+  }catch(_e){sd('cnpjLoad',false);sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ não encontrado. Preencha manualmente.'}}
 async function buscarCEP(){
   const raw=document.getElementById('fCEP').value.replace(/\D/g,'');if(raw.length!==8)return;
   sd('cepLoad',true);sd('cepErr',false);sd('cepOk',false);
@@ -3619,7 +3619,7 @@ async function buscarCEP(){
     sd('cepLoad',false);document.getElementById('fLogr').value=d.logradouro||'';document.getElementById('fBairro').value=d.bairro||'';document.getElementById('fCidade').value=d.localidade||'';
     const uf=d.uf||'';for(let o of document.getElementById('fUF').options)if(o.value===uf)o.selected=true;document.getElementById('fRegiao').value=REGIOES[uf]||'—';
     sd('cepOk',true);atualizarMapa(d.localidade,uf,REGIOES[uf]||'—',d.logradouro,d.bairro);
-  }catch{sd('cepLoad',false);sd('cepErr',true)}}
+  }catch(_e){sd('cepLoad',false);sd('cepErr',true)}}
 function atualizarMapa(cidade,uf,reg,log,bairro){
   if(!cidade)return;const q=encodeURIComponent((log?log+', ':'')+(bairro?bairro+', ':'')+cidade+', '+uf+', Brasil');
   fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`,{headers:{'Accept-Language':'pt-BR','User-Agent':'CSManagerCreare/3.0'}})
@@ -3638,7 +3638,7 @@ function normStr(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u0
 function detectCampo(col){const n=normStr(col);let best=null,bs=0;for(const c of CAMPOS){for(const al of c.aliases){const an=normStr(al);if(n===an)return{campo:c,conf:'high'};if(n.includes(an)||an.includes(n)){const sc=Math.min(n.length,an.length)/Math.max(n.length,an.length)*90;if(sc>bs){bs=sc;best={campo:c,conf:sc>70?'high':sc>40?'mid':'low'}}}}}return best||{campo:null,conf:'low'}}
 function goIStep(n){[1,2,3,4].forEach(i=>{document.getElementById('istep'+i).style.display=i===n?'block':'none';const dot=document.getElementById('sd'+i),lbl=document.getElementById('sl'+i);if(i<n){dot.className='step-dot done';dot.innerHTML='<i class="ti ti-check" style="font-size:12px"></i>';lbl.className='step-lbl done'}else if(i===n){dot.className='step-dot active';dot.textContent=i;lbl.className='step-lbl active'}else{dot.className='step-dot';dot.textContent=i;lbl.className='step-lbl'}if(i<4){const l=document.getElementById('sl_'+i);if(l)l.className='step-line'+(i<n?' done':'')}});if(n===3)renderValidation();if(n===4)renderSuccess()}
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('dragover');handleFile(e.dataTransfer.files[0])}
-function handleFile(f){if(!f)return;const ext=f.name.split('.').pop().toLowerCase();if(!['xlsx','xls','csv'].includes(ext)){toast('Use .xlsx, .xls ou .csv','err');return}const reader=new FileReader();reader.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});if(raw.length<2){toast('Planilha sem dados.','err');return}const headers=raw[0].map(h=>String(h).trim());parsedData=raw.slice(1).filter(r=>r.some(c=>String(c).trim()!=='')).map(r=>{const o={};headers.forEach((h,i)=>o[h]=String(r[i]||'').trim());return o});buildMapping(headers);goIStep(2)}catch{toast('Erro ao ler arquivo.','err')}};reader.readAsArrayBuffer(f)}
+function handleFile(f){if(!f)return;const ext=f.name.split('.').pop().toLowerCase();if(!['xlsx','xls','csv'].includes(ext)){toast('Use .xlsx, .xls ou .csv','err');return}const reader=new FileReader();reader.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});if(raw.length<2){toast('Planilha sem dados.','err');return}const headers=raw[0].map(h=>String(h).trim());parsedData=raw.slice(1).filter(r=>r.some(c=>String(c).trim()!=='')).map(r=>{const o={};headers.forEach((h,i)=>o[h]=String(r[i]||'').trim());return o});buildMapping(headers);goIStep(2)}catch(_e){toast('Erro ao ler arquivo.','err')}};reader.readAsArrayBuffer(f)}
 function loadDemoData(){const h=DEMO_H;parsedData=DEMO_R.map(r=>{const o={};h.forEach((hh,i)=>o[hh]=r[i]||'');return o});buildMapping(h);goIStep(2)}
 function buildMapping(headers){mappingResult=headers.map(h=>({original:h,...detectCampo(h)}));const mapped=mappingResult.filter(m=>m.campo).length;document.getElementById('mapProg').style.width=Math.round(mapped/headers.length*100)+'%';document.getElementById('mapProgLbl').textContent=`${mapped} de ${headers.length} colunas mapeadas`;document.getElementById('mapRows').innerHTML=mappingResult.map((m,i)=>{const cls=m.conf==='high'?'ch':m.conf==='mid'?'cm':'cl';const lbl=m.conf==='high'?'Alta':m.conf==='mid'?'Média':'Baixa';const opts=CAMPOS.map(c=>`<option value="${c.key}" ${m.campo&&m.campo.key===c.key?'selected':''}>${c.label}${c.req?' (rec.)':''}</option>`).join('');return`<div class="map-row-imp"><div class="col-det">${m.original}</div><div style="color:var(--gray3);text-align:center"><i class="ti ti-arrow-right"></i></div><div><select id="mp_${i}" style="width:100%;background:var(--gray5);border:1px solid var(--gray4);border-radius:6px;padding:4px 7px;font-size:12px;color:var(--black);outline:none"><option value="">— Ignorar —</option>${opts}</select></div><div><span class="conf-b ${cls}"><i class="ti ti-${m.conf==='high'?'check':m.conf==='mid'?'alert-triangle':'x'}" style="font-size:10px"></i>${lbl}</span></div></div>`}).join('')}
 function getMapping(){const mp={};mappingResult.forEach((_,i)=>{const s=document.getElementById('mp_'+i);if(s&&s.value)mp[mappingResult[i].original]=s.value});return mp}
@@ -4642,10 +4642,10 @@ function calcHealthScoreAuto(cid){
   if(reu.length){
     const ultima=reu[0];
     const diasStr=ultima.data;let diasDesde=999;
-    try{const p=diasStr.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasDesde=Math.floor((new Date()-d)/(1000*60*60*24));}catch{}
+    try{const p=diasStr.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasDesde=Math.floor((new Date()-d)/(1000*60*60*24));}catch(_e){}
     if(diasDesde<=14)reuScore=100;else if(diasDesde<=30)reuScore=85;else if(diasDesde<=45)reuScore=65;else if(diasDesde<=60)reuScore=40;else if(diasDesde<=90)reuScore=20;else reuScore=0;
     // Bônus frequência
-    const ultimos90=reu.filter(r=>{try{const p=r.data.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);return(new Date()-d)/(1000*60*60*24)<=90;}catch{return false;}}).length;
+    const ultimos90=reu.filter(r=>{try{const p=r.data.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);return(new Date()-d)/(1000*60*60*24)<=90;}catch(_e){return false;}}).length;
     if(ultimos90>=3)reuScore=Math.min(100,reuScore+10);
   }
 
@@ -4701,10 +4701,10 @@ function recomendarAcao(c,cid){
   const ob=obs.find(o=>o.clienteId===(cid||c.id)||o.empresa===c.empresa);
 
   let diasDesdeReu=999;
-  if(reu.length){try{const p=reu[0].data.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasDesdeReu=Math.floor((new Date()-d)/(1000*60*60*24));}catch{}}
+  if(reu.length){try{const p=reu[0].data.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasDesdeReu=Math.floor((new Date()-d)/(1000*60*60*24));}catch(_e){}}
 
   let diasRenovacao=999;
-  if(c.renovacao){try{const p=c.renovacao.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasRenovacao=Math.floor((d-new Date())/(1000*60*60*24));}catch{}}
+  if(c.renovacao){try{const p=c.renovacao.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasRenovacao=Math.floor((d-new Date())/(1000*60*60*24));}catch(_e){}}
 
   const atrasadas=ac.filter(a=>a.status==='Atrasada').length;
   const ultimoNPS=npsArr[0]?.nota??null;
@@ -5595,7 +5595,7 @@ function gerarRelatorioDiretoria(){
     const mom=calcMomentum(c.id);
     const rec=recomendarAcao(c,c.id);
     const momHtml=mom.dir==='up'?`<span style="color:#1d9e75">▲ ${mom.label}</span>`:mom.dir==='down'?`<span style="color:#D10000">▼ ${mom.label}</span>`:`<span style="color:#888">→</span>`;
-    const diasRen=()=>{if(!c.renovacao)return 999;try{const p=c.renovacao.split('/');return Math.round((new Date(+p[2],+p[1]-1,+p[0])-new Date())/(1000*60*60*24));}catch{return 999;}};
+    const diasRen=()=>{if(!c.renovacao)return 999;try{const p=c.renovacao.split('/');return Math.round((new Date(+p[2],+p[1]-1,+p[0])-new Date())/(1000*60*60*24));}catch(_e){return 999;}};
     const dr=diasRen();
     const renStr=dr===999?'—':dr<0?`<span style="color:#D10000;font-weight:700">Vencido ${Math.abs(dr)}d</span>`:dr<=30?`<span style="color:#D10000;font-weight:700">${dr}d</span>`:dr<=90?`<span style="color:#8a6000">${dr}d</span>`:`<span style="color:#1d9e75">${dr}d</span>`;
     return`<tr>
@@ -5677,7 +5677,7 @@ ${recCrit?`<h2>Recomendações Priorizadas — Contas em Risco</h2><div>${recCri
   O NPS consolidado é <strong>${npsCalc.score??'sem dados'}</strong> e o Health Score médio da carteira é <strong>${hsMedia}</strong>.
   ${contasCrit>0?`<strong style="color:#D10000">${contasCrit} conta(s) em estado crítico</strong> exigem ação imediata da liderança.`:'Nenhuma conta em estado crítico no momento.'}
   ${obAtras>0?` ${obAtras} implantação(ões) atrasada(s) — verificar bloqueios com a equipe técnica.`:''}
-  ${clientes.filter(c=>{try{const p=(c.renovacao||'').split('/');return Math.round((new Date(+p[2],+p[1]-1,+p[0])-new Date())/(1000*60*60*24))<=30;}catch{return false;}}).length>0?`<br><strong style="color:#D10000">Atenção:</strong> ${clientes.filter(c=>{try{const p=(c.renovacao||'').split('/');return Math.round((new Date(+p[2],+p[1]-1,+p[0])-new Date())/(1000*60*60*24))<=30;}catch{return false;}}).length} contrato(s) vencendo em até 30 dias.`:''}
+  ${clientes.filter(c=>{try{const p=(c.renovacao||'').split('/');return Math.round((new Date(+p[2],+p[1]-1,+p[0])-new Date())/(1000*60*60*24))<=30;}catch(_e){return false;}}).length>0?`<br><strong style="color:#D10000">Atenção:</strong> ${clientes.filter(c=>{try{const p=(c.renovacao||'').split('/');return Math.round((new Date(+p[2],+p[1]-1,+p[0])-new Date())/(1000*60*60*24))<=30;}catch(_e){return false;}}).length} contrato(s) vencendo em até 30 dias.`:''}
 </div>
 <div class="foot">
   <span>Documento confidencial — uso exclusivo da diretoria Creare Sistemas · Dados financeiros e de viabilidade comercial</span>
@@ -6167,7 +6167,7 @@ async function buscarCEPFilial(){
     document.getElementById('filBairro').value=d.bairro||'';
     document.getElementById('filCidade').value=d.localidade||'';
     document.getElementById('filUF').value=d.uf||'';
-  }catch{toast('Erro ao buscar CEP.','err');}
+  }catch(_e){toast('Erro ao buscar CEP.','err');}
 }
 
 function formatarCNPJFilial(el){
