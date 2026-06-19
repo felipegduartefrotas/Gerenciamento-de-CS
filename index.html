@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -572,7 +572,6 @@ tr:hover td{background:#fafafa}
 </style>
 </head>
 <body>
-<script>document.addEventListener('DOMContentLoaded',function(){var b=document.querySelector('.lb-btn');if(b){b.style.background='#1d9e75';b.textContent='JS OK - Clique para entrar';}})</script>
 <!-- ═══ LOGIN ═══ -->
 <div id="loginScreen">
   <div class="lb">
@@ -6234,6 +6233,29 @@ window.onload=()=>{
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('app').style.display='none';
 };
+</script>
+<script>
+// Diagnóstico e fallback do botão de login
+(function(){
+  var btn=document.querySelector('.lb-btn');
+  if(!btn)return;
+  if(typeof doLogin!=='function'){
+    // Script principal não carregou — exibe erro visível
+    btn.style.background='#8a0000';
+    btn.textContent='⚠ Erro de carregamento — clique para detalhes';
+    btn.onclick=function(){
+      alert('O JavaScript principal não carregou corretamente.\n\n'
+        +'Isso impede o acesso ao sistema.\n\n'
+        +'Abra o console do navegador (F12 > Console) e recarregue a página para ver o erro.\n\n'
+        +'Status: typeof doLogin = '+typeof doLogin);
+    };
+  }else{
+    // Script carregado — cobre o botão com tratamento de erros
+    btn.onclick=function(){
+      try{doLogin();}catch(err){alert('Erro ao entrar: '+err.message);}
+    };
+  }
+})();
 </script>
 </body>
 </html>
