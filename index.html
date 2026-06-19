@@ -5019,7 +5019,9 @@ function renderChurn() {
     <div class="play-tags">${p.tags.map(t=>`<span class="pt ${t.c}">${t.l}</span>`).join('')}</div></div>
   </div>`).join('');
 }
-
+</script>
+<script>
+function _part2bLoaded(){return true;}
 // ════════════════════════════════════════════════
 // DASHBOARD DO CLIENTE (360)
 // ════════════════════════════════════════════════
@@ -6230,7 +6232,8 @@ window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promis
 // Diagnóstico binário e fallback do botão de login
 (function(){
   var p1=typeof _part1Loaded==='function';
-  var p2=typeof _part2Loaded==='function';
+  var p2a=typeof _part2Loaded==='function';
+  var p2b=typeof _part2bLoaded==='function';
   var dl=typeof doLogin==='function';
   var btn=document.querySelector('.lb-btn');
   if(!btn)return;
@@ -6238,11 +6241,11 @@ window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promis
     btn.style.background='#8a0000';
     btn.textContent='⚠ Erro JS — clique para detalhes';
     btn.onclick=function(){
-      alert('DIAGNÓSTICO DE PARSE ERROR:\n\n'
-        +'Parte 1 (CS_DB + render): '+(p1?'✓ OK':'✗ FALHOU')+'\n'
-        +'Parte 2 (login + initApp): '+(p2?'✓ OK':'✗ FALHOU')+'\n'
-        +'doLogin definido: '+(dl?'Sim':'Não')+'\n\n'
-        +'Informe ao suporte qual parte falhou.');
+      alert('DIAGNÓSTICO:\n\n'
+        +'Parte 1 (CS_DB+render): '+(p1?'✓ OK':'✗ FALHOU')+'\n'
+        +'Parte 2a (login+initApp): '+(p2a?'✓ OK':'✗ FALHOU')+'\n'
+        +'Parte 2b (cliente360+dir): '+(p2b?'✓ OK':'✗ FALHOU')+'\n'
+        +'doLogin: '+(dl?'OK':'undefined'));
     };
   }else{
     btn.onclick=function(){
