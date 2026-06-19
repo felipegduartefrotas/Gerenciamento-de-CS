@@ -5564,6 +5564,9 @@ ${ob&&ob.steps.length?`  var ganttEl=document.getElementById('obGanttChart');if(
   registrarRelatorioGerado(`Relatório Cliente — ${c.empresa} (${periodo})`,'cliente');
   toast('Relatório do cliente gerado em nova aba!');
 }
+</script>
+<script>
+function _part2cLoaded(){return true;}
 function gerarRelatorioDiretoria(){
   const escopo=document.getElementById('relEscopoDir').value;
   const clientes=escopo==='cliente'?[CS_DB.getClienteById(document.getElementById('relClienteDirSelect').value)].filter(Boolean):CS_DB.getClientes();
@@ -6234,6 +6237,8 @@ window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promis
   var p1=typeof _part1Loaded==='function';
   var p2a=typeof _part2Loaded==='function';
   var p2b=typeof _part2bLoaded==='function';
+  var p2c=typeof _part2cLoaded==='function';
+  var popEng=typeof populateEngSelect==='function';
   var dl=typeof doLogin==='function';
   var btn=document.querySelector('.lb-btn');
   if(!btn)return;
@@ -6242,9 +6247,11 @@ window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promis
     btn.textContent='⚠ Erro JS — clique para detalhes';
     btn.onclick=function(){
       alert('DIAGNÓSTICO:\n\n'
-        +'Parte 1 (CS_DB+render): '+(p1?'✓ OK':'✗ FALHOU')+'\n'
-        +'Parte 2a (login+initApp): '+(p2a?'✓ OK':'✗ FALHOU')+'\n'
-        +'Parte 2b (cliente360+dir): '+(p2b?'✓ OK':'✗ FALHOU')+'\n'
+        +'P1 (CS_DB+render): '+(p1?'✓':'✗')+'\n'
+        +'P2a (login+initApp): '+(p2a?'✓':'✗')+'\n'
+        +'P2b (cliente360 até relDir): '+(p2b?'✓':'✗')+'\n'
+        +'P2c (relDir+engSelect+grupos): '+(p2c?'✓':'✗')+'\n'
+        +'populateEngSelect: '+(popEng?'✓':'✗')+'\n'
         +'doLogin: '+(dl?'OK':'undefined'));
     };
   }else{
