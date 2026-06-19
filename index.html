@@ -1336,7 +1336,7 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-grupos">
   <div class="ph">
     <h2><i class="ti ti-building-community"></i>Grupos Econômicos</h2>
-    <button class="btn-primary" onclick="openM('mGrupo')"><i class="ti ti-plus"></i>Novo Grupo</button>
+    <button class="btn-primary" onclick="_abrirNovoGrupoModal()"><i class="ti ti-plus"></i>Novo Grupo</button>
   </div>
   <div id="gruposListWrap"></div>
 </div>
@@ -1465,8 +1465,9 @@ tr:hover td{background:#fafafa}
     <input type="hidden" id="mGrupoId">
     <div class="fg"><label>Nome do Grupo <span class="req">*</span></label><input type="text" id="mGrupoNome" placeholder="Ex: GRUPO VALE S.A."></div>
     <div class="fg"><label>Descrição</label><textarea id="mGrupoDesc" placeholder="Observações sobre o grupo (segmento, estratégia...)" style="min-height:70px"></textarea></div>
-    <div class="btn-row">
+    <div id="mGrupoBtnAdicionar" class="btn-row">
       <button class="btn-ghost" onclick="closeM('mGrupo')">Cancelar</button>
+      <button class="btn-ghost" onclick="salvarGrupoEAdicionar()"><i class="ti ti-building-plus"></i>Salvar e Adicionar Empresa</button>
       <button class="btn-primary" onclick="salvarGrupo()"><i class="ti ti-device-floppy"></i>Salvar Grupo</button>
     </div>
   </div>
@@ -4945,7 +4946,7 @@ function renderChurn() {
   const gaugeEl = document.getElementById('churnGauge');
   if (gaugeEl) gaugeEl.innerHTML = all.slice(0, 8).map(c => {
     const lb = churnLabel(c.churnScore);
-    return `<div class="churn-row">
+    return `<div class="churn-row" style="cursor:pointer" onclick="irParaCliente360('${c.id}')" title="Abrir Cliente 360 — ${c.empresa}">
       <span class="churn-empresa">${c.empresa.split(' ')[0]}</span>
       <div class="churn-bar-bg"><div class="churn-bar-fill ${lb.bar}" style="width:${c.churnScore}%"></div></div>
       <span class="churn-pct" style="color:${lb.cor}">${c.churnScore}%</span>
@@ -4992,7 +4993,7 @@ function renderChurn() {
     const renov = c.dataRenovacao ? Math.floor((new Date(c.dataRenovacao) - new Date()) / 86400000) : null;
     const playAcao = c.churnScore >= 70 ? 'Contato urgente da liderança + plano emergencial' : c.churnScore >= 40 ? 'Reunião de alinhamento + revisão técnica' : c.churnScore >= 20 ? 'Revisão mensal + pesquisa NPS' : 'Manter cadência padrão';
     return `<tr>
-      <td style="font-weight:600">${c.empresa}</td>
+      <td style="font-weight:600;cursor:pointer;color:var(--red)" onclick="irParaCliente360('${c.id}')" title="Abrir Cliente 360">${c.empresa}</td>
       <td><span class="${tierB(c.tier)}">${c.tier}</span></td>
       <td>${c.mrr || '—'}</td>
       <td><span class="hs-pill ${hsCls(c.healthScore)}">${c.healthScore}</span></td>
@@ -6073,8 +6074,10 @@ function renderGrupos(){
     </div>`;}).join('');
 }
 function toggleGrupo(bodyId,chevronId){const body=document.getElementById(bodyId);const chev=document.getElementById(chevronId);const header=chev.closest('.grupo-card-header');const isOpen=body.classList.toggle('open');chev.classList.toggle('open',isOpen);header.classList.toggle('open',isOpen)}
-function editarGrupo(id){const g=CS_DB.getGrupoById(id);if(!g)return;document.getElementById('mGrupoId').value=g.id;document.getElementById('mGrupoNome').value=g.nome;document.getElementById('mGrupoDesc').value=g.descricao||'';document.getElementById('mGrupoTitulo').textContent='Editar Grupo';openM('mGrupo')}
+function editarGrupo(id){const g=CS_DB.getGrupoById(id);if(!g)return;document.getElementById('mGrupoId').value=g.id;document.getElementById('mGrupoNome').value=g.nome;document.getElementById('mGrupoDesc').value=g.descricao||'';document.getElementById('mGrupoTitulo').textContent='Editar Grupo';const btnAdd=document.getElementById('mGrupoBtnAdicionar');if(btnAdd)btnAdd.children[1].style.display='none';openM('mGrupo')}
+function _abrirNovoGrupoModal(){document.getElementById('mGrupoId').value='';document.getElementById('mGrupoNome').value='';document.getElementById('mGrupoDesc').value='';document.getElementById('mGrupoTitulo').textContent='Novo Grupo Econômico';const btnAdd=document.getElementById('mGrupoBtnAdicionar');if(btnAdd)btnAdd.children[1].style.display='';openM('mGrupo');}
 function salvarGrupo(){const id=document.getElementById('mGrupoId').value;const nome=document.getElementById('mGrupoNome').value.trim();const descricao=document.getElementById('mGrupoDesc').value.trim();if(!nome){toast('Informe o nome do grupo.','warn');return}CS_DB.saveGrupo({id:id||undefined,nome,descricao});closeM('mGrupo');renderGrupos();populateGrupoSelect();toast('Grupo salvo!')}
+function salvarGrupoEAdicionar(){const nome=document.getElementById('mGrupoNome').value.trim();const descricao=document.getElementById('mGrupoDesc').value.trim();if(!nome){toast('Informe o nome do grupo.','warn');return}const g=CS_DB.saveGrupo({id:undefined,nome,descricao});closeM('mGrupo');renderGrupos();populateGrupoSelect();toast('Grupo criado! Agora adicione a primeira empresa.');setTimeout(()=>abrirNovaFilial(g.id),200);}
 function excluirGrupo(id,nome){confirmar(`Excluir o grupo "${nome}"?\nAs empresas vinculadas não serão apagadas — apenas desvinculadas.`,()=>{CS_DB.deleteGrupo(id);renderGrupos();populateGrupoSelect();toast('Grupo excluído.');},'Excluir grupo','Excluir');}
 function irParaCliente360(clienteId){const el=document.querySelector('[data-p=cliente360]');nav(el,'cliente360');setTimeout(()=>{const sel=document.getElementById('selC360');if(sel){sel.value=clienteId;sel.dispatchEvent(new Event('change'))}},150)}
 
