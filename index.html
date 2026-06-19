@@ -389,6 +389,36 @@ tr:hover td{background:#fafafa}
 .rank-row.clickable{cursor:pointer;transition:background .15s}
 .rank-row.clickable:hover{background:var(--gray5)}
 
+/* ── INTELLIGENCE LAYER ── */
+/* Momentum arrows */
+.mom{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;border-radius:5px;padding:2px 6px}
+.mom-up{background:#e1f5ee;color:var(--green)}
+.mom-dn{background:#fff0f0;color:var(--red)}
+.mom-st{background:var(--gray5);color:var(--gray2)}
+
+/* HS Breakdown bar */
+.hs-breakdown{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.hs-comp{display:grid;grid-template-columns:110px 1fr 30px;align-items:center;gap:8px;font-size:11.5px}
+.hs-comp-bar-bg{background:var(--gray4);border-radius:4px;height:6px;overflow:hidden}
+.hs-comp-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+
+/* Next Action Card */
+.next-action{border-radius:10px;padding:13px 15px;display:flex;align-items:flex-start;gap:12px;border:1.5px solid}
+.na-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.na-urgente{border-color:var(--redb);background:var(--redl)}
+.na-importante{border-color:#f5d6b0;background:#fff8ee}
+.na-oportunidade{border-color:#b5d4f4;background:var(--bbg)}
+.na-normal{border-color:var(--gray4);background:var(--gray5)}
+
+/* Voice of Customer */
+.voz-keyword{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:4px 10px;font-size:11.5px;font-weight:600;margin:3px;cursor:default}
+.voz-pos{background:#e1f5ee;color:var(--gtxt)}
+.voz-neg{background:var(--redl);color:#a00}
+.voz-neu{background:var(--gray5);color:var(--gray2)}
+
+/* Portfolio quadrant map */
+.quad-label{position:absolute;font-size:10px;font-weight:700;text-transform:uppercase;opacity:.45;letter-spacing:.5px}
+
 /* INLINE STATUS EDIT */
 .status-badge-edit{cursor:pointer;transition:opacity .12s}
 .status-badge-edit:hover{opacity:.8}
@@ -656,8 +686,10 @@ tr:hover td{background:#fafafa}
     <th class="sortable" data-col="tier" onclick="sortClientes('tier')">Tier</th>
     <th class="sortable" data-col="status" onclick="sortClientes('status')">Status</th>
     <th class="sortable" data-col="healthScore" onclick="sortClientes('healthScore')">HS</th>
+    <th>Tendência</th>
     <th class="sortable" data-col="ultimoNPS" onclick="sortClientes('ultimoNPS')">NPS</th>
     <th class="sortable" data-col="mrr" onclick="sortClientes('mrr')">MRR</th>
+    <th>Próxima Ação</th>
     <th>CS</th><th>Última Reunião</th><th></th>
   </tr></thead>
   <tbody id="clienteTbody"></tbody></table></div>
@@ -879,6 +911,10 @@ tr:hover td{background:#fafafa}
       <div class="card-ttl"><i class="ti ti-building"></i>Ranking NPS por cliente <span class="sub">última pesquisa de cada um · clique para ver detalhes</span></div>
       <div id="npsClienteList"></div>
     </div>
+    <div style="margin-top:14px" class="card">
+      <div class="card-ttl"><i class="ti ti-message-2"></i>Voz do Cliente <span class="sub">palavras mais frequentes nos comentários NPS</span></div>
+      <div id="vozClienteSection"></div>
+    </div>
   </div>
 
   <!-- ABA POR CLIENTE -->
@@ -926,6 +962,21 @@ tr:hover td{background:#fafafa}
     <div class="card"><div class="card-ttl"><span><i class="ti ti-chart-bar"></i>Evolução MRR</span><div class="cpb"><button class="cpb-btn" onclick="renderMRRBar('1m',this)">Mês</button><button class="cpb-btn" onclick="renderMRRBar('3m',this)">Tri</button><button class="cpb-btn active" onclick="renderMRRBar('6m',this)">Sem</button><button class="cpb-btn" onclick="renderMRRBar('12m',this)">Ano</button></div></div><div class="chart-wrap"><canvas id="mrrBar"></canvas></div></div>
     <div class="card"><div class="card-ttl"><i class="ti ti-alert-triangle"></i>Contas em risco</div><div id="riscoList"></div></div>
     <div class="card"><div class="card-ttl"><i class="ti ti-chart-bar-off"></i>Problemas recorrentes <span class="sub">tri.</span></div><div class="chart-wrap" style="height:130px"><canvas id="probBar"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-ttl"><i class="ti ti-circles-relation"></i>Mapa da Carteira <span class="sub">HS × NPS · tamanho = MRR · clique para abrir cliente</span>
+      <div style="margin-left:auto;display:flex;gap:10px;font-size:11px;color:var(--gray2)">
+        <span style="padding:2px 8px;background:var(--gbg);border-radius:5px;color:var(--gtxt)">↑ Q1 Saudáveis</span>
+        <span style="padding:2px 8px;background:var(--redl);border-radius:5px;color:var(--red)">↓ Q3 Em Risco</span>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:280px;position:relative">
+      <canvas id="mapaCarteira"></canvas>
+      <span class="quad-label" style="top:8px;left:55%;color:var(--green)">Promotores / Alto Valor</span>
+      <span class="quad-label" style="top:8px;left:4%;color:var(--yellow)">HS alto, NPS baixo</span>
+      <span class="quad-label" style="bottom:26px;left:55%;color:var(--blue)">NPS alto, HS baixo</span>
+      <span class="quad-label" style="bottom:26px;left:4%;color:var(--red)">Zona de Risco</span>
+    </div>
   </div>
 </div>
 
@@ -1746,7 +1797,7 @@ function nav(el,p){
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('tbTitle').innerHTML=`<i class="ti ${PICONS[p]}"></i>${PTITLES[p]}`;
-  if(p==='exec')setTimeout(initExec,80);
+  if(p==='exec'){execDone=false;setTimeout(initExec,80);}
   if(p==='nps'){renderNPSPage();populateNPSClienteSelect();}
   if(p==='alertas')renderAlertas();
   if(p==='timeline')populateTlSelect();
@@ -1928,8 +1979,10 @@ function renderClientes(){
       <td><span class="${tierB(c.tier)}">${c.tier}</span></td>
       <td><span class="badge ${stClass(c.status)} status-badge-edit" title="Clique para alterar status" onclick="editarStatusInline('${c.id}',this)">${c.status}</span></td>
       <td><span class="hs-pill ${hsCls(c.healthScore)}">${c.healthScore}</span></td>
+      <td>${(()=>{const m=calcMomentum(c.id);return`<span class="mom mom-${m.dir==='up'?'up':m.dir==='down'?'dn':'st'}"><i class="ti ${m.icone}"></i>${m.label}</span>`;})()}</td>
       <td>${c.ultimoNPS!==undefined?`<span style="font-weight:700;color:${npsColor(c.ultimoNPS)}">${c.ultimoNPS}</span>`:'—'}</td>
       <td>${c.mrr||'—'}</td>
+      <td style="max-width:180px">${(()=>{const r=recomendarAcao(c,c.id);const urgCls=r.urgencia==='urgente'?'b-risco':r.urgencia==='oportunidade'?'b-exp':'';return`<span class="badge ${urgCls}" style="font-size:10px;white-space:normal;line-height:1.3;${!urgCls?'background:var(--gray5);color:var(--gray2)':''}" title="${r.descricao}"><i class="ti ${r.icone}"></i> ${r.titulo}</span>`;})()}</td>
       <td style="color:var(--gray2)">${c.responsavelCS||'—'}</td>
       <td style="font-size:11.5px;color:var(--gray2)">${ultimaReu?.data||'Sem reunião'}</td>
       <td style="white-space:nowrap">
@@ -2847,6 +2900,7 @@ function renderNPSPage(){
   const byClient={};npsAll.forEach(p=>{if(!byClient[p.clienteId])byClient[p.clienteId]={empresa:p.empresa,clienteId:p.clienteId,notas:[]};byClient[p.clienteId].notas.push({nota:p.nota})});
   document.getElementById('npsClienteList').innerHTML=Object.values(byClient).map(c=>{const cl2=CS_DB.calcNPS(c.notas);const z2=CS_DB.npsZona(cl2.score);return`<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--gray4);cursor:pointer" onclick="abrirNPSCliente('${c.clienteId}')"><div style="width:36px;height:28px;border-radius:6px;background:${z2.bg||'var(--gray5)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${z2.cor||'var(--gray2)'}">${cl2.score}</div><div style="flex:1"><div style="font-size:12.5px;font-weight:500">${c.empresa}</div><div style="font-size:11px;color:var(--gray2)">${c.notas.length} resp. · Prom: ${cl2.promPct}% Det: ${cl2.detPct}%</div></div><span class="badge" style="background:${z2.bg||'var(--gray5)'};color:${z2.cor||'var(--gray2)'};font-size:10px">${z2.emoji} ${z2.label}</span><i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:6px"></i></div>`}).join('')||'<div style="color:var(--gray2);padding:10px 0">Nenhuma pesquisa registrada ainda.</div>';
   setTimeout(initNPSCharts,80);
+  setTimeout(renderVozCliente,100);
 }
 
 // ════════════════════════════════════════════════
@@ -3169,6 +3223,7 @@ function initExec(){
   const c1=document.getElementById('mrrPie')?.getContext('2d');
   if(c1)new Chart(c1,{type:'doughnut',data:{labels:['Saudável','Atenção','Risco','Implant.'],datasets:[{data:[cl.filter(c=>c.healthScore>=70).length,cl.filter(c=>c.healthScore>=40&&c.healthScore<70).length,cl.filter(c=>c.status==='Em Risco').length,cl.filter(c=>c.status==='Implantação').length],backgroundColor:['#1d9e75','#e0880a','#D10000','#555'],borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeInOutBack'},cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,padding:8,usePointStyle:true}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}}}});
   renderMRRBar('6m');
+  setTimeout(renderMapaCarteira,120);
   const c3=document.getElementById('probBar')?.getContext('2d');
   if(c3)new Chart(c3,{type:'bar',data:{labels:['Latência','Playback','BI','ERP','Treinamento','Sensor'],datasets:[{data:[14,11,9,7,6,5],backgroundColor:['#D10000','#c44','#a55','#888','#aaa','#ccc'],borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},y:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}})
 }
@@ -4058,6 +4113,213 @@ function marcarEmailChurnEnviado(){
 }
 
 // ════════════════════════════════════════════════
+// INTELIGÊNCIA DE CLIENTE
+// ════════════════════════════════════════════════
+
+// ── 1. HEALTH SCORE AUTOMÁTICO ──
+function calcHealthScoreAuto(cid){
+  const c=CS_DB.getClienteById(cid);if(!c)return{score:0,componentes:{}};
+  const reu=CS_DB.getReunioesCliente(cid);
+  const npsArr=CS_DB.getNPSCliente(cid);
+  const ac=CS_DB.getAcoesCliente(cid);
+  const obs=CS_DB.get('onboardings')||[];
+  const ob=obs.find(o=>o.clienteId===cid||o.empresa===c.empresa);
+
+  // Componente: Reuniões (25%) — recência e frequência
+  let reuScore=0;
+  if(reu.length){
+    const ultima=reu[0];
+    const diasStr=ultima.data;let diasDesde=999;
+    try{const p=diasStr.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasDesde=Math.floor((new Date()-d)/(1000*60*60*24));}catch{}
+    if(diasDesde<=14)reuScore=100;else if(diasDesde<=30)reuScore=85;else if(diasDesde<=45)reuScore=65;else if(diasDesde<=60)reuScore=40;else if(diasDesde<=90)reuScore=20;else reuScore=0;
+    // Bônus frequência
+    const ultimos90=reu.filter(r=>{try{const p=r.data.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);return(new Date()-d)/(1000*60*60*24)<=90;}catch{return false;}}).length;
+    if(ultimos90>=3)reuScore=Math.min(100,reuScore+10);
+  }
+
+  // Componente: NPS (30%) — score e tendência
+  let npsScore=50;// neutral if no data
+  if(npsArr.length){
+    const calc=CS_DB.calcNPS(npsArr);const s=calc.score??0;
+    npsScore=s>=75?100:s>=50?80:s>=25?60:s>=0?40:s>=-25?20:5;
+    // Tendência: comparar últimas 2 pesquisas
+    if(npsArr.length>=2){const delta=(npsArr[0]?.nota??0)-(npsArr[1]?.nota??0);if(delta>=2)npsScore=Math.min(100,npsScore+10);else if(delta<=-2)npsScore=Math.max(0,npsScore-10);}
+  }
+
+  // Componente: Ações (25%) — atrasos e taxa de conclusão
+  let acScore=100;
+  const atrasadas=ac.filter(a=>a.status==='Atrasada');
+  const pendentes=ac.filter(a=>a.status==='Em andamento'||a.status==='Pendente');
+  if(atrasadas.length>=3)acScore=10;else if(atrasadas.length===2)acScore=35;else if(atrasadas.length===1)acScore=60;
+  if(pendentes.length>5)acScore=Math.max(0,acScore-15);
+
+  // Componente: Onboarding (20%) — progresso ou não aplicável
+  let obScore=100;
+  if(ob&&ob.status!=='concluido'){
+    const pct=calcObPct(ob);
+    obScore=pct>=80?85:pct>=50?60:pct>=25?35:15;
+    // Stalled: sem progresso recente
+    const recentes=ob.steps.filter(s=>s.concluido&&s.dataConc).length;
+    if(!recentes&&ob.status==='em-andamento')obScore=Math.max(0,obScore-15);
+  }
+
+  const total=Math.round(reuScore*0.25+npsScore*0.30+acScore*0.25+obScore*0.20);
+  return{
+    score:Math.max(0,Math.min(100,total)),
+    componentes:{reunioes:{score:reuScore,peso:25},nps:{score:npsScore,peso:30},acoes:{score:acScore,peso:25},onboarding:{score:obScore,peso:20}}
+  };
+}
+
+// ── 2. PRÓXIMA AÇÃO RECOMENDADA ──
+function recomendarAcao(c,cid){
+  const reu=CS_DB.getReunioesCliente(cid||c.id);
+  const npsArr=CS_DB.getNPSCliente(cid||c.id);
+  const ac=CS_DB.getAcoesCliente(cid||c.id);
+  const obs=CS_DB.get('onboardings')||[];
+  const ob=obs.find(o=>o.clienteId===(cid||c.id)||o.empresa===c.empresa);
+
+  let diasDesdeReu=999;
+  if(reu.length){try{const p=reu[0].data.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasDesdeReu=Math.floor((new Date()-d)/(1000*60*60*24));}catch{}}
+
+  let diasRenovacao=999;
+  if(c.renovacao){try{const p=c.renovacao.split('/');const d=new Date(+p[2],+p[1]-1,+p[0]);diasRenovacao=Math.floor((d-new Date())/(1000*60*60*24));}catch{}}
+
+  const atrasadas=ac.filter(a=>a.status==='Atrasada').length;
+  const ultimoNPS=npsArr[0]?.nota??null;
+  const diasDesdeNPS=npsArr.length?Math.floor((new Date()-new Date(npsArr[0]?.dataISO))/(1000*60*60*24)):999;
+  const hs=c.healthScore??70;
+
+  // Prioridade decrescente — primeiro match retorna
+  if(diasRenovacao>=0&&diasRenovacao<=21)
+    return{urgencia:'urgente',icone:'ti-refresh',titulo:'Iniciar negociação de renovação',descricao:`Contrato vence em ${diasRenovacao} dia(s). Agendar reunião executiva e preparar proposta.`,cor:'var(--red)',bg:'var(--redl)'};
+  if(hs<35)
+    return{urgencia:'urgente',icone:'ti-alert-circle',titulo:'Cliente em estado crítico — contato imediato',descricao:`HS ${hs} indica situação grave. Contato em até 24h com plano de recuperação.`,cor:'var(--red)',bg:'var(--redl)'};
+  if(diasDesdeReu>45&&reu.length>0)
+    return{urgencia:'urgente',icone:'ti-calendar-exclamation',titulo:'Reagendar reunião — contato há '+diasDesdeReu+'d',descricao:'Relacionamento em risco. Agendar call de check-in nos próximos 3 dias.',cor:'var(--red)',bg:'var(--redl)'};
+  if(ultimoNPS!==null&&ultimoNPS<=5)
+    return{urgencia:'urgente',icone:'ti-mood-sad',titulo:'NPS crítico — entender insatisfação',descricao:`Nota ${ultimoNPS}/10. Ligar para o contato principal e abrir plano de ação dedicado.`,cor:'var(--red)',bg:'var(--redl)'};
+  if(atrasadas>=2)
+    return{urgencia:'importante',icone:'ti-clipboard-x',titulo:`${atrasadas} ações atrasadas acumuladas`,descricao:'Revisar e reatribuir ações. Atrasos contínuos indicam falta de governança.',cor:'var(--yellow)',bg:'#fff8ee'};
+  if(diasDesdeReu>30&&!reu.length)
+    return{urgencia:'importante',icone:'ti-calendar-plus',titulo:'Agendar primeiro contato estruturado',descricao:'Nenhuma reunião registrada. Iniciar cadência de CS com call de discovery.',cor:'var(--yellow)',bg:'#fff8ee'};
+  if(ob&&ob.status!=='concluido'&&calcObPct(ob)<50)
+    return{urgencia:'importante',icone:'ti-rocket',titulo:'Onboarding parado abaixo de 50%',descricao:`Implantação em ${calcObPct(ob)}%. Identificar bloqueio e reativar cronograma.`,cor:'var(--yellow)',bg:'#fff8ee'};
+  if(diasDesdeNPS>60)
+    return{urgencia:'normal',icone:'ti-star',titulo:'Enviar pesquisa NPS',descricao:`Última pesquisa há ${diasDesdeNPS>600?'mais de 60':diasDesdeNPS}d. Manter cadência bimestral de satisfação.`,cor:'var(--blue)',bg:'var(--bbg)'};
+  if(diasRenovacao>=22&&diasRenovacao<=60)
+    return{urgencia:'normal',icone:'ti-refresh',titulo:'Preparar renovação com antecedência',descricao:`Contrato vence em ${diasRenovacao}d. Montar case de valor e identificar oportunidades de expansão.`,cor:'var(--blue)',bg:'var(--bbg)'};
+  if(hs>=75&&(ultimoNPS===null||ultimoNPS>=9))
+    return{urgencia:'oportunidade',icone:'ti-trending-up',titulo:'Oportunidade de expansão ou indicação',descricao:'Cliente promotor e saudável. Prospectar upsell, novos módulos ou convite para case de sucesso.',cor:'var(--green)',bg:'var(--gbg)'};
+  return{urgencia:'normal',icone:'ti-check',titulo:'Manter cadência regular de CS',descricao:'Cliente estável. Confirmar próxima reunião e verificar novas necessidades.',cor:'var(--gray2)',bg:'var(--gray5)'};
+}
+
+// ── 3. MOMENTUM (tendência) ──
+function calcMomentum(cid){
+  const hist=CS_DB.getHsHistorico(cid);
+  if(hist.length<2)return{dir:'stable',delta:0,cor:'var(--gray3)',icone:'ti-minus',label:'Estável'};
+  const recent=hist.slice(-1)[0].score;
+  const prev30=hist.find(h=>{const d=(new Date()-new Date(h.registrado_em))/(1000*60*60*24);return d>=25&&d<=45;});
+  const base=prev30?.score??hist[0].score;
+  const delta=recent-base;
+  if(delta>=5)return{dir:'up',delta,cor:'var(--green)',icone:'ti-trending-up',label:'+'+delta+'pts'};
+  if(delta<=-5)return{dir:'down',delta,cor:'var(--red)',icone:'ti-trending-down',label:delta+'pts'};
+  return{dir:'stable',delta,cor:'var(--gray3)',icone:'ti-minus',label:'Estável'};
+}
+
+// ── 4. VOZ DO CLIENTE ──
+const _STOP_PT=['de','a','o','que','e','do','da','em','um','para','com','uma','os','no','se','na','por','mais','as','dos','das','como','mas','foi','ao','ele','das','tem','à','seu','sua','ou','ser','quando','muito','nos','já','também','só','pelo','pela','até','isso','ela','entre','era','depois','sem','mesmo','aos','ter','seus','quem','nas','me','esse','eles','estão','você','tinha','foram','essa','num','nem','suas','meu','às','minha','têm','numa','pelos','pelas','qual','nós','lhe','deles','essas','esses','pois','se','ainda','assim','dela'];
+function renderVozCliente(){
+  const el=document.getElementById('vozClienteSection');if(!el)return;
+  const npsAll=CS_DB.getAllNPS();
+  const comentarios=npsAll.filter(n=>n.comentario&&n.comentario.trim().length>3).map(n=>({texto:n.comentario,nota:n.nota}));
+  if(!comentarios.length){el.innerHTML='<div style="color:var(--gray2);font-size:12.5px;padding:14px 0;text-align:center">Nenhum comentário nas pesquisas NPS ainda.</div>';return;}
+
+  // Freq de palavras
+  const freq={};
+  comentarios.forEach(({texto,nota})=>{
+    texto.toLowerCase().replace(/[^a-záéíóúãõâêôç\s]/g,'').split(/\s+/).forEach(w=>{
+      if(w.length<3||_STOP_PT.includes(w))return;
+      if(!freq[w])freq[w]={count:0,posCount:0,negCount:0};
+      freq[w].count++;
+      if(nota>=9)freq[w].posCount++;else if(nota<=6)freq[w].negCount++;
+    });
+  });
+
+  const PALAVRAS_NEG=['lentidão','lento','bug','falha','erro','problema','ruim','péssimo','instável','atrasado','atraso','demora','queda','instabilidade','reclamação','reclamar','cancelar','insatisfeito','difícil','complicado','travando','trava'];
+  const PALAVRAS_POS=['ótimo','excelente','bom','boa','rápido','eficiente','satisfeito','ajudou','resolveu','perfeito','parabéns','recomendo','fácil','intuitivo','suporte','atencioso','qualidade','confiável','inovador','prático'];
+
+  const sorted=Object.entries(freq).filter(([,v])=>v.count>=1).sort(([,a],[,b])=>b.count-a.count).slice(0,30);
+
+  const classifyWord=([w,v])=>{
+    if(PALAVRAS_NEG.includes(w)||v.negCount>v.posCount*1.5)return'neg';
+    if(PALAVRAS_POS.includes(w)||v.posCount>v.negCount*1.5)return'pos';
+    return'neu';
+  };
+
+  const kw=sorted.map(entry=>{
+    const cls='voz-'+classifyWord(entry);
+    const size=Math.max(11,Math.min(16,11+entry[1].count));
+    return`<span class="voz-keyword ${cls}" style="font-size:${size}px" title="${entry[1].count} menções">${entry[0]} <span style="opacity:.6;font-size:10px">${entry[1].count}</span></span>`;
+  }).join('');
+
+  const posCount=sorted.filter(e=>classifyWord(e)==='pos').length;
+  const negCount=sorted.filter(e=>classifyWord(e)==='neg').length;
+  const sentStr=negCount>posCount?`<span style="color:var(--red)">⚠ ${negCount} temas negativos dominando</span>`:posCount>negCount?`<span style="color:var(--green)">✓ Sentimento predominantemente positivo</span>`:`<span style="color:var(--gray2)">Sentimento misto</span>`;
+
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:12px;color:var(--gray2)">${comentarios.length} comentários analisados · ${sentStr}</span>
+      <div style="display:flex;gap:8px;font-size:11px">
+        <span class="voz-keyword voz-pos" style="pointer-events:none">positivo</span>
+        <span class="voz-keyword voz-neg" style="pointer-events:none">negativo</span>
+        <span class="voz-keyword voz-neu" style="pointer-events:none">neutro</span>
+      </div>
+    </div>
+    <div style="line-height:2.2">${kw}</div>`;
+}
+
+// ── 5. MAPA DE CARTEIRA (scatter HS × NPS) ──
+let _mapaCartInst=null;
+function renderMapaCarteira(){
+  const ctx=document.getElementById('mapaCarteira')?.getContext('2d');if(!ctx)return;
+  if(_mapaCartInst){_mapaCartInst.destroy();_mapaCartInst=null;}
+  const cl=CS_DB.getClientes();
+  const CORES={A:'rgba(209,0,0,.8)',B:'rgba(26,79,160,.8)',C:'rgba(138,96,0,.8)'};
+  const datasets=Object.entries(CORES).map(([tier,cor])=>({
+    label:'Tier '+tier,
+    data:cl.filter(c=>c.tier===tier).map(c=>({
+      x:c.ultimoNPS!==undefined?c.ultimoNPS*10:50,
+      y:c.healthScore??50,
+      r:Math.max(6,Math.min(18,parseInt((c.mrr||'0').replace(/\D/g,''))/10000*6+6)),
+      empresa:c.empresa,id:c.id
+    })),
+    backgroundColor:cor,borderColor:cor.replace('.8','1'),borderWidth:1.5,
+  }));
+  _mapaCartInst=new Chart(ctx,{
+    type:'bubble',
+    data:{datasets},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeInOutQuart'},
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:10}},
+        tooltip:{backgroundColor:'rgba(17,17,17,.9)',cornerRadius:8,padding:10,callbacks:{
+          title:items=>`${items[0].raw.empresa}`,
+          label:item=>[`HS: ${item.raw.y}`,`NPS: ${(item.raw.x/10).toFixed(1)}`]
+        }},
+        annotation:{drawTime:'beforeDatasetsDraw',annotations:{
+          q1:{type:'box',xMin:60,xMax:100,yMin:70,yMax:100,backgroundColor:'rgba(29,158,117,.04)',borderColor:'rgba(29,158,117,.15)',borderWidth:1},
+          q3:{type:'box',xMin:0,xMax:60,yMin:0,yMax:70,backgroundColor:'rgba(209,0,0,.04)',borderColor:'rgba(209,0,0,.15)',borderWidth:1},
+        }}
+      },
+      scales:{
+        x:{min:0,max:100,title:{display:true,text:'NPS (×10)',font:{size:10},color:'var(--gray2)'},grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v/10}},
+        y:{min:0,max:100,title:{display:true,text:'Health Score',font:{size:10},color:'var(--gray2)'},grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}}
+      },
+      onClick:(e,els)=>{if(els.length){const d=datasets[els[0].datasetIndex].data[els[0].index];if(d?.id)abrirEditar(d.id);}}
+    }
+  });
+}
+
+// ════════════════════════════════════════════════
 // PIPELINE DE RENOVAÇÃO
 // ════════════════════════════════════════════════
 function renderPipeline(){
@@ -4317,9 +4579,16 @@ function renderCliente360(){
         </div>
       </div>
     </div>
-    <div class="card" style="margin-top:14px">
-      <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução do Health Score <span class="sub" id="c360HsSubtitle"></span></div>
-      <div class="chart-wrap" style="height:150px"><canvas id="c360HsChart"></canvas></div>
+    <div class="two-col" style="margin-top:14px">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução do Health Score <span class="sub" id="c360HsSubtitle"></span></div>
+        <div class="chart-wrap" style="height:140px"><canvas id="c360HsChart"></canvas></div>
+        <div class="hs-breakdown" id="c360HsBreakdown" style="margin-top:12px"></div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-brain"></i>O que fazer agora?<span class="sub">recomendação baseada em dados</span></div>
+        <div id="c360NextAction"></div>
+      </div>
     </div>
     </div><!-- /c360AbaGeral -->
     <div id="c360AbaPlano" style="display:none">
@@ -4343,6 +4612,30 @@ function renderCliente360(){
         {label:'Nota',data:npsOrdenado.map(n=>n.nota),borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.3,fill:true,borderWidth:2,pointRadius:3,pointBackgroundColor:'var(--red)',pointBorderColor:'#fff',pointBorderWidth:1.5},
         {label:'Meta (9)',data:npsOrdenado.map(()=>9),borderColor:'rgba(100,100,100,.45)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
       ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:8}}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}}},x:{ticks:{color:'var(--gray3)',font:{size:9}}}}}});
+    }
+    // HS Breakdown automático
+    const hsAuto=calcHealthScoreAuto(cid);
+    const brkEl=document.getElementById('c360HsBreakdown');
+    if(brkEl){
+      const COMP_LABELS={reunioes:{lbl:'Reuniões',icone:'ti-calendar'},nps:{lbl:'NPS',icone:'ti-star'},acoes:{lbl:'Ações',icone:'ti-clipboard-list'},onboarding:{lbl:'Onboarding',icone:'ti-rocket'}};
+      brkEl.innerHTML=`<div style="font-size:11px;color:var(--gray2);margin-bottom:6px">HS automático: <strong style="color:${hsColor(hsAuto.score)}">${hsAuto.score}</strong> <span style="font-size:10px">(vs manual: ${c.healthScore})</span></div>`+
+        Object.entries(hsAuto.componentes).map(([key,v])=>{
+          const meta=COMP_LABELS[key];const cor=v.score>=70?'var(--green)':v.score>=40?'var(--yellow)':'var(--red)';
+          return`<div class="hs-comp"><span><i class="ti ${meta.icone}" style="color:${cor}"></i> ${meta.lbl}</span><div class="hs-comp-bar-bg"><div class="hs-comp-bar-fill" style="width:${v.score}%;background:${cor}"></div></div><span style="color:${cor};font-weight:700">${v.score}</span></div>`;
+        }).join('');
+    }
+    // Próxima ação recomendada
+    const naEl=document.getElementById('c360NextAction');
+    if(naEl){
+      const rec=recomendarAcao(c,cid);
+      const clsMap={urgente:'na-urgente',importante:'na-importante',oportunidade:'na-oportunidade',normal:'na-normal'};
+      const icoBg={urgente:'var(--redl)',importante:'#fff0d9',oportunidade:'var(--gbg)',normal:'var(--gray5)'};
+      naEl.innerHTML=`<div class="next-action ${clsMap[rec.urgencia]||'na-normal'}">
+        <div class="na-icon" style="background:${icoBg[rec.urgencia]||'var(--gray5)'}"><i class="ti ${rec.icone}" style="color:${rec.cor}"></i></div>
+        <div><div style="font-size:13px;font-weight:600;color:${rec.cor};margin-bottom:4px">${rec.titulo}</div>
+        <div style="font-size:12px;color:var(--gray2);line-height:1.5">${rec.descricao}</div>
+        <button class="btn-ghost" style="font-size:11px;padding:4px 10px;margin-top:8px" onclick="abrirAgendarReuniao('${cid}')"><i class="ti ti-calendar-plus"></i>Agendar reunião</button>
+        </div></div>`;
     }
     // Gráfico evolução Health Score
     const hist=CS_DB.getHsHistorico(cid);
