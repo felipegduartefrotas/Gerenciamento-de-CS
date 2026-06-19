@@ -389,6 +389,17 @@ tr:hover td{background:#fafafa}
 .rank-row.clickable{cursor:pointer;transition:background .15s}
 .rank-row.clickable:hover{background:var(--gray5)}
 
+/* INLINE STATUS EDIT */
+.status-badge-edit{cursor:pointer;transition:opacity .12s}
+.status-badge-edit:hover{opacity:.8}
+.status-inline-drop{position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:var(--white);border:1px solid var(--gray4);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:130px;overflow:hidden}
+.sid-opt{padding:7px 13px;font-size:12px;cursor:pointer;transition:background .1s}
+.sid-opt:hover{background:var(--gray5)}
+
+/* PAGE FADE TRANSITION */
+@keyframes pgFadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:pgFadeIn .18s ease}
+
 /* CHART PERIOD BUTTONS */
 .cpb{display:flex;gap:3px;margin-left:auto}
 .cpb-btn{background:none;border:1px solid var(--gray4);border-radius:5px;padding:2px 8px;font-size:10.5px;font-weight:600;cursor:pointer;color:var(--gray2);transition:background .12s,color .12s,border-color .12s}
@@ -406,6 +417,28 @@ tr:hover td{background:#fafafa}
 .dark-mode .rat-btn,.dark-mode .sent-btn,.dark-mode .flt-sel,.dark-mode .flt-inp,.dark-mode .tb-search{background:#1f1f1f;border-color:#2e2e2e;color:#f0f0f0}
 .dark-mode .map-container,.dark-mode .map-info{background:#151515;border-color:#2e2e2e}
 .dark-mode .storage-bar{background:#0a0a0a}
+.dark-mode .status-inline-drop{background:#1f1f1f;border-color:#2e2e2e}
+.dark-mode .sid-opt:hover{background:#252525}
+
+/* ── HAMBURGER / MOBILE ── */
+.hamburger{display:none;background:none;border:none;cursor:pointer;font-size:18px;color:var(--gray2);padding:5px 8px;border-radius:6px;margin-right:4px;transition:background .12s}
+.hamburger:hover{background:var(--gray5)}
+@media(max-width:768px){
+  :root{--sb:0px}
+  .app{flex-direction:column}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:500;transform:translateX(-220px);transition:transform .22s ease;width:220px}
+  .sidebar.open{transform:translateX(0)}
+  .hamburger{display:flex;align-items:center;justify-content:center}
+  .main{margin-left:0;width:100%}
+  .two-col,.three-col{grid-template-columns:1fr!important}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)!important}
+  .topbar{padding:0 12px}
+  .content{padding:14px 10px}
+  .tbl-card{overflow-x:auto}
+  .flt-row{flex-wrap:wrap}
+  .sb-overlay{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:499;opacity:0;pointer-events:none;transition:opacity .22s}
+  .sb-overlay.open{opacity:1;pointer-events:all}
+}
 
 /* ── ONBOARDING ── */
 .ob-card{background:var(--white);border:1px solid var(--gray4);border-radius:10px;margin:0 14px 10px;overflow:hidden}
@@ -522,8 +555,9 @@ tr:hover td{background:#fafafa}
 </div>
 
 <!-- ═══ APP ═══ -->
+<div class="sb-overlay" id="sbOverlay" onclick="toggleSidebar()"></div>
 <div id="app">
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
     <div class="sb-logo"><div class="sb-mark"><div class="sb-rect"></div><div><div class="sb-brand">creare</div><div class="sb-sub">sistemas</div></div></div><div class="sb-dev">develop by FFKD</div></div>
     <div class="nav-sec">Principal</div>
     <div class="nav-item active" data-p="dashboard" onclick="nav(this,'dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
@@ -542,11 +576,13 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="grupos" onclick="nav(this,'grupos')"><i class="ti ti-building-community"></i>Grupos Econômicos</div>
     <div class="nav-item" data-p="onboarding" onclick="nav(this,'onboarding')"><i class="ti ti-rocket"></i>Onboarding</div>
     <div class="nav-item" data-p="churn" onclick="nav(this,'churn')"><i class="ti ti-trending-down"></i>Controle de Churn</div>
+    <div class="nav-item" data-p="pipeline" onclick="nav(this,'pipeline')"><i class="ti ti-arrows-right"></i>Pipeline de Renovação</div>
     <div class="nav-item" data-p="engajamento" onclick="nav(this,'engajamento')"><i class="ti ti-activity"></i>Engajamento</div>
     <div class="nav-item" data-p="relatorios" onclick="nav(this,'relatorios')"><i class="ti ti-file-report"></i>Relatórios</div>
     <div class="nav-sec">Ferramentas</div>
     <div class="nav-item" data-p="importar" onclick="nav(this,'importar')"><i class="ti ti-table-import"></i>Importar Excel</div>
     <div class="nav-item" data-p="config" onclick="nav(this,'config')"><i class="ti ti-settings"></i>Configurações</div>
+    <div id="sbRecentes" style="border-top:1px solid var(--gray4);padding:8px 0 0"></div>
     <div class="sb-foot">
       <div class="sb-foot-row" onclick="toggleTheme()"><i class="ti ti-moon" id="thIcon"></i><span id="thLbl">Modo escuro</span></div>
       <div class="sb-foot-row" onclick="CS_DB.exportarTudo();registrarBackup()"><i class="ti ti-download"></i><span>Exportar backup</span></div>
@@ -556,7 +592,8 @@ tr:hover td{background:#fafafa}
 
   <div class="main">
     <div class="topbar">
-      <div class="tb-title" id="tbTitle"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
+      <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" title="Menu"><i class="ti ti-menu-2"></i></button>
+    <div class="tb-title" id="tbTitle"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
       <div class="tb-right">
         <div class="search-wrap">
           <input class="tb-search" id="globalSearchInput" placeholder="Buscar... (Ctrl+K)" oninput="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off">
@@ -604,7 +641,14 @@ tr:hover td{background:#fafafa}
     <select class="flt-sel" id="fltStatus" onchange="renderClientes()"><option value="">Todos status</option><option>Ativo</option><option>Implantação</option><option>Expansão</option><option>Em Risco</option></select>
     <select class="flt-sel" id="fltTier" onchange="renderClientes()"><option value="">Todos tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
     <select class="flt-sel" id="fltHS" onchange="renderClientes()"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
-    <input class="flt-inp" id="fltQ" placeholder="Buscar empresa ou CNPJ..." oninput="renderClientes()">
+    <input class="flt-inp" id="fltQ" placeholder="Buscar empresa ou CNPJ..." oninput="renderClientes()" style="flex:2">
+  </div>
+  <div class="flt-row" style="margin-top:6px">
+    <input class="flt-inp" id="fltNPSMin" type="number" min="0" max="10" placeholder="NPS mín" oninput="renderClientes()" style="width:90px;flex:none">
+    <input class="flt-inp" id="fltNPSMax" type="number" min="0" max="10" placeholder="NPS máx" oninput="renderClientes()" style="width:90px;flex:none">
+    <input class="flt-inp" id="fltMRRMin" type="text" placeholder="MRR mín (ex: 5000)" oninput="renderClientes()" style="width:160px;flex:none">
+    <input class="flt-inp" id="fltRegiao" placeholder="Filtrar por cidade/estado..." oninput="renderClientes()" style="flex:1">
+    <button class="btn-ghost" style="font-size:11.5px;padding:5px 10px" onclick="limparFiltrosClientes()"><i class="ti ti-x"></i>Limpar filtros</button>
   </div>
   <div class="tbl-card"><table><thead><tr>
     <th class="sortable" data-col="empresa" onclick="sortClientes('empresa')">Empresa</th>
@@ -1182,6 +1226,20 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- PIPELINE DE RENOVAÇÃO -->
+<div class="page" id="page-pipeline">
+  <div class="ph"><h2><i class="ti ti-arrows-right"></i>Pipeline de Renovação</h2>
+    <button class="btn-ghost" onclick="renderPipeline()"><i class="ti ti-refresh"></i>Atualizar</button>
+  </div>
+  <div class="kpi-grid" id="pipelineKPIs"></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px" id="pipelineColunas"></div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-ttl"><i class="ti ti-table"></i>Todos os contratos com renovação prevista</div>
+    <table><thead><tr><th>Empresa</th><th>Tier</th><th>MRR</th><th>HS</th><th>Vencimento</th><th>Dias restantes</th><th>Probabilidade</th><th>Responsável</th><th>Ação</th></tr></thead>
+    <tbody id="pipelineTbody"></tbody></table>
+  </div>
+</div>
+
 <!-- DASHBOARD DO CLIENTE (360) -->
 <div class="page" id="page-cliente360">
   <div class="ph"><h2><i class="ti ti-user-circle"></i>Dashboard do Cliente</h2>
@@ -1208,7 +1266,10 @@ tr:hover td{background:#fafafa}
       <div style="font-size:12px;color:var(--gray2);margin-bottom:12px;line-height:1.6">Relatório operacional para compartilhar com o cliente: Health Score, NPS, reuniões realizadas, ações em andamento e indicadores de SLA. Não inclui MRR, margens ou qualquer valor financeiro — esses dados ficam restritos ao relatório de diretoria.</div>
       <div class="fg" style="margin-bottom:11px"><label>Cliente</label><select id="relClienteSelect"></select></div>
       <div class="fg" style="margin-bottom:11px"><label>Período de referência</label><select id="relPeriodoCliente"><option>Último mês</option><option>Último trimestre</option><option>Desde o início do contrato</option></select></div>
-      <button class="btn-primary" style="width:100%;justify-content:center" onclick="gerarRelatorioCliente()"><i class="ti ti-file-export"></i>Gerar relatório do cliente</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-primary" style="flex:1;justify-content:center" onclick="gerarRelatorioCliente()"><i class="ti ti-file-export"></i>Gerar relatório</button>
+        <button class="btn-ghost" style="padding:8px 14px" onclick="gerarRelatorioCliente(true)" title="Gerar e imprimir/salvar PDF"><i class="ti ti-printer"></i></button>
+      </div>
     </div>
     <div class="card" style="margin-bottom:0">
       <div class="card-ttl"><i class="ti ti-lock"></i>Relatório para Diretoria<span class="sub">🔒 confidencial</span></div>
@@ -1630,10 +1691,55 @@ function hsColor(n){return n>=70?'var(--green)':n>=40?'var(--yellow)':'var(--red
 function tierB(t){return{A:'tier-a',B:'tier-b',C:'tier-c'}[t]||'tier-c'}
 function npsGrupo(n){return n>=9?{g:'Promotor',c:'var(--green)',bg:'var(--gbg)'}:n>=7?{g:'Neutro',c:'var(--yellow)',bg:'var(--ybg)'}:{g:'Detrator',c:'var(--red)',bg:'var(--redl)'}}
 function npsColor(n){return n>=50?'var(--green)':n>=0?'var(--blue)':'var(--red)'}
-const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda Semanal',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
-const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
+const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda Semanal',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',pipeline:'Pipeline de Renovação',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
+const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',pipeline:'ti-arrows-right',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
 
 // ═══ NAV ═══
+// ═══ RECENTES + FIXADOS ═══
+function _getRecentes(){return JSON.parse(localStorage.getItem('cs_recentes')||'[]')}
+function _saveRecentes(r){localStorage.setItem('cs_recentes',JSON.stringify(r))}
+function _getFixados(){return JSON.parse(localStorage.getItem('cs_fixados')||'[]')}
+function _saveFixados(f){localStorage.setItem('cs_fixados',JSON.stringify(f))}
+function _isPinned(id){return _getFixados().includes(id)}
+function togglePin(id,e){
+  if(e){e.stopPropagation();}
+  const f=_getFixados();
+  const idx=f.indexOf(id);
+  if(idx>=0)f.splice(idx,1);else f.unshift(id);
+  _saveFixados(f);
+  renderClientes();
+  _renderSbRecentes();
+}
+function registrarRecente(id){
+  let r=_getRecentes().filter(x=>x!==id);
+  r.unshift(id);
+  _saveRecentes(r.slice(0,5));
+  _renderSbRecentes();
+}
+function _renderSbRecentes(){
+  const el=document.getElementById('sbRecentes');if(!el)return;
+  const fixados=_getFixados();
+  const recentes=_getRecentes().filter(id=>!fixados.includes(id));
+  const cl=CS_DB.getClientes();
+  const getC=id=>cl.find(c=>c.id===id);
+  let html='';
+  if(fixados.length){
+    html+=`<div style="font-size:10px;font-weight:600;color:var(--gray3);padding:0 14px 5px;text-transform:uppercase;letter-spacing:.5px">Fixados</div>`;
+    html+=fixados.map(id=>{const c=getC(id);return c?`<div class="nav-item" style="font-size:11.5px;padding:6px 14px" onclick="abrirEditar('${id}')"><i class="ti ti-pin" style="color:var(--red)"></i>${c.empresa}</div>`:''}).join('');
+  }
+  if(recentes.length){
+    html+=`<div style="font-size:10px;font-weight:600;color:var(--gray3);padding:${fixados.length?'8px':'0'} 14px 5px;text-transform:uppercase;letter-spacing:.5px">Recentes</div>`;
+    html+=recentes.slice(0,5).map(id=>{const c=getC(id);return c?`<div class="nav-item" style="font-size:11.5px;padding:6px 14px" onclick="abrirEditar('${id}')"><i class="ti ti-history" style="color:var(--gray3)"></i>${c.empresa}</div>`:''}).join('');
+  }
+  el.innerHTML=html;
+}
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sbOverlay');
+  if(!sb)return;
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
+}
 function nav(el,p){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
@@ -1655,6 +1761,10 @@ function nav(el,p){
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='grupos')renderGrupos();
   if(p==='relatorios')populateRelatoriosSelects();
+  if(p==='pipeline')renderPipeline();
+  // Close mobile sidebar on navigation
+  const sb=document.getElementById('sidebar');const ov=document.getElementById('sbOverlay');
+  if(sb&&sb.classList.contains('open')){sb.classList.remove('open');ov.classList.remove('open');}
 }
 function openM(id){
   if(id==='mReuniao')populateReuniaoSelect();
@@ -1798,8 +1908,16 @@ function _sortList(list){
 
 // ═══ CLIENTES ═══
 function renderClientes(){
+  const npsMin=parseInt(document.getElementById('fltNPSMin')?.value)||'';
+  const npsMax=parseInt(document.getElementById('fltNPSMax')?.value)||'';
+  const mrrMin=parseInt((document.getElementById('fltMRRMin')?.value||'').replace(/\D/g,''))||'';
+  const regiao=document.getElementById('fltRegiao')?.value||'';
   const f={status:document.getElementById('fltStatus')?.value||'',tier:document.getElementById('fltTier')?.value||'',hs:document.getElementById('fltHS')?.value||'',q:document.getElementById('fltQ')?.value||''};
-  const list=_sortList(CS_DB.getClientes(f));
+  let list=_sortList(CS_DB.getClientes(f));
+  if(npsMin!=='')list=list.filter(c=>(c.ultimoNPS??-1)>=npsMin);
+  if(npsMax!=='')list=list.filter(c=>(c.ultimoNPS??11)<=npsMax);
+  if(mrrMin!=='')list=list.filter(c=>parseInt((c.mrr||'0').replace(/\D/g,''))>=mrrMin);
+  if(regiao)list=list.filter(c=>(c.estado||'').toLowerCase().includes(regiao.toLowerCase())||(c.cidade||'').toLowerCase().includes(regiao.toLowerCase()));
   const re=CS_DB.getAllReunioes();
   document.getElementById('clienteTbody').innerHTML=list.map(c=>{
     const ultimaReu=re.filter(r=>r.clienteId===c.id)[0];
@@ -1808,17 +1926,44 @@ function renderClientes(){
       <td style="font-size:11.5px;color:var(--gray2)">${c.cnpj||'—'}</td>
       <td>${c.segmento||'—'}</td>
       <td><span class="${tierB(c.tier)}">${c.tier}</span></td>
-      <td><span class="badge ${stClass(c.status)}">${c.status}</span></td>
+      <td><span class="badge ${stClass(c.status)} status-badge-edit" title="Clique para alterar status" onclick="editarStatusInline('${c.id}',this)">${c.status}</span></td>
       <td><span class="hs-pill ${hsCls(c.healthScore)}">${c.healthScore}</span></td>
       <td>${c.ultimoNPS!==undefined?`<span style="font-weight:700;color:${npsColor(c.ultimoNPS)}">${c.ultimoNPS}</span>`:'—'}</td>
       <td>${c.mrr||'—'}</td>
       <td style="color:var(--gray2)">${c.responsavelCS||'—'}</td>
       <td style="font-size:11.5px;color:var(--gray2)">${ultimaReu?.data||'Sem reunião'}</td>
-      <td style="white-space:nowrap"><span class="lnk" onclick="abrirEditar('${c.id}')" style="margin-right:8px">Editar</span><span class="lnk" onclick="abrirTimeline('${c.id}')" style="color:var(--gray2)">Timeline</span></td>
+      <td style="white-space:nowrap">
+        <span class="pin-btn" onclick="togglePin('${c.id}',event)" title="${_isPinned(c.id)?'Desafixar':'Fixar'}" style="margin-right:6px;cursor:pointer;font-size:13px;opacity:${_isPinned(c.id)?1:.3}" data-pinid="${c.id}">${_isPinned(c.id)?'📌':'📌'}</span>
+        <span class="lnk" onclick="abrirEditar('${c.id}')" style="margin-right:8px">Editar</span><span class="lnk" onclick="abrirTimeline('${c.id}')" style="color:var(--gray2)">Timeline</span>
+      </td>
     </tr>`;
   }).join('');
 }
 function abrirTimeline(id){nav(document.querySelector('[data-p=timeline]'),'timeline');setTimeout(()=>{document.getElementById('tlCliente').value=id;renderTimeline()},100)}
+function editarStatusInline(id,el){
+  const statuses=['Ativo','Implantação','Expansão','Em Risco','Cancelado'];
+  document.querySelectorAll('.status-inline-drop').forEach(d=>d.remove());
+  const drop=document.createElement('div');
+  drop.className='status-inline-drop';
+  drop.innerHTML=statuses.map(s=>`<div class="sid-opt" onclick="salvarStatusInline('${id}','${s}',this)">${s}</div>`).join('');
+  el.parentElement.style.position='relative';
+  el.parentElement.appendChild(drop);
+  setTimeout(()=>document.addEventListener('click',function h(e){if(!drop.contains(e.target)&&e.target!==el){drop.remove();document.removeEventListener('click',h)}},),10);
+}
+function salvarStatusInline(id,status,el){
+  el.closest('.status-inline-drop').remove();
+  const c=CS_DB.getClienteById(id);if(!c)return;
+  c.status=status;
+  CS_DB.salvarCliente(c);
+  registrarEventoTimeline({clienteId:id,titulo:`Status atualizado para "${status}"`,tipo:'edicao',dataISO:new Date().toISOString()});
+  renderClientes();
+  toast(`Status de ${c.empresa} → ${status}`,'ok');
+}
+function limparFiltrosClientes(){
+  ['fltStatus','fltTier','fltHS'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['fltQ','fltNPSMin','fltNPSMax','fltMRRMin','fltRegiao'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderClientes();
+}
 function globalSearch(q){
   const drop=document.getElementById('searchDropdown');
   if(!q||q.length<2){drop.classList.remove('open');return}
@@ -2903,20 +3048,71 @@ function dispensarAlerta(){
 
 // ═══ EXECUTIVO ═══
 // ═══ PERIOD CHART DATA ═══
-const _CPD={
-  nps:{
-    '1m':{labels:['S1','S2','S3','S4'],data:[59,60,60,61]},
-    '3m':{labels:['Abr','Mai','Jun'],data:[60,58,61]},
-    '6m':{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],data:[45,52,55,60,58,61]},
-    '12m':{labels:['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'],data:[38,41,43,45,44,43,45,52,55,60,58,61]}
-  },
-  mrr:{
-    '1m':{labels:['S1','S2','S3','S4'],data:[484,485,486,487]},
-    '3m':{labels:['Abr','Mai','Jun'],data:[471,480,487]},
-    '6m':{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],data:[441,455,462,471,480,487]},
-    '12m':{labels:['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'],data:[398,411,419,425,432,438,441,455,462,471,480,487]}
+// Computes NPS score from an array of {nota} records
+function _calcNPSScore(records){
+  if(!records.length)return null;
+  const pct=(t)=>records.filter(r=>t(r.nota)).length/records.length*100;
+  return Math.round(pct(n=>n>=9)-pct(n=>n<=6));
+}
+// Groups NPS records by month label 'MMM/YY' going back `nMonths` months
+function _npsRealMonths(nMonths){
+  const all=CS_DB.get('nps')||[];
+  const now=new Date();
+  const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const labels=[],data=[];
+  for(let i=nMonths-1;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const lbl=MESES[d.getMonth()]+(nMonths>6?'/'+String(d.getFullYear()).slice(2):'');
+    labels.push(lbl);
+    const recs=all.filter(r=>{
+      if(!r.dataISO)return false;
+      const rd=new Date(r.dataISO);
+      return rd.getFullYear()===d.getFullYear()&&rd.getMonth()===d.getMonth();
+    });
+    const score=_calcNPSScore(recs);
+    data.push(score!==null?score:null);
   }
-};
+  // Fill nulls with interpolated/last value so chart looks continuous
+  let last=null;
+  for(let i=0;i<data.length;i++){if(data[i]!==null)last=data[i];else data[i]=last??0;}
+  return{labels,data};
+}
+// Builds period data on demand (fresh each call so it reflects real data)
+function _getCPD(type,period){
+  if(type==='nps'){
+    if(period==='1m'){
+      // Group by week within current month
+      const all=CS_DB.get('nps')||[];const now=new Date();
+      const labels=['Sem 1','Sem 2','Sem 3','Sem 4'];const data=[0,0,0,0];const counts=[0,0,0,0];
+      all.forEach(r=>{
+        if(!r.dataISO)return;const d=new Date(r.dataISO);
+        if(d.getFullYear()!==now.getFullYear()||d.getMonth()!==now.getMonth())return;
+        const wk=Math.min(3,Math.floor((d.getDate()-1)/7));
+        data[wk]+=_calcNPSScore([r])??0;counts[wk]++;
+      });
+      const recs=CS_DB.get('nps')||[];
+      if(!counts.some(c=>c>0)){const fb=_npsRealMonths(1);return{labels:['S1','S2','S3','S4'],data:[fb.data[0],fb.data[0],fb.data[0],fb.data[0]]}}
+      return{labels,data:data.map((s,i)=>counts[i]?Math.round(s/counts[i]):null).map((v,i,a)=>{let last=null;for(let j=0;j<=i;j++)if(a[j]!==null)last=a[j];return last??0;})};
+    }
+    if(period==='3m')return _npsRealMonths(3);
+    if(period==='6m')return _npsRealMonths(6);
+    if(period==='12m')return _npsRealMonths(12);
+  }
+  if(type==='mrr'){
+    const fallback={
+      '1m':{labels:['S1','S2','S3','S4'],data:[484,485,486,487]},
+      '3m':{labels:['Abr','Mai','Jun'],data:[471,480,487]},
+      '6m':{labels:['Jan','Fev','Mar','Abr','Mai','Jun'],data:[441,455,462,471,480,487]},
+      '12m':{labels:['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'],data:[398,411,419,425,432,438,441,455,462,471,480,487]}
+    };
+    // Use real current MRR as latest point, keep historical trend shape
+    const clientes=CS_DB.getClientes();
+    const mrrTotal=clientes.reduce((s,c)=>{const v=parseInt((c.mrr||'0').replace(/\D/g,''));return s+(isNaN(v)?0:v);},0);
+    const fb=fallback[period];const scale=mrrTotal?(mrrTotal/1000)/fb.data[fb.data.length-1]:1;
+    return{labels:fb.labels,data:fb.data.map(v=>Math.round(v*scale))};
+  }
+  return{labels:[],data:[]};
+}
 let _npsChartInst=null,_mrrBarInst=null,_npsEvolInst=null;
 
 function _cpbActivate(btn){if(!btn)return;btn.closest('.cpb')?.querySelectorAll('.cpb-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
@@ -2925,7 +3121,7 @@ function renderNPSChart(period,btn){
   _cpbActivate(btn);
   if(_npsChartInst){_npsChartInst.destroy();_npsChartInst=null;}
   const c=document.getElementById('npsChart')?.getContext('2d');if(!c)return;
-  const d=_CPD.nps[period]||_CPD.nps['6m'];
+  const d=_getCPD('nps',period);
   const g=c.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(209,0,0,0.22)');g.addColorStop(1,'rgba(209,0,0,0)');
   const meta=d.labels.map(()=>80);
   _npsChartInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[
@@ -2940,7 +3136,7 @@ function renderMRRBar(period,btn){
   _cpbActivate(btn);
   if(_mrrBarInst){_mrrBarInst.destroy();_mrrBarInst=null;}
   const c=document.getElementById('mrrBar')?.getContext('2d');if(!c)return;
-  const d=_CPD.mrr[period]||_CPD.mrr['6m'];
+  const d=_getCPD('mrr',period);
   const g=c.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(209,0,0,0.9)');g.addColorStop(1,'rgba(209,0,0,0.45)');
   _mrrBarInst=new Chart(c,{type:'bar',data:{labels:d.labels,datasets:[{label:'MRR (K)',data:d.data,backgroundColor:g,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9,callbacks:{label:ctx=>'R$'+ctx.parsed.y+'K'}}},scales:{y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'K'}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
 }
@@ -2949,7 +3145,7 @@ function renderNPSEvol(period,btn){
   _cpbActivate(btn);
   if(_npsEvolInst){_npsEvolInst.destroy();_npsEvolInst=null;}
   const c=document.getElementById('npsEvolChart')?.getContext('2d');if(!c)return;
-  const d=_CPD.nps[period]||_CPD.nps['6m'];
+  const d=_getCPD('nps',period);
   const ge=c.createLinearGradient(0,0,0,160);ge.addColorStop(0,'rgba(209,0,0,0.2)');ge.addColorStop(1,'rgba(209,0,0,0)');
   const meta=d.labels.map(()=>80);
   _npsEvolInst=new Chart(c,{type:'line',data:{labels:d.labels,datasets:[
@@ -3146,6 +3342,7 @@ function initApp(){
   updateStatusBar();
   setTimeout(()=>{ renderNPSChart('6m'); },150);
   setInterval(updateStatusBar,30000);
+  _renderSbRecentes();
 }
 
 
@@ -3155,6 +3352,7 @@ function initApp(){
 function abrirEditar(id) {
   const c = CS_DB.getClienteById(id);
   if (!c) { toast('Cliente não encontrado.', 'err'); return; }
+  registrarRecente(id);
   document.getElementById('editClienteId').value = c.id;
   document.getElementById('eRazao').value     = c.empresa || '';
   document.getElementById('eFantasia').value  = c.nomeFantasia || '';
@@ -3859,6 +4057,80 @@ function marcarEmailChurnEnviado(){
   updateStatusBar();
 }
 
+// ════════════════════════════════════════════════
+// PIPELINE DE RENOVAÇÃO
+// ════════════════════════════════════════════════
+function renderPipeline(){
+  const cl=CS_DB.getClientes();
+  const hoje=new Date();
+  function diasRenov(c){
+    if(!c.renovacao)return 999;
+    const partes=c.renovacao.split('/');
+    if(partes.length===3){const d=new Date(+partes[2],+partes[1]-1,+partes[0]);return Math.round((d-hoje)/(1000*60*60*24));}
+    return 999;
+  }
+  const comRenov=cl.filter(c=>c.renovacao&&c.renovacao!=='—').map(c=>({...c,diasR:diasRenov(c)})).sort((a,b)=>a.diasR-b.diasR);
+  const vencidos=comRenov.filter(c=>c.diasR<0);
+  const d30=comRenov.filter(c=>c.diasR>=0&&c.diasR<=30);
+  const d60=comRenov.filter(c=>c.diasR>30&&c.diasR<=60);
+  const d90=comRenov.filter(c=>c.diasR>60&&c.diasR<=90);
+  const d90plus=comRenov.filter(c=>c.diasR>90);
+  const mrrTotal=c=>parseInt((c.mrr||'0').replace(/\D/g,''))||0;
+  const sumMRR=list=>list.reduce((s,c)=>s+mrrTotal(c),0);
+  const fmtMRR=v=>v>=1000?'R$'+Math.round(v/1000)+'K':'R$'+v;
+
+  // KPIs
+  document.getElementById('pipelineKPIs').innerHTML=`
+    <div class="kpi red"><div class="kpi-lbl"><i class="ti ti-alert-circle"></i>Vencidos</div><div class="kpi-val">${vencidos.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(vencidos))} em risco</div></div>
+    <div class="kpi red"><div class="kpi-lbl"><i class="ti ti-clock"></i>Até 30 dias</div><div class="kpi-val">${d30.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d30))} MRR</div></div>
+    <div class="kpi yellow"><div class="kpi-lbl"><i class="ti ti-clock"></i>31–60 dias</div><div class="kpi-val">${d60.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d60))} MRR</div></div>
+    <div class="kpi green"><div class="kpi-lbl"><i class="ti ti-calendar"></i>61–90 dias</div><div class="kpi-val">${d90.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d90))} MRR</div></div>`;
+
+  function colCard(c){
+    const dias=c.diasR;const cor=dias<0?'var(--red)':dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
+    return`<div style="background:var(--white);border:1px solid var(--gray4);border-radius:9px;padding:10px 12px;cursor:pointer" onclick="abrirEditar('${c.id}')">
+      <div style="font-weight:600;font-size:12.5px">${c.empresa}</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11.5px">
+        <span class="${tierB(c.tier)}">${c.tier}</span>
+        <span style="color:var(--gray2)">${c.mrr||'—'}</span>
+        <span class="hs-pill ${hsCls(c.healthScore)}" style="margin-left:auto">${c.healthScore}</span>
+      </div>
+      <div style="font-size:11px;margin-top:6px;color:${cor};font-weight:600">${dias<0?'Venceu '+Math.abs(dias)+'d atrás':dias===0?'Vence hoje':'Vence em '+dias+'d'}</div>
+    </div>`;
+  }
+
+  function colHTML(titulo,cor,icone,list){
+    return`<div>
+      <div style="display:flex;align-items:center;gap:6px;padding:8px 0 10px;font-size:12px;font-weight:700;color:${cor}"><i class="ti ${icone}"></i>${titulo}<span style="margin-left:auto;font-size:11px;background:${cor};color:#fff;border-radius:10px;padding:1px 7px">${list.length}</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px">${list.length?list.map(colCard).join(''):'<div style="text-align:center;padding:20px;color:var(--gray3);font-size:12px">Nenhum cliente</div>'}</div>
+    </div>`;
+  }
+
+  document.getElementById('pipelineColunas').innerHTML=
+    colHTML('Vencidos','var(--red)','ti-alert-circle',vencidos)+
+    colHTML('Até 30 dias','var(--red)','ti-flame',d30)+
+    colHTML('31–60 dias','var(--yellow)','ti-clock',d60)+
+    colHTML('61–90 dias','var(--green)','ti-calendar-check',d90);
+
+  // Tabela completa
+  document.getElementById('pipelineTbody').innerHTML=comRenov.map(c=>{
+    const dias=c.diasR;const cor=dias<0?'var(--red)':dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
+    const churnS=calcChurnScore(c);const churnL=churnLabel(churnS);
+    const prob=dias<0?'Crítico':dias<=30?'Alta':dias<=60?'Média':'Baixa';
+    const probCor=dias<0||dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
+    return`<tr>
+      <td style="font-weight:600;cursor:pointer" onclick="abrirEditar('${c.id}')">${c.empresa}</td>
+      <td><span class="${tierB(c.tier)}">${c.tier}</span></td>
+      <td>${c.mrr||'—'}</td>
+      <td><span class="hs-pill ${hsCls(c.healthScore)}">${c.healthScore}</span></td>
+      <td>${c.renovacao||'—'}</td>
+      <td style="font-weight:700;color:${cor}">${dias<0?'Vencido '+Math.abs(dias)+'d':dias+'d'}</td>
+      <td><span style="font-weight:600;color:${probCor}">${prob}</span></td>
+      <td style="color:var(--gray2)">${c.responsavelCS||'—'}</td>
+      <td><button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="abrirTimeline('${c.id}')"><i class="ti ti-timeline"></i></button></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--gray2);padding:30px">Nenhum cliente com data de renovação cadastrada. <span class="lnk" onclick="nav(document.querySelector(\'[data-p=clientes]\'),\'clientes\')">Edite os clientes</span> e preencha o campo Renovação.</td></tr>';
+}
 function renderChurn() {
   const cl  = CS_DB.getClientes();
   const flt = document.getElementById('churnFlt')?.value || '';
@@ -3983,6 +4255,11 @@ function renderCliente360(){
   const acConc=ac.filter(a=>a.status==='Concluído');
 
   document.getElementById('c360Content').innerHTML=`
+    <div class="flt-row" style="margin-bottom:14px">
+      <button class="tl-filter-btn active" data-c360t="geral" onclick="trocarAbaC360('geral',this)"><i class="ti ti-layout-dashboard"></i>Visão Geral</button>
+      <button class="tl-filter-btn" data-c360t="plano" onclick="trocarAbaC360('plano',this)"><i class="ti ti-target"></i>Plano de Sucesso</button>
+    </div>
+    <div id="c360AbaGeral">
     <div class="kpi-grid">
       <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
       <div class="kpi blue"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
@@ -4043,13 +4320,29 @@ function renderCliente360(){
     <div class="card" style="margin-top:14px">
       <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução do Health Score <span class="sub" id="c360HsSubtitle"></span></div>
       <div class="chart-wrap" style="height:150px"><canvas id="c360HsChart"></canvas></div>
+    </div>
+    </div><!-- /c360AbaGeral -->
+    <div id="c360AbaPlano" style="display:none">
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-ttl"><i class="ti ti-target"></i>Plano de Sucesso — ${c.empresa}<span class="sub">metas e marcos do contrato</span>
+          <button class="btn-primary" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirModalPlanoSucesso('${cid}')"><i class="ti ti-plus"></i>Nova meta</button>
+        </div>
+        <div id="spMetas"></div>
+      </div>
+      <div class="card">
+        <div class="card-ttl"><i class="ti ti-flag"></i>Marcos do contrato</div>
+        <div id="spMarcos"></div>
+      </div>
     </div>`;
 
   setTimeout(()=>{
     const ctx=document.getElementById('c360NpsChart')?.getContext('2d');
     if(ctx){
       const npsOrdenado=nps.slice().reverse();
-      new Chart(ctx,{type:'line',data:{labels:npsOrdenado.map(n=>n.data),datasets:[{data:npsOrdenado.map(n=>n.nota),borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.3,fill:true,borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}}},x:{ticks:{color:'var(--gray3)',font:{size:9}}}}}});
+      new Chart(ctx,{type:'line',data:{labels:npsOrdenado.map(n=>n.data),datasets:[
+        {label:'Nota',data:npsOrdenado.map(n=>n.nota),borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.3,fill:true,borderWidth:2,pointRadius:3,pointBackgroundColor:'var(--red)',pointBorderColor:'#fff',pointBorderWidth:1.5},
+        {label:'Meta (9)',data:npsOrdenado.map(()=>9),borderColor:'rgba(100,100,100,.45)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
+      ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:8}}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}}},x:{ticks:{color:'var(--gray3)',font:{size:9}}}}}});
     }
     // Gráfico evolução Health Score
     const hist=CS_DB.getHsHistorico(cid);
@@ -4060,9 +4353,88 @@ function renderCliente360(){
       if(!hist.length){ctx2.canvas.parentElement.innerHTML='<div style="color:var(--gray3);font-size:12px;padding:20px 0;text-align:center">Histórico registrado automaticamente a cada atualização do cliente.</div>';return}
       const labels=hist.map(h=>new Date(h.registrado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
       const scores=hist.map(h=>h.score);
-      new Chart(ctx2,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>' HS: '+ctx.parsed.y}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
+      new Chart(ctx2,{type:'line',data:{labels,datasets:[
+        {label:'Health Score',data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},
+        {label:'Meta saudável (70)',data:scores.map(()=>70),borderColor:'rgba(29,158,117,.6)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
+      ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:8}},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>' '+ctx.dataset.label+': '+ctx.parsed.y}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
     }
   },80);
+}
+
+function trocarAbaC360(aba,btn){
+  document.querySelectorAll('[data-c360t]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('c360AbaGeral').style.display=aba==='geral'?'':'none';
+  document.getElementById('c360AbaPlano').style.display=aba==='plano'?'':'none';
+  if(aba==='plano'){
+    const cid=document.getElementById('c360Select')?.value;
+    renderPlanoSucesso(cid);
+  }
+}
+function renderPlanoSucesso(cid){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":[]}');
+  const metasEl=document.getElementById('spMetas');
+  const marcosEl=document.getElementById('spMarcos');
+  if(metasEl){
+    if(!plano.metas.length){metasEl.innerHTML='<div style="color:var(--gray2);font-size:12.5px;padding:14px 0;text-align:center"><i class="ti ti-target" style="display:block;font-size:28px;margin-bottom:8px;color:var(--gray4)"></i>Nenhuma meta cadastrada ainda. Clique em "Nova meta" para começar.</div>';}
+    else metasEl.innerHTML=plano.metas.map((m,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray4)">
+      <div style="width:36px;height:36px;border-radius:8px;background:${m.concluida?'var(--gbg)':'var(--bbg)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ${m.concluida?'ti-check':'ti-target'}" style="color:${m.concluida?'var(--green)':'var(--blue)'}"></i>
+      </div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12.5px;${m.concluida?'text-decoration:line-through;color:var(--gray2)':''}">${m.titulo}</div>
+        <div style="font-size:11px;color:var(--gray3)">${m.prazo||'Sem prazo'} ${m.indicador?'· '+m.indicador:''}</div>
+      </div>
+      <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="toggleMetaSP('${cid}',${i})">${m.concluida?'Reabrir':'Concluir'}</button>
+      <button class="btn-ghost" style="padding:4px 8px;font-size:11px;color:var(--red)" onclick="removerMetaSP('${cid}',${i})"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+  }
+  if(marcosEl){
+    const marcos=[
+      {id:'kickoff',label:'Kickoff',icone:'ti-rocket'},
+      {id:'go_live',label:'Go-live',icone:'ti-circle-check'},
+      {id:'primeiro_nps',label:'1º NPS',icone:'ti-star'},
+      {id:'renovacao',label:'Renovação',icone:'ti-refresh'},
+    ];
+    marcosEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:8px 0">
+      ${marcos.map(m=>{const dt=plano.marcos?.[m.id];return`<div style="text-align:center;padding:14px 8px;background:${dt?'var(--gbg)':'var(--gray5)'};border-radius:10px;border:1px solid ${dt?'#5dcaa5':'var(--gray4)'}">
+        <i class="ti ${m.icone}" style="font-size:22px;color:${dt?'var(--green)':'var(--gray3)'}"></i>
+        <div style="font-size:11.5px;font-weight:600;margin:6px 0 4px">${m.label}</div>
+        ${dt?`<div style="font-size:10.5px;color:var(--gray2)">${dt}</div>`:`<button class="btn-ghost" style="font-size:10px;padding:3px 7px;margin-top:3px" onclick="registrarMarcoSP('${cid}','${m.id}')">Registrar</button>`}
+      </div>`}).join('')}
+    </div>`;
+  }
+}
+function abrirModalPlanoSucesso(cid){
+  const titulo=prompt('Título da meta:');if(!titulo)return;
+  const prazo=prompt('Prazo (dd/mm/aaaa) — opcional:');
+  const indicador=prompt('Indicador de sucesso (ex: NPS≥70) — opcional:');
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  plano.metas.push({titulo,prazo:prazo||'',indicador:indicador||'',concluida:false,criadaEm:new Date().toISOString()});
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucesso(cid);
+  toast('Meta adicionada!','ok');
+}
+function toggleMetaSP(cid,idx){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(plano.metas[idx])plano.metas[idx].concluida=!plano.metas[idx].concluida;
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucesso(cid);
+}
+function removerMetaSP(cid,idx){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  plano.metas.splice(idx,1);
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucesso(cid);
+}
+function registrarMarcoSP(cid,marco){
+  const data=prompt('Data do marco (dd/mm/aaaa):');if(!data)return;
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(!plano.marcos)plano.marcos={};
+  plano.marcos[marco]=data;
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucesso(cid);
+  toast('Marco registrado!','ok');
 }
 
 // ════════════════════════════════════════════════
@@ -4082,13 +4454,14 @@ function registrarRelatorioGerado(nome,tipo){
   const el=document.getElementById('relHistorico');
   if(el)el.innerHTML=relatoriosGerados.slice(0,8).map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray4)"><i class="ti ti-file-text" style="color:var(--red)"></i><span style="flex:1">${r.nome}</span><span class="badge" style="background:${r.tipo==='cliente'?'var(--bbg)':'var(--gray5)'};color:${r.tipo==='cliente'?'var(--btxt)':'var(--gray2)'}">${r.tipo==='cliente'?'Cliente':'Diretoria'}</span><span style="font-size:11px;color:var(--gray3)">${formatarDataHora(r.data.toISOString())}</span></div>`).join('');
 }
-function abrirRelatorioEmNovaJanela(html,nomeArquivo){
+function abrirRelatorioEmNovaJanela(html,nomeArquivo,autoPrint=false){
   const w=window.open('','_blank');
   if(!w){toast('Permita pop-ups para visualizar o relatório.','err');return}
   w.document.write(html);
   w.document.close();
+  if(autoPrint)setTimeout(()=>w.print(),1200);
 }
-function gerarRelatorioCliente(){
+function gerarRelatorioCliente(autoPrint=false){
   const cid=document.getElementById('relClienteSelect').value;
   const c=CS_DB.getClienteById(cid);
   if(!c){toast('Selecione um cliente.','err');return}
@@ -4165,7 +4538,7 @@ ${nps.length?`<script>window.addEventListener('load',function(){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10}}}},scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},stepSize:1}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
 });<\/script>`:''}
 </body></html>`;
-  abrirRelatorioEmNovaJanela(html,`Relatorio_${c.empresa}.html`);
+  abrirRelatorioEmNovaJanela(html,`Relatorio_${c.empresa}.html`,autoPrint);
   registrarRelatorioGerado(`Relatório Cliente — ${c.empresa}`,'cliente');
   toast('Relatório do cliente gerado em nova aba!');
 }
