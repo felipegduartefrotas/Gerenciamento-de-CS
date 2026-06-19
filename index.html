@@ -4885,7 +4885,27 @@ function gerarRelatorioCliente(autoPrint=false){
   const ob=obs.find(o=>o.clienteId===cid||o.empresa===c.empresa);
   const obPct=ob?calcObPct(ob):null;
   const obCor=obPct>=100?'#1d9e75':obPct>=60?'#1a6fdb':'#e0880a';
-  const obSteps=ob?ob.steps.map(s=>`<div style="background:${s.concluido?'#f0faf6':'#f7f7f7'};border:1px solid ${s.concluido?'#b5e0cc':'#e5e5e5'};border-radius:7px;padding:9px 11px;font-size:12px;display:flex;align-items:center;gap:7px"><span style="color:${s.concluido?'#1d9e75':'#bbb'};font-size:14px">${s.concluido?'✓':'○'}</span>${s.titulo}</div>`).join(''):'';
+  const obSteps=ob?ob.steps.map(s=>`<div style="background:${s.concluido?'#f0faf6':'#f7f7f7'};border:1px solid ${s.concluido?'#b5e0cc':'#e5e5e5'};border-radius:7px;padding:9px 11px;font-size:12px;display:flex;align-items:center;gap:7px"><span style="color:${s.concluido?'#1d9e75':'#bbb'};font-size:14px">${s.concluido?'✓':'○'}</span><div style="flex:1"><div>${s.titulo}</div>${s.dataConc?`<div style="font-size:10.5px;color:#1d9e75">Concluído em ${s.dataConc}</div>`:`<div style="font-size:10.5px;color:#aaa">Previsto: dia ${s.dias} · Área: ${s.area}</div>`}</div></div>`).join(''):'';
+  // Gantt chart data
+  let ganttBars='[]',ganttColors='[]',ganttLabels='[]',ganttAreaBars='[]',ganttAreaColors='[]',ganttAreaLabels='[]',ganttTodayArr='[]',ganttMaxDay=90,ganttNSteps=0;
+  if(ob&&ob.steps.length){
+    ganttNSteps=ob.steps.length;
+    const kp=(ob.kickoff||'01/01/2026').split('/');
+    const kickoffDate=new Date(`${kp[2]}-${kp[1]}-${kp[0]}`);
+    const todayDay=Math.max(0,Math.ceil((Date.now()-kickoffDate.getTime())/86400000));
+    const prazoDay=ob.prazoImpl?(()=>{const pp=ob.prazoImpl.split('/');return Math.ceil((new Date(`${pp[2]}-${pp[1]}-${pp[0]}`)-kickoffDate)/86400000);})():(ob.steps[ob.steps.length-1]?.dias||90);
+    ganttMaxDay=Math.max(prazoDay,todayDay,ob.steps[ob.steps.length-1]?.dias||60)+10;
+    const firstPend=ob.steps.findIndex(s=>!s.concluido);
+    ganttBars=JSON.stringify(ob.steps.map((step,i)=>{const st=i===0?0:(ob.steps[i-1].dias||0);const en=Math.max((step.dias||st+5),st+2);return[st,en];}));
+    ganttColors=JSON.stringify(ob.steps.map((step,i)=>step.concluido?'rgba(29,158,117,0.85)':i===firstPend?'rgba(26,111,219,0.8)':'rgba(200,200,200,0.4)'));
+    ganttLabels=JSON.stringify(ob.steps.map(s=>s.titulo.length>30?s.titulo.slice(0,28)+'…':s.titulo));
+    ganttTodayArr=JSON.stringify(ob.steps.map(()=>[todayDay,todayDay+0.9]));
+    const areas={};ob.steps.forEach(s=>{if(!areas[s.area])areas[s.area]={total:0,done:0};areas[s.area].total++;if(s.concluido)areas[s.area].done++;});
+    const aKeys=Object.keys(areas);const aC=['rgba(26,111,219,0.8)','rgba(29,158,117,0.8)','rgba(224,136,10,0.8)','rgba(139,92,246,0.8)','rgba(209,0,0,0.7)'];
+    ganttAreaLabels=JSON.stringify(aKeys);
+    ganttAreaBars=JSON.stringify(aKeys.map(k=>Math.round(areas[k].done/areas[k].total*100)));
+    ganttAreaColors=JSON.stringify(aKeys.map((_,i)=>aC[i%aC.length]));
+  }
 
   // Próximos passos
   const proxReu=reuAll.filter(r=>r.proximaReuniao).slice(0,2);
@@ -4977,7 +4997,18 @@ ${sintese}
     </div>`:''}
   </div>
 </div>
-${ob&&ob.steps.length?`<h2>Etapas de Implantação</h2><div class="steps-grid">${obSteps}</div>`:''}
+${ob&&ob.steps.length?`<h2>Acompanhamento da Implantação <span class="note">· ${obPct}% concluído · kickoff ${ob.kickoff||'—'}</span></h2>
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:10px 0 4px">
+  <div>
+    <div style="font-size:11px;color:#888;margin-bottom:5px">Cronograma de etapas — dias desde o kickoff &nbsp;<span style="display:inline-block;width:10px;height:10px;background:rgba(29,158,117,0.85);border-radius:2px;vertical-align:middle"></span> Concluído &nbsp;<span style="display:inline-block;width:10px;height:10px;background:rgba(26,111,219,0.8);border-radius:2px;vertical-align:middle"></span> Em andamento &nbsp;<span style="display:inline-block;width:10px;height:10px;background:rgba(200,200,200,0.5);border-radius:2px;vertical-align:middle"></span> Pendente &nbsp;<span style="display:inline-block;width:2px;height:10px;background:rgba(209,0,0,0.6);vertical-align:middle"></span> Hoje</div>
+    <div style="height:${ganttNSteps*36+64}px;position:relative"><canvas id="obGanttChart"></canvas></div>
+  </div>
+  <div>
+    <div style="font-size:11px;color:#888;margin-bottom:5px">Conclusão por área (%)</div>
+    <div style="height:${ganttNSteps*36+64}px;position:relative"><canvas id="obAreaChart"></canvas></div>
+  </div>
+</div>
+<div class="steps-grid" style="margin-top:12px">${obSteps}</div>`:''}
 <h2>Reuniões Realizadas no Período</h2>
 ${reu.length?`<table><thead><tr><th>Data</th><th>Tipo</th><th>Pontos positivos</th><th>Problemas</th><th>Próxima reunião</th></tr></thead><tbody>
 ${reu.map(r=>`<tr><td>${r.data}</td><td>${r.tipo}</td><td style="color:#1d9e75">${r.pontosPosi||'—'}</td><td style="color:${r.pontosProb?'#c44':'#aaa'}">${r.pontosProb||'—'}</td><td>${r.proximaReuniao||'—'}</td></tr>`).join('')}
@@ -4999,13 +5030,11 @@ ${proxReu.length||metasAbertas.length||acAbertas.filter(a=>a.prazo).length?`
   <span>Relatório CS Manager · Creare Sistemas · Documento operacional — sem dados financeiros</span>
   <span>Responsável CS: ${c.responsavelCS||'Felipe Duarte'} · ${c.email||''}</span>
 </div>
-${npsOrd.length?`<script>window.addEventListener('load',function(){
-  var ctx=document.getElementById('npsCliChart').getContext('2d');
-  new Chart(ctx,{type:'line',data:{labels:${npsLbl},datasets:[
-    {label:'Nota NPS',data:${npsDat},borderColor:'#D10000',backgroundColor:'rgba(209,0,0,0.08)',tension:.38,fill:true,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},
-    {label:'Meta (9)',data:Array(${npsOrd.length}).fill(9),borderColor:'rgba(100,100,100,0.45)',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,borderDash:[6,4]}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:10,usePointStyle:true}}},scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},stepSize:1}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
-});<\/script>`:''}
+<script>window.addEventListener('load',function(){
+${npsOrd.length?`  var npsEl=document.getElementById('npsCliChart');if(npsEl){new Chart(npsEl.getContext('2d'),{type:'line',data:{labels:${npsLbl},datasets:[{label:'Nota NPS',data:${npsDat},borderColor:'#D10000',backgroundColor:'rgba(209,0,0,0.08)',tension:.38,fill:true,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},{label:'Meta (9)',data:Array(${npsOrd.length}).fill(9),borderColor:'rgba(100,100,100,0.45)',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,borderDash:[6,4]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:10,usePointStyle:true}}},scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},stepSize:1}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});}`:''}
+${ob&&ob.steps.length?`  var ganttEl=document.getElementById('obGanttChart');if(ganttEl){new Chart(ganttEl.getContext('2d'),{type:'bar',data:{labels:${ganttLabels},datasets:[{label:'Etapas',data:${ganttBars},backgroundColor:${ganttColors},borderRadius:4,borderSkipped:false,barPercentage:.6},{label:'Hoje',data:${ganttTodayArr},backgroundColor:'rgba(209,0,0,0.55)',borderRadius:2,borderSkipped:false,barPercentage:.92,order:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.datasetIndex===0?'Dias '+ctx.raw[0]+' a '+ctx.raw[1]+' desde o kickoff':'Hoje (dia '+ctx.raw[0]+')'}}},scales:{x:{min:0,max:${ganttMaxDay},title:{display:true,text:'Dias desde o kickoff',font:{size:10},color:'#888'},grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10},maxRotation:0}}}}});}
+  var areaEl=document.getElementById('obAreaChart');if(areaEl){new Chart(areaEl.getContext('2d'),{type:'bar',data:{labels:${ganttAreaLabels},datasets:[{data:${ganttAreaBars},backgroundColor:${ganttAreaColors},borderRadius:6,barPercentage:.65}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw+'% das etapas concluídas'}}},scales:{x:{min:0,max:100,title:{display:true,text:'% concluído',font:{size:10},color:'#888'},ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},y:{grid:{display:false},ticks:{font:{size:10}}}}}});}` :''}
+});<\/script>
 </body></html>`;
 
   function npoPrev_comment(){
