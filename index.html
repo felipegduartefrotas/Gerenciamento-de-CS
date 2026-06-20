@@ -609,7 +609,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="clientes" onclick="nav(this,'clientes')"><i class="ti ti-building"></i>Clientes<span class="nav-badge" id="nbClientes">0</span></div>
     <div class="nav-item" data-p="novo-cliente" onclick="nav(this,'novo-cliente')"><i class="ti ti-building-plus"></i>Novo Cliente</div>
     <div class="nav-item" data-p="reunioes" onclick="nav(this,'reunioes')"><i class="ti ti-calendar"></i>Reuniões</div>
-    <div class="nav-item" data-p="planos" onclick="nav(this,'planos')"><i class="ti ti-clipboard-list"></i>Planos de Ação</div>
+    <div class="nav-item" data-p="planos" onclick="nav(this,'planos')"><i class="ti ti-clipboard-list"></i>Planos de Ação<span class="nav-badge" id="nbAcoes" style="display:none;background:var(--red);color:#fff">0</span></div>
     <div class="nav-item" data-p="agenda" onclick="nav(this,'agenda')"><i class="ti ti-calendar-week"></i>Agenda</div>
     <div class="nav-item" data-p="timeline" onclick="nav(this,'timeline')"><i class="ti ti-timeline"></i>Timeline</div>
     <div class="nav-sec">Analytics</div>
@@ -943,8 +943,15 @@ tr:hover td{background:#fafafa}
     <div style="margin-top:14px"></div>
     <div class="tbl-card">
       <div class="tbl-head"><div class="tbl-head-ttl"><i class="ti ti-list-details"></i>Histórico de pesquisas NPS <span class="sub">todos os clientes</span></div></div>
-      <table><thead><tr><th>Data</th><th>Cliente</th><th>Nota</th><th>Grupo</th><th>Respondente</th><th>Comentário</th><th>CS</th></tr></thead>
+      <table><thead><tr><th>Data</th><th>Cliente</th><th>Nota</th><th>Delta</th><th>Grupo</th><th>Respondente</th><th>Comentário</th><th>CS</th><th>Ação</th></tr></thead>
       <tbody id="npsHistTbody"></tbody></table>
+    </div>
+    <div style="margin-top:14px" class="card">
+      <div class="card-ttl">
+        <span><i class="ti ti-send"></i>Controle de Envio de Pesquisas <span class="sub" id="npsEnvioSub"></span></span>
+        <button class="btn-ghost" style="font-size:11.5px;padding:5px 11px" onclick="_abrirModalEnvioNPS()"><i class="ti ti-plus"></i>Registrar envio</button>
+      </div>
+      <div id="npsEnvioList" style="font-size:12px;color:var(--gray2)">Nenhum envio registrado ainda.</div>
     </div>
     <div style="margin-top:14px" class="card">
       <div class="card-ttl"><i class="ti ti-building"></i>Ranking NPS por cliente <span class="sub">última pesquisa de cada um · clique para ver detalhes</span></div>
@@ -1561,6 +1568,18 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- MODAL REGISTRO ENVIO NPS -->
+<div class="modal-ov" id="mNPSEnvio">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-ttl"><span><i class="ti ti-send"></i>Registrar Envio de Pesquisa NPS</span><span class="modal-close" onclick="closeM('mNPSEnvio')"><i class="ti ti-x"></i></span></div>
+    <div class="fg" style="margin-bottom:10px"><label>Cliente</label><select id="npsEnvioCliente"></select></div>
+    <div style="font-size:12px;color:var(--gray2);background:var(--bbg);border-radius:7px;padding:8px 12px;margin-bottom:14px"><i class="ti ti-info-circle"></i> Registre quando você enviou a pesquisa NPS ao cliente (e-mail, WhatsApp, etc.). Quando o cliente responder, use <b>Registrar Pesquisa</b> para adicionar a nota.</div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mNPSEnvio')">Cancelar</button>
+      <button class="btn-primary" onclick="_salvarEnvioNPS()"><i class="ti ti-send"></i>Registrar envio agora</button>
+    </div>
+  </div>
+</div>
 <!-- MODAL NPS -->
 <div class="modal-ov" id="mNPS">
   <div class="modal">
@@ -1605,8 +1624,8 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>Cliente</label><select id="acCliente"></select></div>
       <div class="fg"><label>Responsável</label><input type="text" id="acResp"></div>
       <div class="fg"><label>Área</label><select id="acArea"><option>CS</option><option>Operações</option><option>TI</option><option>Comercial</option><option>Infra</option><option>Dados</option><option>Técnico</option></select></div>
-      <div class="fg"><label>Prioridade</label><select id="acPri"><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
-      <div class="fg" style="position:relative"><label>Prazo</label><div class="iw"><input type="text" id="acPrazo" placeholder="DD/MM/AAAA" oninput="_textToDP('acPrazo','acPrazoPk')"><button class="ib-search" type="button" onclick="_openDP('acPrazoPk')" title="Calendário"><i class="ti ti-calendar"></i></button></div><input type="date" id="acPrazoPk" style="position:absolute;opacity:0;width:1px;height:1px;top:36px;left:0;pointer-events:none" onchange="_dpToText('acPrazo','acPrazoPk')"></div>
+      <div class="fg"><label>Prioridade <span style="font-size:10px;color:var(--gray2);font-weight:400">(sugere prazo automaticamente)</span></label><select id="acPri" onchange="_acSLAsugerir()"><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
+      <div class="fg" style="position:relative"><label>Prazo</label><div class="iw"><input type="text" id="acPrazo" placeholder="DD/MM/AAAA" oninput="_textToDP('acPrazo','acPrazoPk')"><button class="ib-search" type="button" onclick="_openDP('acPrazoPk')" title="Calendário"><i class="ti ti-calendar"></i></button></div><input type="date" id="acPrazoPk" style="position:absolute;opacity:0;width:1px;height:1px;top:36px;left:0;pointer-events:none" onchange="_dpToText('acPrazo','acPrazoPk')"><div id="acSLAhint" style="font-size:10.5px;color:var(--blue);margin-top:3px"></div></div>
       <div class="fg"><label>Status</label><select id="acStatus"><option>Pendente</option><option>Em Andamento</option><option>Em Revisão</option><option>Concluído</option></select></div>
       <div class="fg"><label>Progresso %</label><input type="number" id="acProg" min="0" max="100" value="0"></div>
       <div class="fg form-full"><label>Comentários</label><textarea id="acComent" placeholder="Contexto ou observações..."></textarea></div>
@@ -2138,6 +2157,8 @@ function updateStatusBar(){
     else{lastSaveEl.textContent=backupInfo.texto;}
     const nbCl=document.getElementById('nbClientes');if(nbCl){nbCl.textContent=cl.length;nbCl.toggleAttribute('data-zero',cl.length===0);}
     const alDyn=CS_DB._gerarAlertas();const nbAl=document.getElementById('nbAlertas');if(nbAl){const dangerCt=alDyn.filter(a=>a.tipo==='danger').length;nbAl.textContent=alDyn.length;nbAl.toggleAttribute('data-zero',alDyn.length===0);nbAl.style.background=dangerCt?'var(--red)':'var(--yellow)';nbAl.style.color=dangerCt?'#fff':'var(--dark)';}
+    const acAtrasadas=(CS_DB.get('acoes')||[]).filter(a=>a.prazoISO&&new Date(a.prazoISO)<new Date()&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.categoria!=='reuniao_agendada');
+    const nbAc=document.getElementById('nbAcoes');if(nbAc){nbAc.textContent=acAtrasadas.length;nbAc.style.display=acAtrasadas.length>0?'':'none';}
     document.getElementById('ndot').style.display=(al.filter(a=>a.tipo==='danger').length||backupInfo.urgente)?'block':'none';
   }catch(e){}
 }
@@ -2441,6 +2462,9 @@ function renderClientes(){
   }
   document.getElementById('clienteTbody').innerHTML=list.map(c=>{
     const ultimaReu=re.filter(r=>r.clienteId===c.id)[0];
+    const diasSC=ultimaReu?Math.floor((new Date()-new Date(ultimaReu.dataISO))/86400000):999;
+    const agingCor=diasSC>60?'var(--red)':diasSC>45?'#c8700a':diasSC>30?'#e0880a':'var(--gray2)';
+    const agingBadge=diasSC>30?`<span style="font-size:9.5px;background:${agingCor};color:#fff;border-radius:4px;padding:1px 6px;margin-left:5px;white-space:nowrap">${diasSC===999?'nunca':diasSC+'d'}</span>`:'';
     return`<tr>
       <td style="font-weight:600;cursor:pointer" onclick="abrirEditar('${c.id}')" title="Clique para editar">${c.empresa}</td>
       <td style="font-size:11.5px;color:var(--gray2)">${c.cnpj||'—'}</td>
@@ -2453,7 +2477,7 @@ function renderClientes(){
       <td>${c.mrr||'—'}</td>
       <td style="max-width:180px">${(()=>{const r=recomendarAcao(c,c.id);const urgCls=r.urgencia==='urgente'?'b-risco':r.urgencia==='oportunidade'?'b-exp':'';return`<span class="badge ${urgCls}" style="font-size:10px;white-space:normal;line-height:1.3;${!urgCls?'background:var(--gray5);color:var(--gray2)':''}" title="${r.descricao}"><i class="ti ${r.icone}"></i> ${r.titulo}</span>`;})()}</td>
       <td style="color:var(--gray2)">${c.responsavelCS||'—'}</td>
-      <td style="font-size:11.5px;color:var(--gray2)">${ultimaReu?.data||'Sem reunião'}</td>
+      <td style="font-size:11.5px;color:${agingCor}">${ultimaReu?.data||'Sem reunião'}${agingBadge}</td>
       <td style="white-space:nowrap">
         <span class="pin-btn" onclick="togglePin('${c.id}',event)" title="${_isPinned(c.id)?'Desafixar':'Fixar'}" style="margin-right:6px;cursor:pointer;font-size:13px;opacity:${_isPinned(c.id)?1:.3}" data-pinid="${c.id}">${_isPinned(c.id)?'📌':'📌'}</span>
         <span class="lnk" onclick="abrirEditar('${c.id}')" style="margin-right:8px">Editar</span><span class="lnk" onclick="abrirTimeline('${c.id}')" style="color:var(--gray2)">Timeline</span>
@@ -2959,11 +2983,15 @@ function renderKanban(){
     const items=ac.filter(a=>a.status===col);
     return`<div class="k-col" ondragover="event.preventDefault();this.classList.add('k-col-over')" ondragleave="this.classList.remove('k-col-over')" ondrop="dropAcaoNaColuna(event,'${col}',this)"><div class="k-col-h ${headCls[ci]}">${heads[ci]}<span class="k-cnt">${items.length}</span></div><div class="k-body">${items.map(a=>{
       const isReuniao=a.categoria==='reuniao_agendada';
+      const isAtrasada=!isReuniao&&a.prazoISO&&new Date(a.prazoISO)<new Date()&&a.status!=='Concluído'&&a.status!=='Cancelada';
       const pc={Alta:'pa',Média:'pm',Baixa:'pb',Concluído:'pc'}[a.prioridade||a.status]||'pm';
       const pf=a.status==='Concluído'?'done':'';
       const av=(a.responsavel||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       const clickHandler=isReuniao?`abrirTratarReuniaoAgendada('${a.id}')`:`abrirDetalhesAcao('${a.id}')`;
-      return`<div class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${isReuniao?'border-left:3px solid var(--blue)':''}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;font-size:10px;color:${new Date(a.prazoISO)<new Date()&&a.status!=='Concluído'?'var(--red)':'var(--gray2)'}">${a.prazo||''}</span></div></div>`}).join('')}${!items.length?`<div style="padding:18px 0;text-align:center;color:var(--gray3);font-size:12px"><i class="ti ti-circle-dashed" style="display:block;font-size:22px;margin-bottom:6px"></i>Vazio</div>`:''}</div></div>`;
+      const cardStyle=isReuniao?'border-left:3px solid var(--blue)':isAtrasada?'border-left:3px solid var(--red);background:rgba(239,68,68,.04)':'';
+      const diasAtraso=isAtrasada?Math.ceil((new Date()-new Date(a.prazoISO))/86400000):0;
+      const atrasadaBadge=isAtrasada?`<span style="font-size:9px;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;margin-left:5px">Atrasada${diasAtraso>0?' '+diasAtraso+'d':''}</span>`:'';
+      return`<div class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${cardStyle}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;font-size:10px;color:${isAtrasada?'var(--red)':'var(--gray2)'};font-weight:${isAtrasada?700:400}">${a.prazo||''}${atrasadaBadge}</span></div></div>`}).join('')}${!items.length?`<div style="padding:18px 0;text-align:center;color:var(--gray3);font-size:12px"><i class="ti ti-circle-dashed" style="display:block;font-size:22px;margin-bottom:6px"></i>Vazio</div>`:''}</div></div>`;
   }).join('');
 }
 let acaoArrastandoId=null;
@@ -3128,6 +3156,19 @@ function renderAcoesList(){
     <td><span class="badge ${stClass(a.status)||''}" style="${{Concluído:'background:var(--gbg);color:var(--gtxt)','Em Andamento':'background:var(--bbg);color:var(--btxt)',Pendente:'background:var(--ybg);color:var(--ytxt)'}[a.status]||''}">${a.status}</span></td>
     <td><span class="lnk" onclick="editarAcao('${a.id}')">Editar</span></td>
   </tr>`).join('');
+}
+function _acSLAsugerir(){
+  const pri=document.getElementById('acPri')?.value;
+  if(!pri)return;
+  const dias={Alta:3,Média:7,Baixa:14}[pri]||7;
+  const prazoEl=document.getElementById('acPrazo');
+  if(prazoEl&&!prazoEl.value){
+    const dt=new Date();dt.setDate(dt.getDate()+dias);
+    prazoEl.value=dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    _textToDP('acPrazo','acPrazoPk');
+    const hint=document.getElementById('acSLAhint');
+    if(hint)hint.textContent=`SLA sugerido: ${dias} dias para prioridade ${pri}`;
+  }
 }
 function salvarAcao(){
   const cid=document.getElementById('acCliente').value;const cli=CS_DB.getClienteById(cid);
@@ -3704,6 +3745,48 @@ function reproduzirAudioSalvo(audioId){
 
 
 // ═══ NPS ═══
+function _tratarDetrator(clienteId,empresa,nota,respondente,comentario){
+  const quem=CS_DB.getSession()?.nome||'Felipe Duarte';
+  const agora=new Date().toISOString();
+  const prazo=new Date();prazo.setDate(prazo.getDate()+3);
+  const prazoStr=prazo.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const acao={
+    clienteId,empresa,
+    descricao:`Follow-up detrator: ${empresa} — NPS ${nota}/10${respondente?' ('+respondente+')':''}`,
+    area:'CS',prioridade:'Alta',status:'Pendente',progresso:0,
+    responsavel:quem,prazo:prazoStr,prazoISO:prazo.toISOString(),
+    comentarios:`NPS ${nota}/10 registrado.${comentario?' Comentário: '+comentario:''}`,
+    categoria:'follow_up_detrator',
+    criadoEm:agora,criadoPor:quem,
+    log:[{texto:`Card criado automaticamente a partir de NPS ${nota}/10`,em:agora,por:quem}]
+  };
+  CS_DB.saveAcao(acao);
+  if(clienteId)CS_DB._addTimeline(clienteId,'alerta',`Follow-up aberto — NPS ${nota}/10`,`Detrator identificado. Card de ação criado por ${quem} com prazo de 3 dias.`);
+  renderKanban();
+  updateStatusBar();
+  toast(`Card de follow-up criado para ${empresa} — NPS ${nota}/10!`,'warn');
+}
+function _registrarEnvioNPS(clienteId,empresa){
+  const log=CS_DB.get('nps_envios')||[];
+  log.unshift({clienteId,empresa,enviadoEm:new Date().toISOString(),por:CS_DB.getSession()?.nome||'Felipe Duarte'});
+  CS_DB.set('nps_envios',log.slice(0,200));
+  toast(`Envio de pesquisa NPS registrado para ${empresa}.`);
+  renderNPSPage();
+}
+function _salvarEnvioNPS(){
+  const sel=document.getElementById('npsEnvioCliente');
+  const cid=sel?.value;
+  const cli=CS_DB.getClienteById(cid);
+  if(!cli){toast('Selecione um cliente.','err');return;}
+  _registrarEnvioNPS(cid,cli.empresa);
+  if(cid)CS_DB._addTimeline(cid,'sistema','Pesquisa NPS enviada',`Envio registrado por ${CS_DB.getSession()?.nome||'Felipe Duarte'}.`);
+  closeM('mNPSEnvio');
+}
+function _abrirModalEnvioNPS(){
+  const sel=document.getElementById('npsEnvioCliente');
+  if(sel)sel.innerHTML=CS_DB.getClientes().map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+  openM('mNPSEnvio');
+}
 function populateNPSSelect(){const s=document.getElementById('npsCliente');if(!s)return;const cl=CS_DB.getClientes();s.innerHTML=cl.map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('')}
 function renderNPSPage(){
   const npsAll=CS_DB.getAllNPS();const calc=CS_DB.calcNPS(npsAll);const z=CS_DB.npsZona(calc.score);
@@ -3730,18 +3813,45 @@ function renderNPSPage(){
   document.getElementById('npsFormula').innerHTML=`NPS = % Promotores − % Detratores &nbsp;·&nbsp; ${calc.promPct}% − ${calc.detPct}% = <strong style="color:${z.cor||'var(--gray2)'}">${calc.score??'—'}</strong>`;
   ['Crit','Aperf','Qual','Excel'].forEach(n=>{const el=document.getElementById('z'+n);if(el)el.classList.toggle('active',z.classe===n.toLowerCase())});
   // Histórico
-  if(!npsAll.length){document.getElementById('npsHistTbody').innerHTML=`<tr><td colspan="7"><div class="empty-state"><i class="ti ti-star-off"></i><p>Nenhuma pesquisa NPS registrada ainda.</p><button class="lnk" onclick="openM('mNPS')">Registrar primeira pesquisa</button></div></td></tr>`}
-  else document.getElementById('npsHistTbody').innerHTML=npsAll.map(p=>{const g=npsGrupo(p.nota);return`<tr>
-    <td style="color:var(--gray2);font-size:11.5px">${p.data}</td><td style="font-weight:600">${p.empresa}</td>
+  if(!npsAll.length){document.getElementById('npsHistTbody').innerHTML=`<tr><td colspan="9"><div class="empty-state"><i class="ti ti-star-off"></i><p>Nenhuma pesquisa NPS registrada ainda.</p><button class="lnk" onclick="openM('mNPS')">Registrar primeira pesquisa</button></div></td></tr>`}
+  else document.getElementById('npsHistTbody').innerHTML=npsAll.map((p,idx)=>{
+    const g=npsGrupo(p.nota);
+    const isDetrator=p.nota<=6;
+    // Delta: comparar com pesquisa anterior do mesmo cliente
+    const anterior=npsAll.slice(idx+1).find(x=>x.clienteId===p.clienteId);
+    const delta=anterior!=null?p.nota-anterior.nota:null;
+    const deltaCor=delta>0?'var(--green)':delta<0?'var(--red)':'var(--gray2)';
+    const deltaHtml=delta!=null
+      ?`<span style="font-weight:700;color:${deltaCor};font-size:12px">${delta>0?'↑'+delta:delta<0?'↓'+Math.abs(delta):'→'}</span>`
+      :`<span style="color:var(--gray3);font-size:11px">1ª</span>`;
+    // Botão ação para detratores
+    const acaoHtml=isDetrator
+      ?`<button class="btn-ghost" style="font-size:10px;padding:3px 8px;color:var(--red);border-color:var(--red)" onclick="_tratarDetrator('${p.clienteId}','${(p.empresa||'').replace(/'/g,'`')}',${p.nota},'${(p.respondente||'').replace(/'/g,'`')}','${(p.comentario||'').replace(/'/g,'`').replace(/\n/g,' ')}')"><i class="ti ti-alert-triangle"></i>Tratar</button>`
+      :'<span style="color:var(--gray3);font-size:11px">—</span>';
+    return`<tr style="${isDetrator?'background:rgba(239,68,68,.03)':''}">
+    <td style="color:var(--gray2);font-size:11.5px">${p.data}</td>
+    <td style="font-weight:600">${p.empresa}</td>
     <td style="font-weight:700;color:${g.c};font-size:15px">${p.nota}</td>
+    <td style="text-align:center">${deltaHtml}</td>
     <td><span class="badge" style="background:${g.bg};color:${g.c}">${g.g}</span></td>
-    <td>${p.respondente}</td>
+    <td>${p.respondente||'—'}</td>
     <td style="color:var(--gray2);font-size:11.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.comentario||'—'}</td>
     <td style="color:var(--gray2)">${p.cs||'—'}</td>
-  </tr>`}).join('');
+    <td>${acaoHtml}</td>
+  </tr>`;}).join('');
   // Por cliente
   const byClient={};npsAll.forEach(p=>{if(!byClient[p.clienteId])byClient[p.clienteId]={empresa:p.empresa,clienteId:p.clienteId,notas:[]};byClient[p.clienteId].notas.push({nota:p.nota})});
   document.getElementById('npsClienteList').innerHTML=Object.values(byClient).map(c=>{const cl2=CS_DB.calcNPS(c.notas);const z2=CS_DB.npsZona(cl2.score);return`<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--gray4);cursor:pointer" onclick="abrirNPSCliente('${c.clienteId}')"><div style="width:36px;height:28px;border-radius:6px;background:${z2.bg||'var(--gray5)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${z2.cor||'var(--gray2)'}">${cl2.score}</div><div style="flex:1"><div style="font-size:12.5px;font-weight:500">${c.empresa}</div><div style="font-size:11px;color:var(--gray2)">${c.notas.length} resp. · Prom: ${cl2.promPct}% Det: ${cl2.detPct}%</div></div><span class="badge" style="background:${z2.bg||'var(--gray5)'};color:${z2.cor||'var(--gray2)'};font-size:10px">${z2.emoji} ${z2.label}</span><i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:6px"></i></div>`}).join('')||'<div style="color:var(--gray2);padding:10px 0">Nenhuma pesquisa registrada ainda.</div>';
+  // Controle de envios
+  const envios=CS_DB.get('nps_envios')||[];
+  const envioEl=document.getElementById('npsEnvioList');
+  const envioSub=document.getElementById('npsEnvioSub');
+  if(envioSub)envioSub.textContent=`${envios.length} envio${envios.length!==1?'s':''} registrado${envios.length!==1?'s':''}`;
+  if(envioEl){
+    if(!envios.length){envioEl.innerHTML='<span style="color:var(--gray3)">Nenhum envio registrado ainda. Use o botão acima para registrar quando uma pesquisa NPS foi enviada a um cliente.</span>';}
+    else{envioEl.innerHTML=`<table style="width:100%;font-size:12px"><thead><tr style="font-size:10.5px;color:var(--gray2)"><th style="text-align:left;padding:4px 8px 4px 0">Cliente</th><th style="text-align:left;padding:4px 0">Data do envio</th><th style="text-align:left;padding:4px 0">Responsável</th></tr></thead><tbody>${envios.slice(0,10).map(e=>`<tr style="border-top:1px solid var(--gray5)"><td style="padding:6px 8px 6px 0;font-weight:500">${e.empresa}</td><td style="padding:6px 0;color:var(--gray2)">${new Date(e.enviadoEm).toLocaleDateString('pt-BR')}</td><td style="padding:6px 0;color:var(--gray2)">${e.por||'—'}</td></tr>`).join('')}</tbody></table>${envios.length>10?`<div style="font-size:11px;color:var(--gray3);padding-top:6px">+ ${envios.length-10} registros anteriores</div>`:''}`;
+    }
+  }
   setTimeout(initNPSCharts,80);
   setTimeout(renderVozCliente,100);
 }
@@ -4272,7 +4382,9 @@ function renderValidation(){
       <td>${status}</td></tr>`;
   }).join('')}
 function importarParaBanco(){
-  const rows=getMappedRows();let ok=0,warn=0;
+  const rows=getMappedRows();
+  const existentes=CS_DB.getClientes();
+  let ok=0,warn=0,novos=0,atualizados=0;
   rows.forEach(r=>{
     if(!r.empresa)return;
     const vig=r.vigencia?r.vigencia.replace(/\D/g,''):'';
@@ -4322,15 +4434,30 @@ function importarParaBanco(){
       healthScore:70
     };
     if(validateCNPJ(r.cnpj))ok++;else warn++;
-    CS_DB.saveCliente(c);
+    // Verifica se já existe por CNPJ (prioritário) ou nome exato
+    const cnpjLimpo=(r.cnpj||'').replace(/\D/g,'');
+    const existente=existentes.find(cl=>{
+      if(cnpjLimpo.length>=14)return(cl.cnpj||'').replace(/\D/g,'')===cnpjLimpo;
+      return cl.empresa.toLowerCase().trim()===r.empresa.toLowerCase().trim();
+    });
+    if(existente){
+      // Atualiza apenas os campos preenchidos na planilha, preserva HS, ID, e dados manuais
+      const CAMPOS_ATUALIZAVEIS=['mrr','tier','status','veiculos','produtos','responsavelCS','contato','email','telefone','cidade','uf','segmento','renovacao','dataRenovacao','empresa','cnpj','site','whatsapp','responsavelComercial'];
+      CAMPOS_ATUALIZAVEIS.forEach(k=>{if(c[k]&&c[k]!=='—'&&c[k]!=='')existente[k]=c[k];});
+      CS_DB.saveCliente(existente);
+      atualizados++;
+    }else{
+      CS_DB.saveCliente(c);
+      novos++;
+    }
   });
   document.getElementById('ir1').textContent=ok;
   document.getElementById('ir2').textContent=warn;
-  document.getElementById('ir3').textContent=0;
-  document.getElementById('ir4').textContent=rows.length;
-  document.getElementById('iSuccTtl').textContent=`${rows.length} clientes importados para o banco!`;
+  document.getElementById('ir3').textContent=atualizados;
+  document.getElementById('ir4').textContent=novos;
+  document.getElementById('iSuccTtl').textContent=`${novos} clientes novos · ${atualizados} atualizados!`;
   document.getElementById('iSuccSub').textContent=`Banco atualizado — ${new Date().toLocaleString('pt-BR')}`;
-  goIStep(4);updateStatusBar();toast(`${rows.length} clientes importados com sucesso!`);
+  goIStep(4);updateStatusBar();toast(`${novos} novos + ${atualizados} atualizados com sucesso!`);
 }
 function renderSuccess(){}
 function downloadTemplate(){
@@ -4817,7 +4944,7 @@ function renderObCliente() {
               <div style="flex:1"><div class="ob-step-ttl">${step.titulo}</div><div class="ob-step-sub">${step.desc}</div></div>
               <div class="ob-step-meta">
                 <span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:10px">${step.area}</span>
-                ${step.concluido?`<div style="color:var(--green);font-size:10.5px;margin-top:3px">✓ ${step.dataConc||''}</div>`:`<div style="font-size:10.5px;color:var(--gray2);margin-top:3px">Dia +${step.dias}</div>`}
+                ${_obStepSLAHtml(ob,step)}
               </div>
             </div>`;
           }).join('')}
@@ -4980,7 +5107,7 @@ function renderOnboarding() {
               </div>
               <div class="ob-step-meta">
                 <span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:10px">${step.area}</span>
-                ${step.concluido ? '<div style="color:var(--green);font-size:10.5px;margin-top:3px">✓ ' + (step.dataConc||'') + '</div>' : '<div style="font-size:10.5px;color:var(--gray2);margin-top:3px">Dia +' + step.dias + '</div>'}
+                ${_obStepSLAHtml(ob,step)}
               </div>
             </div>`;
           }).join('')}
@@ -4994,6 +5121,17 @@ function renderOnboarding() {
   }).join('');
 }
 
+function _obKickoffDate(ob){if(!ob.kickoff)return null;const[d,m,y]=ob.kickoff.split('/');return new Date(`${y}-${m}-${d}T00:00:00`);}
+function _obStepSLAHtml(ob,step){
+  if(step.concluido)return`<div style="color:var(--green);font-size:10.5px;margin-top:3px"><i class="ti ti-check" style="font-size:9px"></i> ${step.dataConc||'Concluído'}</div>`;
+  const kd=_obKickoffDate(ob);
+  if(!kd||!step.dias)return`<div style="font-size:10.5px;color:var(--gray2);margin-top:3px">Dia +${step.dias||'?'}</div>`;
+  const expected=new Date(kd.getTime()+step.dias*86400000);
+  const diff=Math.ceil((expected-new Date())/86400000);
+  if(diff<0)return`<div style="color:var(--red);font-size:10px;font-weight:700;margin-top:3px"><i class="ti ti-alert-triangle" style="font-size:9px"></i> ${Math.abs(diff)}d em atraso</div>`;
+  if(diff<=3)return`<div style="color:#e0880a;font-size:10px;font-weight:700;margin-top:3px"><i class="ti ti-clock" style="font-size:9px"></i> Vence em ${diff}d</div>`;
+  return`<div style="font-size:10.5px;color:var(--green);margin-top:3px"><i class="ti ti-circle-check" style="font-size:9px"></i> Dia +${step.dias} · ${diff}d restantes</div>`;
+}
 function calcObPct(ob) {
   if (!ob.steps || !ob.steps.length) return 0;
   return Math.round(ob.steps.filter(s => s.concluido).length / ob.steps.length * 100);
