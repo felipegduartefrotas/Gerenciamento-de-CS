@@ -1636,25 +1636,64 @@ tr:hover td{background:#fafafa}
 
 <!-- MODAL AGENDAR REUNIÃO FUTURA -->
 <div class="modal-ov" id="mAgendarReuniao">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-ttl"><span><i class="ti ti-calendar-plus"></i>Agendar Reunião Futura</span><span class="modal-close" onclick="closeM('mAgendarReuniao')"><i class="ti ti-x"></i></span></div>
+  <div class="modal" style="max-width:570px">
+    <div class="modal-ttl"><span><i class="ti ti-calendar-plus"></i>Agendar Reunião</span><span class="modal-close" onclick="closeM('mAgendarReuniao')"><i class="ti ti-x"></i></span></div>
     <input type="hidden" id="agrId">
-    <div class="fg" style="margin-bottom:9px"><label>Cliente</label><select id="agrCliente"></select></div>
-    <div class="form-g2">
-      <div class="fg" style="position:relative">
+
+    <div class="fg" style="margin-bottom:8px"><label>Cliente</label><select id="agrCliente" onchange="_agrUpdateInfo()"></select></div>
+    <div id="agrClienteInfo" style="margin-bottom:10px"></div>
+
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="fg" style="margin:0;position:relative">
         <label>Data da reunião</label>
         <div class="iw">
           <input type="text" id="agrData" placeholder="DD/MM/AAAA" oninput="_syncAgrTextToPicker()">
-          <button class="ib-search" type="button" onclick="_openAgrDatePicker()" title="Selecionar data no calendário"><i class="ti ti-calendar"></i></button>
+          <button class="ib-search" type="button" onclick="_openAgrDatePicker()" title="Selecionar data"><i class="ti ti-calendar"></i></button>
         </div>
         <input type="date" id="agrDatePicker" style="position:absolute;opacity:0;width:1px;height:1px;top:36px;left:0;pointer-events:none" onchange="_syncAgrPickerToText()">
       </div>
-      <div class="fg"><label>Horário</label><input type="text" id="agrHora" placeholder="14:00"></div>
-      <div class="fg"><label>Tipo</label><select id="agrTipo"><option>QBR</option><option>Revisão Mensal</option><option>Emergência</option><option>Onboarding</option><option>Renovação</option></select></div>
+      <div class="fg" style="margin:0"><label>Horário</label><input type="text" id="agrHora" placeholder="14:00" maxlength="5"></div>
+      <div class="fg" style="margin:0"><label>Duração</label>
+        <select id="agrDuracao">
+          <option value="30">30 min</option><option value="60" selected>1 hora</option>
+          <option value="90">1h 30min</option><option value="120">2 horas</option><option value="180">3 horas</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-g2">
+      <div class="fg"><label>Tipo</label>
+        <select id="agrTipo" onchange="_agrSugerirPautaAuto()">
+          <option>QBR</option><option>Revisão Mensal</option><option>Emergência</option>
+          <option>Onboarding</option><option>Renovação</option><option>Kickoff</option>
+        </select>
+      </div>
       <div class="fg"><label>Responsável</label><input type="text" id="agrResp"></div>
     </div>
-    <div class="fg" style="margin-bottom:9px"><label>Pauta / objetivo</label><textarea id="agrPauta" placeholder="O que será tratado nesta reunião..."></textarea></div>
-    <div style="background:var(--bbg);border-radius:8px;padding:9px 12px;font-size:11.5px;color:var(--btxt);margin-bottom:11px"><i class="ti ti-info-circle"></i> Um card de acompanhamento será criado no Plano de Ação. No dia da reunião, um alerta vai te lembrar de tratar esse card — você poderá registrar a reunião normalmente, remarcar ou cancelar.</div>
+
+    <div class="fg" style="margin-bottom:10px">
+      <label style="display:flex;align-items:center;justify-content:space-between">
+        Pauta / objetivo
+        <button class="lnk" style="font-size:11px" onclick="_agrSugerirPautaAuto(true)"><i class="ti ti-sparkles"></i> Sugerir pauta</button>
+      </label>
+      <textarea id="agrPauta" placeholder="O que será tratado nesta reunião..." style="min-height:80px"></textarea>
+    </div>
+
+    <div style="border:1px solid var(--gray4);border-radius:9px;padding:12px 14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px"><i class="ti ti-calendar-share"></i> Convite &amp; Calendário</div>
+      <div class="form-g2" style="margin-bottom:8px">
+        <div class="fg" style="margin:0"><label>E-mail do cliente</label><input type="email" id="agrEmailCliente" placeholder="cliente@empresa.com"></div>
+        <div class="fg" style="margin:0"><label>Local / Link</label><input type="text" id="agrLocal" placeholder="Zoom · Teams · Google Meet · Endereço"></div>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn-ghost" style="font-size:11.5px;padding:6px 11px" onclick="_agrGoogleCalendar()"><i class="ti ti-brand-google" style="color:#4285f4"></i>Google Calendar</button>
+        <button class="btn-ghost" style="font-size:11.5px;padding:6px 11px" onclick="_agrOutlookWeb()"><i class="ti ti-brand-office" style="color:#0078d4"></i>Outlook Web</button>
+        <button class="btn-ghost" style="font-size:11.5px;padding:6px 11px" onclick="_agrDownloadICS()"><i class="ti ti-calendar-down"></i>Baixar .ics</button>
+        <button class="btn-ghost" style="font-size:11.5px;padding:6px 11px" onclick="_agrEnviarEmailConvite()"><i class="ti ti-mail"></i>E-mail convite</button>
+      </div>
+    </div>
+
+    <div style="background:var(--bbg);border-radius:8px;padding:9px 12px;font-size:11.5px;color:var(--btxt);margin-bottom:11px"><i class="ti ti-info-circle"></i> Um card de acompanhamento será criado no Plano de Ação. No dia da reunião, um alerta vai te lembrar de tratar esse card.</div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="closeM('mAgendarReuniao')">Cancelar</button>
       <button class="btn-primary" onclick="salvarReuniaoAgendada()"><i class="ti ti-device-floppy"></i>Agendar</button>
@@ -2911,8 +2950,13 @@ function abrirAgendarReuniao(clienteIdPreSelecionado){
   document.getElementById('agrData').value='';
   const _agPk=document.getElementById('agrDatePicker');if(_agPk)_agPk.value='';
   document.getElementById('agrHora').value='';
+  document.getElementById('agrDuracao').value='60';
   document.getElementById('agrResp').value=CS_DB.getSession()?.nome||'Felipe Duarte';
   document.getElementById('agrPauta').value='';
+  document.getElementById('agrEmailCliente').value='';
+  document.getElementById('agrLocal').value='';
+  document.getElementById('agrClienteInfo').innerHTML='';
+  _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
 function _parseDataBR(dataStr){
@@ -2978,6 +3022,140 @@ function salvarReuniaoAgendada(){
   if(document.getElementById('page-reunioes').classList.contains('active'))renderReunioesAgendadas();
   updateStatusBar();
 }
+// ────── Reunião: funções auxiliares de calendário/email ──────
+function _agrUpdateInfo(){
+  const cid=document.getElementById('agrCliente').value;
+  const cli=CS_DB.getClienteById(cid);
+  const el=document.getElementById('agrClienteInfo');
+  if(!cli){el.innerHTML='';return;}
+  // auto-fill email
+  if(cli.email){const em=document.getElementById('agrEmailCliente');if(!em.value)em.value=cli.email;}
+  const hs=cli.healthScore??'—';
+  const nps=cli.nps??'—';
+  const mrr=cli.mrr?`R$ ${Number(cli.mrr).toLocaleString('pt-BR')}`:'—';
+  const ultima=cli.ultimoContato?new Date(cli.ultimoContato).toLocaleDateString('pt-BR'):'—';
+  const churn=typeof calcChurnScore==='function'?calcChurnScore(cli):null;
+  const churnBadge=churn!==null?`<span style="background:${churn>=70?'var(--red)':churn>=40?'#e0880a':'var(--green)'};color:#fff;border-radius:4px;padding:1px 6px;font-size:10.5px;margin-left:4px">Churn ${churn}%</span>`:'';
+  el.innerHTML=`<div style="background:var(--bbg);border-radius:7px;padding:7px 12px;font-size:12px;color:var(--btxt);display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+    <span><b>HS</b> ${hs}</span><span>|</span><span><b>NPS</b> ${nps}</span><span>|</span>
+    <span><b>MRR</b> ${mrr}</span><span>|</span><span><b>Último contato</b> ${ultima}</span>${churnBadge}
+  </div>`;
+}
+function _agrSugerirPautaAuto(force){
+  const pauta=document.getElementById('agrPauta');
+  if(pauta.value&&!force)return;
+  const cid=document.getElementById('agrCliente').value;
+  const cli=CS_DB.getClienteById(cid);
+  const tipo=document.getElementById('agrTipo').value;
+  const hs=cli?.healthScore??100;
+  const nps=cli?.nps??0;
+  const churn=typeof calcChurnScore==='function'&&cli?calcChurnScore(cli):0;
+  const empresa=cli?.empresa||'cliente';
+  const linhas=[];
+  if(tipo==='QBR')linhas.push('1. Revisão de resultados do trimestre','2. Análise de KPIs e indicadores de saúde','3. Roadmap de funcionalidades e próximos passos','4. Oportunidades de expansão');
+  else if(tipo==='Revisão Mensal')linhas.push('1. Overview do mês: uso, chamados e satisfação','2. Análise do Health Score e NPS','3. Ações pendentes e pendências abertas');
+  else if(tipo==='Renovação')linhas.push('1. Balanço do ciclo atual e ROI','2. Proposta de renovação e condições','3. Alinhamento de expectativas para o próximo período');
+  else if(tipo==='Onboarding')linhas.push('1. Apresentação da equipe e definição de contatos','2. Configuração inicial e treinamento da plataforma','3. Cronograma de implantação e marcos do projeto');
+  else if(tipo==='Kickoff')linhas.push('1. Alinhamento de escopo e objetivos do projeto','2. Papéis e responsabilidades','3. Definição de SLAs e canais de comunicação');
+  else if(tipo==='Emergência')linhas.push('1. Descrição detalhada do problema relatado','2. Impacto no negócio e urgência','3. Plano de ação e prazo de resolução');
+  else linhas.push('1. Agenda do encontro','2. Revisão de pendências','3. Próximos passos e responsáveis');
+  // situação específica do cliente
+  if(churn>=70)linhas.push(`\n⚠️ Atenção: ${empresa} está em churn crítico (${churn}%). Incluir discussão de retenção.`);
+  else if(hs<50)linhas.push(`\n⚠️ Health Score baixo (${hs}). Identificar causas e plano de melhoria.`);
+  if(nps<7&&nps>0)linhas.push(`📌 NPS baixo detectado (${nps}). Coletar feedback e propor melhorias.`);
+  pauta.value=linhas.join('\n');
+}
+function _agrGetCalendarData(){
+  const cid=document.getElementById('agrCliente').value;
+  const cli=CS_DB.getClienteById(cid);
+  const dataStr=document.getElementById('agrData').value.trim();
+  const hora=document.getElementById('agrHora').value.trim()||'09:00';
+  const durMin=parseInt(document.getElementById('agrDuracao').value)||60;
+  const tipo=document.getElementById('agrTipo').value;
+  const pauta=document.getElementById('agrPauta').value.trim();
+  const email=document.getElementById('agrEmailCliente').value.trim();
+  const local=document.getElementById('agrLocal').value.trim();
+  if(!dataStr||!_parseDataBR(dataStr)){toast('Informe a data da reunião antes de usar os botões de calendário.','err');return null;}
+  const dateParsed=_parseDataBR(dataStr);
+  const[hh,mm]=(hora+':00').split(':').map(Number);
+  const start=new Date(dateParsed.getFullYear(),dateParsed.getMonth(),dateParsed.getDate(),hh,mm||0);
+  const end=new Date(start.getTime()+durMin*60000);
+  const pad=n=>String(n).padStart(2,'0');
+  const fmtICS=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const fmtISO=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+  return{cli,tipo,pauta,email,local,start,end,fmtICS,fmtISO,durMin};
+}
+function _agrGoogleCalendar(){
+  const d=_agrGetCalendarData();if(!d)return;
+  const pad=n=>String(n).padStart(2,'0');
+  const fmtG=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+  const params=new URLSearchParams({
+    action:'TEMPLATE',
+    text:`${d.tipo} — ${d.cli?.empresa||'Cliente'}`,
+    dates:`${fmtG(d.start)}/${fmtG(d.end)}`,
+    details:d.pauta||(d.tipo+' com '+( d.cli?.empresa||'cliente')),
+    location:d.local||'',
+  });
+  if(d.email)params.append('add',d.email);
+  window.open('https://calendar.google.com/calendar/render?'+params.toString(),'_blank');
+}
+function _agrOutlookWeb(){
+  const d=_agrGetCalendarData();if(!d)return;
+  const pad=n=>String(n).padStart(2,'0');
+  const fmtISO=dt=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:00`;
+  const params=new URLSearchParams({
+    path:'/calendar/action/compose',
+    rru:'addevent',
+    subject:`${d.tipo} — ${d.cli?.empresa||'Cliente'}`,
+    startdt:fmtISO(d.start),
+    enddt:fmtISO(d.end),
+    body:d.pauta||(d.tipo+' com '+(d.cli?.empresa||'cliente')),
+    location:d.local||'',
+  });
+  if(d.email)params.append('to',d.email);
+  window.open('https://outlook.live.com/calendar/0/deeplink/compose?'+params.toString(),'_blank');
+}
+function _agrDownloadICS(){
+  const d=_agrGetCalendarData();if(!d)return;
+  const pad=n=>String(n).padStart(2,'0');
+  const fmtICS=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+  const uid=`reuniao-${Date.now()}@csmanager`;
+  const now=fmtICS(new Date());
+  const attendee=d.email?`ATTENDEE;CN=${d.cli?.empresa||'Cliente'};RSVP=TRUE:mailto:${d.email}\r\n`:'';
+  const ics=[
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//CS Manager//PT',
+    'METHOD:REQUEST','BEGIN:VEVENT',
+    `UID:${uid}`,`DTSTAMP:${now}`,`DTSTART:${fmtICS(d.start)}`,`DTEND:${fmtICS(d.end)}`,
+    `SUMMARY:${d.tipo} — ${d.cli?.empresa||'Cliente'}`,
+    `DESCRIPTION:${(d.pauta||'').replace(/\n/g,'\\n')}`,
+    `LOCATION:${d.local||''}`,
+    attendee.trim(),
+    'END:VEVENT','END:VCALENDAR'
+  ].filter(Boolean).join('\r\n');
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`reuniao_${(d.cli?.empresa||'cliente').replace(/\s+/g,'_')}.ics`;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  toast('Arquivo .ics baixado! Abra-o para importar no Outlook, Apple Calendar, etc.');
+}
+function _agrEnviarEmailConvite(){
+  const d=_agrGetCalendarData();if(!d)return;
+  if(!d.email){toast('Informe o e-mail do cliente antes de enviar o convite.','err');return;}
+  const pad=n=>String(n).padStart(2,'0');
+  const dataFmt=`${pad(d.start.getDate())}/${pad(d.start.getMonth()+1)}/${d.start.getFullYear()}`;
+  const horaFmt=`${pad(d.start.getHours())}:${pad(d.start.getMinutes())}`;
+  const subject=encodeURIComponent(`Convite: ${d.tipo} — ${d.cli?.empresa||'Cliente'} — ${dataFmt}`);
+  const body=encodeURIComponent(
+    `Olá,\n\nGostaríamos de confirmar nossa reunião de ${d.tipo} conforme abaixo:\n\n`+
+    `📅 Data: ${dataFmt}\n⏰ Horário: ${horaFmt}\n⏱️ Duração: ${d.durMin<60?d.durMin+'min':Math.floor(d.durMin/60)+'h'+(d.durMin%60?` ${d.durMin%60}min`:'')}\n`+
+    (d.local?`📍 Local/Link: ${d.local}\n`:'')+
+    (d.pauta?`\nPauta:\n${d.pauta}\n`:'')+
+    `\nPor favor, confirme sua presença respondendo este e-mail.\n\nAtenciosamente,\n${CS_DB.getSession()?.nome||'Equipe CS'}`
+  );
+  window.location.href=`mailto:${d.email}?subject=${subject}&body=${body}`;
+}
 function getReunioesAgendadas(){
   return (CS_DB.get('acoes')||[]).filter(a=>a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada');
 }
@@ -3042,9 +3220,14 @@ function abrirRemarcarReuniao(){
   s.value=a.clienteId;
   _agrSetData(a.reuniaoData||'');
   document.getElementById('agrHora').value=a.reuniaoHora||'';
+  document.getElementById('agrDuracao').value='60';
   document.getElementById('agrTipo').value=a.reuniaoTipo||'QBR';
   document.getElementById('agrResp').value=a.responsavel||'';
   document.getElementById('agrPauta').value=a.reuniaoPauta||'';
+  document.getElementById('agrEmailCliente').value='';
+  document.getElementById('agrLocal').value='';
+  document.getElementById('agrClienteInfo').innerHTML='';
+  _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
 function cancelarReuniaoAgendada(){
