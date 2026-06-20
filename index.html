@@ -1006,6 +1006,7 @@ tr:hover td{background:#fafafa}
     <button class="tl-filter-btn" onclick="filtrarAlertas('renovacao')"><i class="ti ti-calendar-exclamation"></i>Renovação</button>
     <button class="tl-filter-btn" onclick="filtrarAlertas('acoes_atrasadas')"><i class="ti ti-clipboard-x"></i>Ações Atrasadas</button>
     <button class="tl-filter-btn" onclick="filtrarAlertas('reuniao_hoje')"><i class="ti ti-calendar-event"></i>Reunião Hoje</button>
+    <button class="tl-filter-btn" onclick="filtrarAlertas('churn_critico')" style="border-color:var(--red);color:var(--red)"><i class="ti ti-alert-triangle"></i>Churn Crítico</button>
   </div>
   <div id="alertasList"></div>
 </div>
@@ -1231,6 +1232,7 @@ tr:hover td{background:#fafafa}
     <button class="btn-ghost" onclick="recalcularChurn()"><i class="ti ti-refresh"></i>Recalcular</button>
   </div>
   <div class="kpi-grid" id="churnKPIs"></div>
+  <div id="churnEscalacaoPanel"></div>
 
   <div class="two-col" style="margin-bottom:14px">
     <div class="card" style="margin-bottom:0">
@@ -1817,7 +1819,11 @@ const reunAg=ac.filter(a=>a.clienteId===c.id&&a.categoria==='reuniao_agendada'&&
 reunAg.forEach(ra=>{const dataReuniao=new Date(ra.prazoISO);const hojeZero=new Date(now);hojeZero.setHours(0,0,0,0);const diasReuniao=Math.floor((dataReuniao-hojeZero)/86400000);
   if(diasReuniao===0)al.push({id:'reun_hoje_'+ra.id,categoria:'reuniao_hoje',tipo:'warn',icone:'ti-calendar-event',titulo:`${c.empresa} — Reunião HOJE: ${ra.reuniaoTipo}`,subtitulo:`${ra.reuniaoHora?'Às '+ra.reuniaoHora+' · ':''}Responsável: ${ra.responsavel}`,tag:'Urgente',clienteId:c.id,acaoId:ra.id});
   else if(diasReuniao<0)al.push({id:'reun_atrasada_'+ra.id,categoria:'reuniao_atrasada',tipo:'danger',icone:'ti-calendar-x',titulo:`${c.empresa} — Reunião não tratada: ${ra.reuniaoTipo}`,subtitulo:`Estava agendada para ${ra.reuniaoData}, ${Math.abs(diasReuniao)} dia(s) atrás`,tag:'Urgente',clienteId:c.id,acaoId:ra.id});
-})});
+});
+const _cs=typeof calcChurnScore==='function'?calcChurnScore(c):0;
+if(_cs>=70)al.push({id:'churn_crit_'+c.id,categoria:'churn_critico',tipo:'danger',icone:'ti-alert-triangle',titulo:`${c.empresa} — Churn Crítico: ${_cs}%`,subtitulo:`Prob. de perda: ${_cs}% · HS: ${c.healthScore} · MRR: ${c.mrr||'—'}. Escalar imediatamente.`,tag:'Urgente',clienteId:c.id});
+else if(_cs>=50&&_cs<70)al.push({id:'churn_alto_'+c.id,categoria:'churn_alto',tipo:'warn',icone:'ti-trending-down-2',titulo:`${c.empresa} — Risco de Churn Alto: ${_cs}%`,subtitulo:`Prob. de churn: ${_cs}% · HS: ${c.healthScore} · MRR: ${c.mrr||'—'}. Monitorar.`,tag:'Alta',clienteId:c.id});
+});
 const dismissed=this.get('alertasDismissed')||[];
 const filtrados=al.filter(a=>!dismissed.includes(a.id));
 this.set('alertas',filtrados);return filtrados},
@@ -3477,6 +3483,13 @@ function abrirTratativaAlerta(alertaId){
       <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos');setTimeout(()=>{openM('mAcao');document.getElementById('acCliente').value='${a.clienteId}'},100)"><i class="ti ti-clipboard-plus"></i>Criar ação de renovação</button>
       <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');abrirEditar('${a.clienteId}')"><i class="ti ti-edit"></i>Editar dados contratuais do cliente</button>`;
       break;
+    case 'churn_critico':
+    case 'churn_alto':
+      botoes=`<button class="btn-primary" style="width:100%;margin-bottom:8px;justify-content:center;background:var(--red)" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=churn]'),'churn');setTimeout(()=>escalarChurnCriticos('diretoria'),100)"><i class="ti ti-mail"></i>Escalar para Diretoria (e-mail)</button>
+      <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=churn]'),'churn');setTimeout(()=>escalarChurnCriticos('comercial'),100)"><i class="ti ti-mail"></i>Escalar para Comercial</button>
+      <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=churn]'),'churn');setTimeout(()=>abrirEnvioEmailChurn('${a.clienteId}'),100)"><i class="ti ti-user-circle"></i>Alerta individual — ${cliente?.empresa||'cliente'}</button>
+      <button class="btn-ghost" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos')"><i class="ti ti-layout-kanban"></i>Ver card de retenção no Kanban</button>`;
+      break;
     case 'acoes_atrasadas':
       botoes=`<button class="btn-primary" style="width:100%;margin-bottom:8px;justify-content:center" onclick="closeM('mTratativaAlerta');nav(document.querySelector('[data-p=planos]'),'planos')"><i class="ti ti-layout-kanban"></i>Ver ações em atraso no Kanban</button>`;
       break;
@@ -4643,7 +4656,91 @@ function churnLabel(score) {
   return              { label: 'Baixo',    cls: 'pb-baixo',   bar: 'prob-baixo',   cor: 'var(--green)'  };
 }
 
-function recalcularChurn() { renderChurn(); toast('Churn recalculado com dados atuais.'); }
+function _autoEscalarCriticos(){
+  const cl=CS_DB.getClientes();
+  const acoes=CS_DB.get('acoes')||[];
+  const escalados=[];
+  const limite7d=new Date(Date.now()-7*86400000);
+  cl.forEach(c=>{
+    const score=calcChurnScore(c);
+    if(score<70)return;
+    const jaTemCard=acoes.find(a=>a.clienteId===c.id&&a.categoria==='retencao_churn'&&a.status!=='Concluído'&&new Date(a.criadoEm)>limite7d);
+    if(jaTemCard)return;
+    const prazo=new Date(Date.now()+2*86400000);
+    acoes.push({
+      id:'aco_ret_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
+      clienteId:c.id,empresa:c.empresa,
+      descricao:`🚨 Retenção urgente — Churn ${score}%`,
+      area:'CS',prioridade:'Alta',status:'Pendente',progresso:0,
+      responsavel:CS_DB.getSession()?.nome||'Felipe Duarte',
+      prazo:prazo.toLocaleDateString('pt-BR'),prazoISO:prazo.toISOString(),
+      categoria:'retencao_churn',criadoEm:new Date().toISOString(),
+      comentarios:`Auto-gerado. Prob. churn: ${score}% · HS: ${c.healthScore} · MRR: ${c.mrr||'—'}. Ação imediata necessária.`
+    });
+    CS_DB._addTimeline(c.id,'sistema','Card de retenção criado automaticamente',`Churn crítico (${score}%) detectado. Card urgente criado em Planos de Ação.`);
+    escalados.push({c,score});
+  });
+  if(escalados.length)CS_DB.set('acoes',acoes);
+  return escalados;
+}
+function escalarChurnCriticos(destino){
+  const cl=CS_DB.getClientes();
+  const criticos=cl.map(c=>({...c,score:calcChurnScore(c)})).filter(c=>c.score>=70).sort((a,b)=>b.score-a.score);
+  if(!criticos.length){toast('Nenhum cliente em churn crítico no momento.','warn');return;}
+  const nomes=criticos.map(c=>`  • ${c.empresa} — ${c.score}% (HS: ${c.healthScore} · MRR: ${c.mrr||'—'})`).join('\n');
+  const mrrTotal=Math.round(criticos.reduce((s,c)=>s+(parseFloat((c.mrr||'').replace(/[^0-9.]/g,''))||0),0)/1000);
+  document.getElementById('emChurnClienteId').value='';
+  document.getElementById('emChurnDestino').value=destino||'diretoria';
+  document.getElementById('emChurnOutroWrap').style.display='none';
+  document.getElementById('emChurnAssunto').value=`[URGENTE] ${criticos.length} cliente${criticos.length>1?'s':''} em Churn Crítico — Escalação CS`;
+  document.getElementById('emChurnCorpo').value=
+`Olá,
+
+O monitoramento de Customer Success identificou ${criticos.length} cliente${criticos.length>1?'s':''} em RISCO CRÍTICO DE CHURN (prob. ≥ 70%) que requerem ação imediata:
+
+${nomes}
+
+MRR total em risco: R$${mrrTotal}K
+
+Ações já tomadas:
+• Cards de retenção urgente criados automaticamente no Plano de Ação
+• Alertas registrados para cada conta na Central de Alertas
+
+Solicito alinhamento urgente para definição da estratégia de retenção dessas contas.
+
+${CS_DB.getSession()?.nome||'Felipe Duarte'}
+Customer Success — Creare Sistemas`;
+  openM('mEmailChurn');
+}
+function _renderEscalacaoPanel(criticos){
+  const el=document.getElementById('churnEscalacaoPanel');if(!el)return;
+  if(!criticos||!criticos.length){el.innerHTML='';return;}
+  el.innerHTML=`<div style="background:#fff0f0;border:1.5px solid var(--red);border-radius:10px;padding:13px 16px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <i class="ti ti-alert-triangle" style="color:var(--red);font-size:18px;flex-shrink:0"></i>
+      <span style="font-weight:700;color:var(--red);font-size:13.5px">${criticos.length} cliente${criticos.length>1?'s':''} em Churn Crítico — Escalação necessária</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      ${criticos.map(c=>`<span style="background:#fff;border:1px solid var(--red);border-radius:6px;padding:3px 9px;font-size:12px;color:var(--red);font-weight:600">${c.empresa.split(' ')[0]} <strong>${c.churnScore}%</strong></span>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-primary" style="background:var(--red);font-size:12px;padding:6px 14px" onclick="escalarChurnCriticos('diretoria')"><i class="ti ti-mail"></i> Escalar para Diretoria</button>
+      <button class="btn-ghost" style="font-size:12px;padding:6px 14px" onclick="escalarChurnCriticos('comercial')"><i class="ti ti-mail"></i> Escalar para Comercial</button>
+      <button class="btn-ghost" style="font-size:12px;padding:6px 14px" onclick="escalarChurnCriticos('tecnico')"><i class="ti ti-mail"></i> Time Técnico</button>
+      <button class="lnk" style="font-size:11.5px;margin-left:auto" onclick="_autoEscalarCriticos();renderKanban();toast('Cards de retenção criados para todos os críticos.','ok')"><i class="ti ti-layout-kanban"></i> Criar cards no Kanban</button>
+    </div>
+  </div>`;
+}
+function recalcularChurn(){
+  const escalados=_autoEscalarCriticos();
+  renderChurn();
+  if(escalados.length){
+    renderKanban();
+    toast(`${escalados.length} cliente${escalados.length>1?'s':''} em churn crítico — cards de retenção criados no Kanban!`,'warn');
+  }else{
+    toast('Churn recalculado. Nenhum novo caso crítico detectado.');
+  }
+}
 
 // ════════════════════════════════════════════════
 // EMAIL DE ALERTA — CHURN
@@ -5056,6 +5153,8 @@ function renderChurn() {
     return s + (parseFloat((c.mrr || '').replace(/[^0-9.]/g, '')) || 0);
   }, 0);
   const mrrProteg = cl.reduce((s, c) => s + (parseFloat((c.mrr || '').replace(/[^0-9.]/g, '')) || 0), 0) - mrrRisco;
+
+  _renderEscalacaoPanel(all.filter(c=>c.churnScore>=70));
 
   const kEl = document.getElementById('churnKPIs');
   if (kEl) kEl.innerHTML = `
