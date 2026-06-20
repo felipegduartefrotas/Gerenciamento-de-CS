@@ -571,6 +571,16 @@ tr:hover td{background:#fafafa}
 .rank-row:last-child{border-bottom:none}
 .rank-pos{width:20px;height:20px;border-radius:50%;background:var(--gray5);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--gray2);flex-shrink:0}
 .rank-pos.top{background:var(--red);color:#fff}
+@media print{
+  body{overflow:visible!important;height:auto!important}
+  #loginScreen,#app>.sidebar,.topbar,.modal-ov{display:none!important}
+  #app{flex-direction:column!important;height:auto!important}
+  .main{height:auto!important;overflow:visible!important}
+  .content{height:auto!important;overflow:visible!important;padding:0!important}
+  .page{display:none!important}
+  #page-exec{display:block!important}
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact
+}
 </style>
 </head>
 <body>
@@ -605,6 +615,7 @@ tr:hover td{background:#fafafa}
   <div class="sidebar" id="sidebar">
     <div class="sb-logo"><div class="sb-mark"><div class="sb-rect"></div><div><div class="sb-brand">creare</div><div class="sb-sub">sistemas</div></div></div><div class="sb-dev">develop by FFKD</div></div>
     <div class="nav-sec">Principal</div>
+    <div class="nav-item" data-p="hoje" onclick="nav(this,'hoje')"><i class="ti ti-sun"></i>Hoje<span class="nav-badge" id="nbHoje" style="display:none;background:var(--red);color:#fff">0</span></div>
     <div class="nav-item active" data-p="dashboard" onclick="nav(this,'dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
     <div class="nav-item" data-p="clientes" onclick="nav(this,'clientes')"><i class="ti ti-building"></i>Clientes<span class="nav-badge" id="nbClientes">0</span></div>
     <div class="nav-item" data-p="novo-cliente" onclick="nav(this,'novo-cliente')"><i class="ti ti-building-plus"></i>Novo Cliente</div>
@@ -652,6 +663,12 @@ tr:hover td{background:#fafafa}
     </div>
 
     <div class="content">
+<!-- HOJE -->
+<div class="page" id="page-hoje">
+  <div class="ph"><h2><i class="ti ti-sun"></i>Painel do Dia</h2><span id="hojeData" style="font-size:12.5px;color:var(--gray2)"></span></div>
+  <div class="kpi-grid" id="hojeKPIs"></div>
+  <div id="hojeContent" style="margin-top:14px"></div>
+</div>
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="kpi-grid" id="dashKPIs"></div>
@@ -660,6 +677,10 @@ tr:hover td{background:#fafafa}
     <div class="card" style="margin-bottom:0"><div class="card-ttl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="hs-list" id="hsList"></div></div>
   </div>
   <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="dashRanking"></div>
+  <div class="card" style="margin-top:14px;margin-bottom:0" id="dashMetasCard">
+    <div class="card-ttl"><span><i class="ti ti-target"></i>Metas de CS</span><button class="btn-ghost" style="font-size:11px;padding:3px 9px;margin-left:auto" onclick="openM('mMetas')"><i class="ti ti-edit"></i>Editar metas</button></div>
+    <div id="dashMetasContent" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px"></div>
+  </div>
   <div class="card" style="margin-top:14px;margin-bottom:0">
     <div class="card-ttl"><span><i class="ti ti-map-pin"></i>Distribuição geográfica dos clientes</span><span class="sub" id="dashMapSub"></span></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 0 10px;font-size:11px;color:var(--gray2)">
@@ -696,6 +717,7 @@ tr:hover td{background:#fafafa}
     <select class="flt-sel" id="fltStatus" onchange="renderClientes()"><option value="">Todos status</option><option>Ativo</option><option>Implantação</option><option>Expansão</option><option>Em Risco</option></select>
     <select class="flt-sel" id="fltTier" onchange="renderClientes()"><option value="">Todos tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
     <select class="flt-sel" id="fltHS" onchange="renderClientes()"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
+    <select class="flt-sel" id="fltRespCS" onchange="renderClientes()"><option value="">Todos CS</option></select>
     <input class="flt-inp" id="fltQ" placeholder="Buscar empresa ou CNPJ..." oninput="renderClientes()" style="flex:2">
   </div>
   <div class="flt-row" style="margin-top:6px">
@@ -1000,7 +1022,10 @@ tr:hover td{background:#fafafa}
 <!-- EXECUTIVO -->
 <div class="page" id="page-exec">
   <div class="ph"><h2><i class="ti ti-chart-bar"></i>Dashboard Executivo</h2>
-    <select class="flt-sel"><option>Junho 2026</option><option>Q2 2026</option><option>2026</option></select>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="flt-sel"><option>Junho 2026</option><option>Q2 2026</option><option>2026</option></select>
+      <button class="btn-ghost" onclick="imprimirExec()"><i class="ti ti-printer"></i>Imprimir</button>
+    </div>
   </div>
   <div class="kpi-grid" id="execKPIs"></div>
   <div class="exec-grid">
@@ -1179,9 +1204,34 @@ tr:hover td{background:#fafafa}
     </div>
     <div class="btn-row">
       <button class="btn-ghost" style="color:var(--red);border-color:var(--red)" onclick="excluirCliente()"><i class="ti ti-trash"></i>Excluir</button>
+      <button class="btn-ghost" onclick="abrirHistoricoCliente(document.getElementById('editClienteId').value)"><i class="ti ti-history"></i>Histórico</button>
       <button class="btn-ghost" onclick="closeM('mEditarCliente')">Cancelar</button>
       <button class="btn-primary" onclick="salvarEdicao()"><i class="ti ti-device-floppy"></i>Salvar alterações</button>
     </div>
+  </div>
+</div>
+
+<!-- HISTÓRICO DO CLIENTE -->
+<div class="modal-ov" id="mHistoricoCliente">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-ttl"><span><i class="ti ti-history"></i>Histórico — <span id="mHistNome"></span></span><span class="modal-close" onclick="closeM('mHistoricoCliente')"><i class="ti ti-x"></i></span></div>
+    <div id="mHistFiltros" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <div id="mHistContent" style="max-height:480px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- MODAL METAS CS -->
+<div class="modal-ov" id="mMetas">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-ttl"><span><i class="ti ti-target"></i>Metas de CS</span><span class="modal-close" onclick="closeM('mMetas')"><i class="ti ti-x"></i></span></div>
+    <p style="font-size:12px;color:var(--gray2);margin-bottom:16px">Defina os targets da equipe. Os valores são comparados com os dados reais e exibem progresso no Dashboard.</p>
+    <div class="form-g2">
+      <div class="fg"><label>MRR Meta (R$)</label><input type="number" id="metaMRR" placeholder="ex: 500000"></div>
+      <div class="fg"><label>NPS Meta (0–100)</label><input type="number" id="metaNPS" min="0" max="100" placeholder="ex: 60"></div>
+      <div class="fg"><label>Churn Máx (%)</label><input type="number" id="metaChurn" min="0" max="100" step="0.5" placeholder="ex: 5"></div>
+      <div class="fg"><label>Clientes Ativos Meta</label><input type="number" id="metaClientes" placeholder="ex: 30"></div>
+    </div>
+    <div class="btn-row"><button class="btn-ghost" onclick="closeM('mMetas')">Cancelar</button><button class="btn-primary" onclick="salvarMetas()"><i class="ti ti-device-floppy"></i>Salvar metas</button></div>
   </div>
 </div>
 
@@ -2041,8 +2091,8 @@ function hsColor(n){return n>=70?'var(--green)':n>=40?'var(--yellow)':'var(--red
 function tierB(t){return{A:'tier-a',B:'tier-b',C:'tier-c'}[t]||'tier-c'}
 function npsGrupo(n){return n>=9?{g:'Promotor',c:'var(--green)',bg:'var(--gbg)'}:n>=7?{g:'Neutro',c:'var(--yellow)',bg:'var(--ybg)'}:{g:'Detrator',c:'var(--red)',bg:'var(--redl)'}}
 function npsColor(n){return n>=50?'var(--green)':n>=0?'var(--blue)':'var(--red)'}
-const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda Semanal',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',pipeline:'Pipeline de Renovação',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
-const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',pipeline:'ti-arrows-right',engajamento:'ti-activity',voc:'ti-ear',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
+const PTITLES={hoje:'Painel do Dia',dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda Semanal',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',pipeline:'Pipeline de Renovação',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
+const PICONS={hoje:'ti-sun',dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',pipeline:'ti-arrows-right',engajamento:'ti-activity',voc:'ti-ear',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
 
 // ═══ NAV ═══
 // ═══ RECENTES + FIXADOS ═══
@@ -2111,6 +2161,7 @@ function nav(el,p){
   if(p==='voc')renderVoC();
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='grupos')renderGrupos();
+  if(p==='hoje')renderHoje();
   if(p==='dashboard')renderDashboard();
   if(p==='relatorios')populateRelatoriosSelects();
   if(p==='pipeline')renderPipeline();
@@ -2124,6 +2175,7 @@ function openM(id){
   if(id==='mNPS')populateNPSSelect();
   if(id==='mAcao')populateAcaoSelect();
   if(id==='mNovoVoC')populateVoCSelect();
+  if(id==='mMetas')openM_mMetas();
   document.getElementById(id).classList.add('open');
 }
 function closeM(id){if(id==='mReuniao')_resetMReuniao?.();document.getElementById(id).classList.remove('open')}
@@ -2159,6 +2211,11 @@ function updateStatusBar(){
     const alDyn=CS_DB._gerarAlertas();const nbAl=document.getElementById('nbAlertas');if(nbAl){const dangerCt=alDyn.filter(a=>a.tipo==='danger').length;nbAl.textContent=alDyn.length;nbAl.toggleAttribute('data-zero',alDyn.length===0);nbAl.style.background=dangerCt?'var(--red)':'var(--yellow)';nbAl.style.color=dangerCt?'#fff':'var(--dark)';}
     const acAtrasadas=(CS_DB.get('acoes')||[]).filter(a=>a.prazoISO&&new Date(a.prazoISO)<new Date()&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.categoria!=='reuniao_agendada');
     const nbAc=document.getElementById('nbAcoes');if(nbAc){nbAc.textContent=acAtrasadas.length;nbAc.style.display=acAtrasadas.length>0?'':'none';}
+    const _hojeAc=CS_DB.get('acoes')||[];const _hoje=new Date();_hoje.setHours(0,0,0,0);const _amh=new Date(_hoje);_amh.setDate(_amh.getDate()+1);const em30=new Date();em30.setDate(em30.getDate()+30);
+    const hojeCount=_hojeAc.filter(a=>a.prazoISO&&new Date(a.prazoISO)<_hoje&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.categoria!=='reuniao_agendada').length
+      +(CS_DB.getClientes().filter(c=>c.dataRenovacao&&new Date(c.dataRenovacao)>=_hoje&&new Date(c.dataRenovacao)<=em30).length)
+      +(CS_DB.getAllReunioes().length>0?CS_DB.getClientes().filter(c=>{const r=CS_DB.getAllReunioes().filter(x=>x.clienteId===c.id)[0];return(!r||Math.floor((new Date()-new Date(r.dataISO))/86400000)>45)&&c.status!=='Cancelado';}).length:0);
+    const nbHoje=document.getElementById('nbHoje');if(nbHoje){nbHoje.textContent=hojeCount;nbHoje.style.display=hojeCount>0?'':'none';}
     document.getElementById('ndot').style.display=(al.filter(a=>a.tipo==='danger').length||backupInfo.urgente)?'block':'none';
   }catch(e){}
 }
@@ -2180,6 +2237,159 @@ function registrarBackup(){
   toast('Backup exportado! Salve o arquivo no Google Drive ou Dropbox.');
   updateStatusBar();
 }
+
+// ═══ PAINEL DO DIA ═══
+function renderHoje(){
+  const cl=CS_DB.getClientes();
+  const acoes=CS_DB.get('acoes')||[];
+  const re=CS_DB.getAllReunioes();
+  const npsAll=CS_DB.getAllNPS();
+  const agora=new Date();
+  const hoje=new Date(agora);hoje.setHours(0,0,0,0);
+  const amanha=new Date(hoje);amanha.setDate(amanha.getDate()+1);
+  const em30=new Date();em30.setDate(em30.getDate()+30);
+  const em60=new Date();em60.setDate(em60.getDate()+60);
+
+  const dataEl=document.getElementById('hojeData');
+  if(dataEl)dataEl.textContent=agora.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Reuniões agendadas para hoje
+  const reunHoje=acoes.filter(a=>a.categoria==='reuniao_agendada'&&a.prazoISO&&new Date(a.prazoISO)>=hoje&&new Date(a.prazoISO)<amanha&&a.status!=='Cancelada');
+  // Ações atrasadas (não reuniões)
+  const acAtras=acoes.filter(a=>a.prazoISO&&new Date(a.prazoISO)<hoje&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.categoria!=='reuniao_agendada');
+  // Renovações próximas (30 dias)
+  const renov30=cl.filter(c=>{if(!c.dataRenovacao)return false;const d=new Date(c.dataRenovacao);return d>=hoje&&d<=em30;}).sort((a,b)=>new Date(a.dataRenovacao)-new Date(b.dataRenovacao));
+  const renov60=cl.filter(c=>{if(!c.dataRenovacao)return false;const d=new Date(c.dataRenovacao);return d>em30&&d<=em60;}).sort((a,b)=>new Date(a.dataRenovacao)-new Date(b.dataRenovacao));
+  // Clientes sem contato > 45 dias
+  const semContato=cl.filter(c=>{const r=re.filter(x=>x.clienteId===c.id)[0];const d=r?Math.floor((agora-new Date(r.dataISO))/86400000):999;return d>45&&c.status!=='Cancelado';}).sort((a,b)=>{const ra=re.filter(x=>x.clienteId===a.id)[0];const rb=re.filter(x=>x.clienteId===b.id)[0];const da=ra?Math.floor((agora-new Date(ra.dataISO))/86400000):999;const db=rb?Math.floor((agora-new Date(rb.dataISO))/86400000):999;return db-da;});
+  // Detratores sem tratativa
+  const detratores=npsAll.filter(n=>{if(n.nota>6)return false;const temCard=acoes.some(a=>a.clienteId===n.clienteId&&a.categoria==='follow_up_detrator'&&a.status!=='Concluído'&&a.status!=='Cancelada');return!temCard;});
+  const detUnico=[];const detIds=new Set();detratores.forEach(n=>{if(!detIds.has(n.clienteId)){detIds.add(n.clienteId);detUnico.push(n);}});
+
+  const kpiEl=document.getElementById('hojeKPIs');
+  if(kpiEl)kpiEl.innerHTML=
+    `<div class="kpi ${reunHoje.length?'blue':''}"><div class="kpi-lbl"><i class="ti ti-calendar-event"></i>Reuniões Hoje</div><div class="kpi-val">${reunHoje.length}</div><div class="kpi-sub">${reunHoje.length?'agendadas':'sem agenda'}</div></div>`+
+    `<div class="kpi ${acAtras.length?'red':''}"><div class="kpi-lbl"><i class="ti ti-clock-exclamation"></i>Ações Atrasadas</div><div class="kpi-val" style="color:${acAtras.length?'var(--red)':'var(--black)'}">${acAtras.length}</div><div class="kpi-sub">${acAtras.length?'requer atenção':'em dia'}</div></div>`+
+    `<div class="kpi ${renov30.length?'yellow':''}"><div class="kpi-lbl"><i class="ti ti-calendar-due"></i>Renovações 30d</div><div class="kpi-val" style="color:${renov30.length?'var(--yellow)':'var(--black)'}">${renov30.length}</div><div class="kpi-sub">${renov60.length} em 31–60d</div></div>`+
+    `<div class="kpi ${semContato.length?'red':''}"><div class="kpi-lbl"><i class="ti ti-user-x"></i>Sem Contato +45d</div><div class="kpi-val" style="color:${semContato.length?'var(--red)':'var(--black)'}">${semContato.length}</div><div class="kpi-sub">clientes parados</div></div>`;
+
+  const mkSecao=(titulo,icone,cor,items,renderItem,vazio)=>{
+    if(!items.length)return`<div class="card" style="margin-bottom:14px"><div class="card-ttl"><i class="ti ${icone}" style="color:${cor}"></i>${titulo}</div><div style="text-align:center;padding:16px 0;color:var(--gray3);font-size:12.5px">${vazio}</div></div>`;
+    return`<div class="card" style="margin-bottom:14px"><div class="card-ttl"><i class="ti ${icone}" style="color:${cor}"></i>${titulo}<span class="badge" style="background:${cor};color:#fff;margin-left:8px">${items.length}</span></div><div style="display:flex;flex-direction:column;gap:0">${items.map(renderItem).join('')}</div></div>`;
+  };
+  const mkLinha=(left,right,onclick)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray5);cursor:${onclick?'pointer':'default'}" ${onclick?`onclick="${onclick}"`:''}>${left}<span style="margin-left:auto;font-size:11.5px;color:var(--gray3);flex-shrink:0">${right}</span></div>`;
+
+  let html='';
+
+  // Reuniões hoje
+  html+=mkSecao('Reuniões Agendadas para Hoje','ti-calendar-event','var(--blue)',reunHoje,a=>{
+    const c=CS_DB.getClienteById(a.clienteId);
+    const hr=a.prazoISO?new Date(a.prazoISO).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return mkLinha(`<i class="ti ti-building" style="color:var(--gray3)"></i><div><div style="font-weight:500;font-size:13px">${c?.empresa||a.empresa}</div><div style="font-size:11.5px;color:var(--gray2)">${a.descricao||''}</div></div>`,hr,`abrirEditar('${a.clienteId}')`);
+  },'Nenhuma reunião agendada para hoje.');
+
+  // Ações atrasadas
+  html+=mkSecao('Ações Atrasadas','ti-clock-exclamation','var(--red)',acAtras.slice(0,10),a=>{
+    const d=Math.ceil((hoje-new Date(a.prazoISO))/86400000);
+    return mkLinha(`<i class="ti ti-clipboard-list" style="color:var(--red)"></i><div><div style="font-weight:500;font-size:13px">${a.descricao}</div><div style="font-size:11.5px;color:var(--gray2)">${a.empresa||''} · ${a.prioridade||''}</div></div>`,`${d}d atraso`,`nav(document.querySelector('[data-p=planos]'),'planos')`);
+  },'Nenhuma ação atrasada. Tudo em dia!');
+
+  // Renovações 30 dias
+  html+=mkSecao('Renovações nos Próximos 30 Dias','ti-calendar-due','#c8700a',[...renov30,...renov60].slice(0,10),c=>{
+    const d=new Date(c.dataRenovacao);const dias=Math.ceil((d-agora)/86400000);const cor=dias<=30?'var(--red)':'#c8700a';
+    return mkLinha(`<i class="ti ti-building" style="color:var(--gray3)"></i><div><div style="font-weight:500;font-size:13px">${c.empresa}</div><div style="font-size:11.5px;color:var(--gray2)">${c.responsavelCS||''} · ${c.mrr}</div></div>`,`<span style="color:${cor};font-weight:600">${dias}d</span> · ${d.toLocaleDateString('pt-BR')}`,`abrirEditar('${c.id}')`);
+  },'Nenhuma renovação nos próximos 60 dias.');
+
+  // Sem contato
+  html+=mkSecao('Clientes Sem Contato (+45 dias)','ti-user-x','var(--red)',semContato.slice(0,10),c=>{
+    const r=re.filter(x=>x.clienteId===c.id)[0];const d=r?Math.floor((agora-new Date(r.dataISO))/86400000):999;
+    const cor=d>60?'var(--red)':'#c8700a';
+    return mkLinha(`<span class="hs-pill ${hsCls(c.healthScore)}" style="flex-shrink:0">${c.healthScore}</span><div><div style="font-weight:500;font-size:13px">${c.empresa}</div><div style="font-size:11.5px;color:var(--gray2)">${c.responsavelCS||''} · ${c.mrr}</div></div>`,`<span style="color:${cor};font-weight:600">${d===999?'nunca':d+'d'}</span>`,`openM('mReuniao');setTimeout(()=>{const s=document.getElementById('rCliente');if(s)s.value='${c.id}'},100)`);
+  },'Todos os clientes foram contatados nos últimos 45 dias.');
+
+  // Detratores sem tratativa
+  html+=mkSecao('Detratores sem Follow-up','ti-mood-sad','#7c3aed',detUnico.slice(0,10),n=>{
+    const c=CS_DB.getClienteById(n.clienteId);
+    return mkLinha(`<span style="font-weight:700;color:var(--red);font-size:16px;flex-shrink:0">${n.nota}</span><div><div style="font-weight:500;font-size:13px">${c?.empresa||n.empresa}</div><div style="font-size:11.5px;color:var(--gray2)">${n.respondente||''} · ${n.data||''}</div></div>`,
+      `<button class="btn-ghost" style="font-size:11px;padding:3px 8px" onclick="event.stopPropagation();_tratarDetrator('${n.clienteId}','${(c?.empresa||n.empresa).replace(/'/g,"\\'")}',${n.nota},'${(n.respondente||'').replace(/'/g,"\\'")}','${(n.comentario||'').replace(/'/g,"\\'")}')"><i class="ti ti-plus"></i>Tratar</button>`,'');
+  },'Nenhum detrator sem tratativa. Bom trabalho!');
+
+  const contEl=document.getElementById('hojeContent');
+  if(contEl)contEl.innerHTML=html;
+}
+
+// ═══ METAS DE CS ═══
+function _getMetas(){return JSON.parse(localStorage.getItem('cs_metas_cs')||'{"mrr":0,"nps":0,"churn":0,"clientes":0}');}
+function salvarMetas(){
+  const m={mrr:parseFloat(document.getElementById('metaMRR')?.value)||0,nps:parseFloat(document.getElementById('metaNPS')?.value)||0,churn:parseFloat(document.getElementById('metaChurn')?.value)||0,clientes:parseFloat(document.getElementById('metaClientes')?.value)||0};
+  localStorage.setItem('cs_metas_cs',JSON.stringify(m));
+  closeM('mMetas');
+  renderDashboard();
+  toast('Metas salvas!','ok');
+}
+function openM_mMetas(){
+  const m=_getMetas();
+  ['MRR','NPS','Churn','Clientes'].forEach(k=>{const el=document.getElementById('meta'+k);if(el)el.value=m[k.toLowerCase()]||'';});
+}
+function renderDashMetas(){
+  const el=document.getElementById('dashMetasContent');if(!el)return;
+  const m=_getMetas();
+  const cl=CS_DB.getClientes();
+  const npsAll=CS_DB.getAllNPS();
+  const mrrTotal=cl.reduce((s,c)=>s+(parseFloat((c.mrr||'0').replace(/\D/g,''))||0),0);
+  const npsCalc=CS_DB.calcNPS(npsAll);
+  const clAtivos=cl.filter(c=>c.status==='Ativo').length;
+  const churnRisk=cl.filter(c=>calcChurnScore(c)>=40).length;
+  const churnPct=cl.length?Math.round(churnRisk/cl.length*100):0;
+  const mkMeta=(lbl,icone,atual,target,unit,cor,invert)=>{
+    const barCor=invert?(atual<=target?'var(--green)':'var(--red)'):(atual>=target?'var(--green)':atual>=target*0.8?'var(--yellow)':'var(--red)');
+    const progPct=target>0?(invert?Math.max(0,Math.min(100,Math.round((target/Math.max(atual,0.1))*100))):Math.min(100,Math.round(atual/target*100))):0;
+    return`<div style="background:var(--gray5);border-radius:8px;padding:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;color:var(--gray2);font-weight:500;text-transform:uppercase;letter-spacing:.5px"><i class="ti ${icone}" style="margin-right:4px"></i>${lbl}</span>${target?`<span style="font-size:10px;color:var(--gray3)">meta: ${unit}${target.toLocaleString('pt-BR')}</span>`:'<span style="font-size:10px;color:var(--gray3);cursor:pointer" onclick="openM(\'mMetas\')">Definir meta</span>'}</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">${unit}${atual.toLocaleString('pt-BR')}</div>${target?`<div style="background:var(--gray4);border-radius:3px;height:4px"><div style="width:${progPct}%;background:${barCor};border-radius:3px;height:4px;transition:width .4s"></div></div><div style="font-size:10.5px;color:${barCor};font-weight:600;margin-top:4px">${progPct}% da meta</div>`:'<div style="font-size:10.5px;color:var(--gray3)">meta não definida</div>'}</div>`;
+  };
+  el.innerHTML=
+    mkMeta('MRR','ti-currency-dollar',mrrTotal,m.mrr,'R$','var(--green)',false)+
+    mkMeta('NPS Médio','ti-star',npsCalc.score??0,m.nps,'','var(--blue)',false)+
+    mkMeta('Churn Risk','ti-trending-down',churnPct,m.churn,'','var(--red)',true)+
+    mkMeta('Clientes Ativos','ti-building-community',clAtivos,m.clientes,'','var(--green)',false);
+}
+
+// ═══ HISTÓRICO UNIFICADO DO CLIENTE ═══
+function abrirHistoricoCliente(cid){
+  if(!cid)return;
+  const c=CS_DB.getClienteById(cid);if(!c)return;
+  const nomeEl=document.getElementById('mHistNome');if(nomeEl)nomeEl.textContent=c.empresa;
+  _renderHistoricoCliente(cid,'todos');
+  openM('mHistoricoCliente');
+}
+function _renderHistoricoCliente(cid,filtro){
+  const re=CS_DB.getAllReunioes().filter(r=>r.clienteId===cid);
+  const nps=CS_DB.getAllNPS().filter(n=>n.clienteId===cid);
+  const ac=(CS_DB.get('acoes')||[]).filter(a=>a.clienteId===cid);
+  const tl=CS_DB.getTimeline(cid)||[];
+
+  const fEl=document.getElementById('mHistFiltros');
+  if(fEl)fEl.innerHTML=['todos','reuniões','nps','ações','timeline'].map(f=>`<button class="cpb-btn${filtro===f?' active':''}" onclick="_renderHistoricoCliente('${cid}','${f}')">${f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('');
+
+  let eventos=[];
+  if(filtro==='todos'||filtro==='reuniões')re.forEach(r=>eventos.push({tipo:'reuniao',data:r.dataISO||r.data,icone:'ti-calendar',cor:'var(--blue)',titulo:r.tipo,sub:r.pauta||r.observacoes||'',extra:r.data}));
+  if(filtro==='todos'||filtro==='nps')nps.forEach(n=>eventos.push({tipo:'nps',data:n.dataISO||n.data,icone:'ti-star',cor:npsGrupo(n.nota).c,titulo:`NPS ${n.nota}/10 — ${npsGrupo(n.nota).g}`,sub:n.comentario||'',extra:n.data}));
+  if(filtro==='todos'||filtro==='ações')ac.forEach(a=>eventos.push({tipo:'acao',data:a.criadoEm||a.prazoISO||'',icone:'ti-clipboard-list',cor:a.status==='Concluído'?'var(--green)':'var(--gray2)',titulo:a.descricao,sub:`${a.categoria||''} · ${a.status}`,extra:a.prazo||''}));
+  if(filtro==='todos'||filtro==='timeline')tl.forEach(t=>eventos.push({tipo:'timeline',data:t.dataISO||'',icone:'ti-message',cor:'var(--gray2)',titulo:t.titulo||t.tipo||'Nota',sub:t.descricao||'',extra:t.data||''}));
+
+  eventos.sort((a,b)=>new Date(b.data)-new Date(a.data));
+
+  const cEl=document.getElementById('mHistContent');
+  if(!cEl)return;
+  if(!eventos.length){cEl.innerHTML='<div style="text-align:center;padding:24px;color:var(--gray3)">Nenhum registro encontrado.</div>';return;}
+  cEl.innerHTML=eventos.map(ev=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray5)">
+    <div style="width:32px;height:32px;border-radius:50%;background:${ev.cor}22;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${ev.icone}" style="font-size:14px;color:${ev.cor}"></i></div>
+    <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:13px;color:var(--black)">${ev.titulo}</div>${ev.sub?`<div style="font-size:11.5px;color:var(--gray2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${ev.sub}</div>`:''}</div>
+    <div style="font-size:11px;color:var(--gray3);flex-shrink:0;text-align:right">${ev.extra||''}</div>
+  </div>`).join('');
+}
+
+// ═══ IMPRIMIR EXECUTIVO ═══
+function imprimirExec(){window.print();}
 
 // ═══ DASHBOARD ═══
 function renderDashboard(){
@@ -2243,6 +2453,7 @@ function renderDashboard(){
       mkRank('HS Crítico','ti-trending-down',byHS,c=>c.healthScore,c=>hsColor(c.healthScore))+
       mkRank('Sem Contato','ti-clock',semContato,c=>{const r=re2.filter(x=>x.clienteId===c.id)[0];return r?Math.floor((now2-new Date(r.dataISO))/86400000)+'d':'s/reu';},c=>{const r=re2.filter(x=>x.clienteId===c.id)[0];const d=r?Math.floor((now2-new Date(r.dataISO))/86400000):999;return d>45?'var(--red)':d>30?'var(--yellow)':'var(--gray2)';});
   }
+  renderDashMetas();
   renderDashMap();
 }
 
@@ -2449,8 +2660,13 @@ function renderClientes(){
   const npsMax=parseInt(document.getElementById('fltNPSMax')?.value)||'';
   const mrrMin=parseInt((document.getElementById('fltMRRMin')?.value||'').replace(/\D/g,''))||'';
   const regiao=document.getElementById('fltRegiao')?.value||'';
+  const respCS=document.getElementById('fltRespCS')?.value||'';
+  // Populate CS filter options dynamically
+  const fltRespEl=document.getElementById('fltRespCS');
+  if(fltRespEl&&fltRespEl.options.length<=1){const nomes=[...new Set(CS_DB.getClientes({}).map(c=>c.responsavelCS).filter(Boolean))];nomes.sort().forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;fltRespEl.appendChild(o);})}
   const f={status:document.getElementById('fltStatus')?.value||'',tier:document.getElementById('fltTier')?.value||'',hs:document.getElementById('fltHS')?.value||'',q:document.getElementById('fltQ')?.value||''};
   let list=_sortList(CS_DB.getClientes(f));
+  if(respCS)list=list.filter(c=>c.responsavelCS===respCS);
   if(npsMin!=='')list=list.filter(c=>(c.ultimoNPS??-1)>=npsMin);
   if(npsMax!=='')list=list.filter(c=>(c.ultimoNPS??11)<=npsMax);
   if(mrrMin!=='')list=list.filter(c=>parseInt((c.mrr||'0').replace(/\D/g,''))>=mrrMin);
@@ -2506,7 +2722,7 @@ function salvarStatusInline(id,status,el){
   toast(`Status de ${c.empresa} → ${status}`,'ok');
 }
 function limparFiltrosClientes(){
-  ['fltStatus','fltTier','fltHS'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['fltStatus','fltTier','fltHS','fltRespCS'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['fltQ','fltNPSMin','fltNPSMax','fltMRRMin','fltRegiao'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   renderClientes();
 }
