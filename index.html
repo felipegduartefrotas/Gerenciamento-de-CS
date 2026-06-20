@@ -2314,12 +2314,56 @@ function filtrarAlertas(cat){
 }
 function _renderAlertasList(){
   const list=_alertaFiltro?alertasAtuais.filter(a=>a.categoria===_alertaFiltro||(_alertaFiltro==='renovacao'&&(a.categoria==='renovacao'||a.categoria==='vencido'))||(_alertaFiltro==='reuniao_hoje'&&(a.categoria==='reuniao_hoje'||a.categoria==='reuniao_atrasada'))):alertasAtuais;
-  document.getElementById('alertasList').innerHTML=list.length?list.map(a=>`<div class="al-item ${a.tipo}" style="cursor:pointer" onclick="abrirTratativaAlerta('${a.id}')">
+
+  // Seção: abertos
+  const openLabel=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:13px;font-weight:700;color:var(--black)"><i class="ti ti-bell" style="color:var(--red)"></i> Abertos</span><span class="badge b-risco" style="font-size:11px">${list.length}</span></div>`;
+  const openHtml=list.length?list.map(a=>`<div class="al-item ${a.tipo}" style="cursor:pointer" onclick="abrirTratativaAlerta('${a.id}')">
     <i class="ti ${a.icone} al-ic ${a.tipo}"></i>
     <div style="flex:1"><div class="al-ttl">${a.titulo}</div><div class="al-sub">${a.subtitulo}</div></div>
     <div class="al-tag"><span class="badge ${a.tipo==='danger'?'b-risco':''}" style="${a.tipo==='warn'?'background:var(--ybg);color:var(--yellow)':a.tipo==='info'?'background:var(--bbg);color:var(--blue)':''}">${a.tag}</span></div>
     <i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:8px;flex-shrink:0"></i>
-  </div>`).join(''):`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:10px"></i>Nenhum alerta nesta categoria.</div>`;
+  </div>`).join(''):`<div style="text-align:center;padding:30px;color:var(--gray2)"><i class="ti ti-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:10px"></i>Nenhum alerta aberto${_alertaFiltro?' nesta categoria':''}.</div>`;
+
+  // Seção: fechados + SLA
+  const log=_getAlertasLog();
+  const fechados=log.filter(e=>e.fechadoEm).sort((a,b)=>new Date(b.fechadoEm)-new Date(a.fechadoEm)).slice(0,50);
+  const slaValidos=fechados.filter(e=>e.slaMinutos!==null&&e.slaMinutos>0);
+  const slaMedia=slaValidos.length?Math.round(slaValidos.reduce((s,e)=>s+e.slaMinutos,0)/slaValidos.length):null;
+
+  const fechadosHtml=fechados.length?`
+  <div style="margin-top:24px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:700;color:var(--black)"><i class="ti ti-history" style="color:var(--gray2)"></i> Histórico — Fechados</span>
+      <span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:11px">${fechados.length}</span>
+      ${slaMedia!==null?`<span style="margin-left:auto;font-size:11.5px;color:var(--gray2)">SLA médio: <strong style="color:${_slaCor(slaMedia)}">${_formatSLA(slaMedia)}</strong></span>`:''}
+      <button class="lnk" style="font-size:11px;color:var(--gray2);margin-left:${slaMedia!==null?'8px':'auto'}" onclick="limparHistoricoAlertas()"><i class="ti ti-trash"></i> Limpar</button>
+    </div>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="background:var(--gray5)">
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Alerta</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Aberto em</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Fechado em</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Lead time (SLA)</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Ação</th>
+      </tr></thead>
+      <tbody>${fechados.map(e=>{
+        const ab=new Date(e.abertoEm),fe=new Date(e.fechadoEm);
+        const slaStr=_formatSLA(e.slaMinutos);const slaCor=_slaCor(e.slaMinutos);
+        const fmtDt=d=>`${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+        return`<tr style="border-bottom:1px solid var(--gray5)">
+          <td style="padding:8px 10px;max-width:300px">${e.titulo}</td>
+          <td style="padding:8px 10px;white-space:nowrap;color:var(--gray2)">${fmtDt(ab)}</td>
+          <td style="padding:8px 10px;white-space:nowrap;color:var(--gray2)">${fmtDt(fe)}</td>
+          <td style="padding:8px 10px;white-space:nowrap"><span style="font-weight:700;color:${slaCor}">${slaStr}</span></td>
+          <td style="padding:8px 10px"><span class="badge" style="${e.acao==='resolvido'?'background:var(--gbg);color:var(--green)':'background:var(--gray5);color:var(--gray2)'}">${e.acao==='resolvido'?'✓ Resolvido':'Dispensado'}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+    </div>
+  </div>`:'';
+
+  document.getElementById('alertasList').innerHTML=openLabel+openHtml+fechadosHtml;
 }
 
 // ═══ NOTIFICATIONS ═══
@@ -2420,6 +2464,7 @@ function confirmarRenovacaoRapida(clienteId,alertaId){
   c.renovacao=novaData;c.dataRenovacao=iso;
   CS_DB.saveCliente(c);
   CS_DB._addTimeline(clienteId,'sistema','Renovação confirmada',`Nova data de renovação: ${novaData}`);
+  _fecharAlertaLog(alertaId,'resolvido',`Renovação confirmada até ${novaData}`);
   const dismissed=CS_DB.get('alertasDismissed')||[];
   if(!dismissed.includes(alertaId))dismissed.push(alertaId);
   CS_DB.set('alertasDismissed',dismissed);
@@ -3340,10 +3385,58 @@ function salvarNPS(){
 
 // ═══ ALERTAS ═══
 let alertasAtuais=[];
+
+// ════════════════════════════════════════════════
+// ALERTAS — LOG DE SLA
+// ════════════════════════════════════════════════
+function _getAlertasLog(){return CS_DB.get('alertas_log')||[];}
+function _salvarAlertasLog(log){CS_DB.set('alertas_log',log.slice(0,150));}
+function _registrarAlertaVisto(a){
+  const log=_getAlertasLog();
+  if(!log.find(e=>e.alertaId===a.id&&!e.fechadoEm)){
+    log.unshift({alertaId:a.id,categoria:a.categoria,titulo:a.titulo,clienteId:a.clienteId,abertoEm:new Date().toISOString(),fechadoEm:null,acao:null,comentario:'',slaMinutos:null});
+    _salvarAlertasLog(log);
+  }
+}
+function _fecharAlertaLog(alertaId,acao,comentario){
+  const log=_getAlertasLog();
+  const e=log.find(x=>x.alertaId===alertaId&&!x.fechadoEm);
+  const agora=new Date();
+  if(e){
+    e.fechadoEm=agora.toISOString();
+    e.acao=acao;e.comentario=comentario||'';
+    e.slaMinutos=Math.round((agora-new Date(e.abertoEm))/60000);
+  }else{
+    const al=alertasAtuais.find(x=>x.id===alertaId);
+    log.unshift({alertaId,categoria:al?.categoria||'',titulo:al?.titulo||alertaId,clienteId:al?.clienteId||null,abertoEm:agora.toISOString(),fechadoEm:agora.toISOString(),acao,comentario:comentario||'',slaMinutos:null});
+  }
+  _salvarAlertasLog(log);
+}
+function _formatSLA(min){
+  if(min===null||min===undefined)return'—';
+  if(min<60)return`${min}min`;
+  if(min<1440){const h=Math.floor(min/60),m=min%60;return m?`${h}h ${m}min`:`${h}h`;}
+  const d=Math.floor(min/1440),h=Math.floor((min%1440)/60);return h?`${d}d ${h}h`:`${d}d`;
+}
+function _slaCor(min){
+  if(min===null)return'var(--gray2)';
+  if(min<=240)return'var(--green)';
+  if(min<=1440)return'#e0880a';
+  if(min<=10080)return'var(--red)';
+  return'#8a0000';
+}
+function limparHistoricoAlertas(){
+  confirmar('Isso vai apagar todo o histórico de alertas fechados. Continuar?',()=>{
+    CS_DB.set('alertas_log',[]);toast('Histórico limpo.','warn');renderAlertas();
+  },'Limpar histórico','Limpar');
+}
+
 function renderAlertas(){
   const al=CS_DB._gerarAlertas();
   alertasAtuais=al;
-  document.getElementById('alertasCount').textContent=`${al.length} alertas ativos`;
+  al.forEach(a=>_registrarAlertaVisto(a));
+  const nFech=_getAlertasLog().filter(e=>e.fechadoEm).length;
+  document.getElementById('alertasCount').textContent=`${al.length} aberto${al.length!==1?'s':''} · ${nFech} fechado${nFech!==1?'s':''}`;
   dispararNotificacaoAlertas(al);
   _renderAlertasList();
 }
@@ -3405,6 +3498,7 @@ function resolverAlerta(){
   const comentario=document.getElementById('taComentario').value.trim();
   if(!comentario){toast('Descreva o que foi feito para resolver este alerta.','err');return}
 
+  _fecharAlertaLog(alertaId,'resolvido',comentario);
   const dismissed=CS_DB.get('alertasDismissed')||[];
   if(!dismissed.includes(alertaId))dismissed.push(alertaId);
   CS_DB.set('alertasDismissed',dismissed);
@@ -3422,6 +3516,7 @@ function dispensarAlerta(){
   const a=alertasAtuais.find(x=>x.id===alertaId);
   if(!a)return;
   confirmar('Dispensar este alerta sem registrar uma ação?\nEle não vai aparecer novamente, mesmo que a condição ainda exista.',()=>{
+    _fecharAlertaLog(alertaId,'dispensado','');
     const dismissed=CS_DB.get('alertasDismissed')||[];
     if(!dismissed.includes(alertaId))dismissed.push(alertaId);
     CS_DB.set('alertasDismissed',dismissed);
