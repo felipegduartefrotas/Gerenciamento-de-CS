@@ -1246,7 +1246,7 @@ tr:hover td{background:#fafafa}
   <div class="tbl-card">
     <div class="tbl-head">
       <div class="tbl-head-ttl"><i class="ti ti-building"></i>Análise de Risco por Cliente</div>
-      <select class="flt-sel" id="churnFlt" onchange="renderChurn()"><option value="">Todos</option><option value="critico">Crítico</option><option value="alto">Alto</option><option value="medio">Médio</option><option value="baixo">Baixo</option></select>
+      <select class="flt-sel" id="churnFlt" onchange="_churnCardFilter=null;renderChurn()"><option value="">Todos</option><option value="crítico">Crítico</option><option value="alto">Alto</option><option value="médio">Médio</option><option value="baixo">Baixo</option></select>
     </div>
     <table><thead><tr><th>Empresa</th><th>Tier</th><th>MRR</th><th>HS</th><th>NPS</th><th>Dias s/ contato</th><th>Ações atrasadas</th><th>Prob. Churn</th><th>Renovação</th><th>Playbook</th><th>Ação</th></tr></thead>
     <tbody id="churnTbody"></tbody></table>
@@ -4936,12 +4936,23 @@ function renderPipeline(){
     </tr>`;
   }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--gray2);padding:30px">Nenhum cliente com data de renovação cadastrada. <span class="lnk" onclick="nav(document.querySelector(\'[data-p=clientes]\'),\'clientes\')">Edite os clientes</span> e preencha o campo Renovação.</td></tr>';
 }
+let _churnCardFilter = null;
+function filtrarChurnCard(tipo) {
+  _churnCardFilter = tipo;
+  const sel = document.getElementById('churnFlt'); if(sel) sel.value='';
+  renderChurn();
+  document.querySelector('#page-churn .tbl-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function renderChurn() {
   const cl  = CS_DB.getClientes();
   const flt = document.getElementById('churnFlt')?.value || '';
   const all = cl.map(c => ({ ...c, churnScore: calcChurnScore(c) }))
                 .sort((a, b) => b.churnScore - a.churnScore);
-  const filtrado = flt ? all.filter(c => churnLabel(c.churnScore).label.toLowerCase() === flt) : all;
+  const filtrado = _churnCardFilter === 'critico'  ? all.filter(c => c.churnScore >= 70)
+    : _churnCardFilter === 'alto'      ? all.filter(c => c.churnScore >= 40 && c.churnScore < 70)
+    : _churnCardFilter === 'emrisco'   ? all.filter(c => c.churnScore >= 40)
+    : _churnCardFilter === 'protegido' ? all.filter(c => c.churnScore < 40)
+    : flt ? all.filter(c => churnLabel(c.churnScore).label.toLowerCase() === flt) : all;
 
   // KPIs
   const crit  = all.filter(c => c.churnScore >= 70).length;
@@ -4953,10 +4964,10 @@ function renderChurn() {
 
   const kEl = document.getElementById('churnKPIs');
   if (kEl) kEl.innerHTML = `
-    <div class="kpi red"><div class="kpi-lbl">Risco Crítico (70%+)</div><div class="kpi-val" style="color:var(--red)">${crit}</div><div class="kpi-sub dn">ação imediata</div></div>
-    <div class="kpi yellow"><div class="kpi-lbl">Risco Alto (40-69%)</div><div class="kpi-val" style="color:var(--yellow)">${alto}</div><div class="kpi-sub dn">monitorar</div></div>
-    <div class="kpi red"><div class="kpi-lbl">MRR em risco</div><div class="kpi-val" style="color:var(--red)">R$${Math.round(mrrRisco/1000)}K</div><div class="kpi-sub dn">prob. churn ≥ 40%</div></div>
-    <div class="kpi green"><div class="kpi-lbl">MRR protegido</div><div class="kpi-val" style="color:var(--green)">R$${Math.round(mrrProteg/1000)}K</div><div class="kpi-sub up">prob. churn < 40%</div></div>`;
+    <div class="kpi red" style="cursor:pointer" title="Filtrar: clientes críticos" onclick="filtrarChurnCard('critico')"><div class="kpi-lbl">Risco Crítico (70%+)</div><div class="kpi-val" style="color:var(--red)">${crit}</div><div class="kpi-sub dn">ação imediata · clique para ver</div></div>
+    <div class="kpi yellow" style="cursor:pointer" title="Filtrar: risco alto" onclick="filtrarChurnCard('alto')"><div class="kpi-lbl">Risco Alto (40-69%)</div><div class="kpi-val" style="color:var(--yellow)">${alto}</div><div class="kpi-sub dn">monitorar · clique para ver</div></div>
+    <div class="kpi red" style="cursor:pointer" title="Filtrar: todos em risco (≥40%)" onclick="filtrarChurnCard('emrisco')"><div class="kpi-lbl">MRR em risco</div><div class="kpi-val" style="color:var(--red)">R$${Math.round(mrrRisco/1000)}K</div><div class="kpi-sub dn">prob. churn ≥ 40% · clique para ver</div></div>
+    <div class="kpi green" style="cursor:pointer" title="Filtrar: clientes protegidos (<40%)" onclick="filtrarChurnCard('protegido')"><div class="kpi-lbl">MRR protegido</div><div class="kpi-val" style="color:var(--green)">R$${Math.round(mrrProteg/1000)}K</div><div class="kpi-sub up">prob. churn < 40% · clique para ver</div></div>`;
 
   // Gauge visual
   const gaugeEl = document.getElementById('churnGauge');
