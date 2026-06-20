@@ -998,16 +998,7 @@ tr:hover td{background:#fafafa}
 <!-- ALERTAS -->
 <div class="page" id="page-alertas">
   <div class="ph"><h2><i class="ti ti-bell"></i>Central de Alertas</h2><span id="alertasCount" style="font-size:12.5px;color:var(--gray2)">0 alertas</span></div>
-  <div id="alertasFiltros" class="flt-row" style="margin-bottom:12px">
-    <button class="tl-filter-btn active" onclick="filtrarAlertas('')">Todos</button>
-    <button class="tl-filter-btn" onclick="filtrarAlertas('sem_contato')"><i class="ti ti-clock"></i>Sem Contato</button>
-    <button class="tl-filter-btn" onclick="filtrarAlertas('hs_baixo')"><i class="ti ti-trending-down"></i>HS Baixo</button>
-    <button class="tl-filter-btn" onclick="filtrarAlertas('nps_critico')"><i class="ti ti-mood-sad"></i>NPS Crítico</button>
-    <button class="tl-filter-btn" onclick="filtrarAlertas('renovacao')"><i class="ti ti-calendar-exclamation"></i>Renovação</button>
-    <button class="tl-filter-btn" onclick="filtrarAlertas('acoes_atrasadas')"><i class="ti ti-clipboard-x"></i>Ações Atrasadas</button>
-    <button class="tl-filter-btn" onclick="filtrarAlertas('reuniao_hoje')"><i class="ti ti-calendar-event"></i>Reunião Hoje</button>
-    <button class="tl-filter-btn" onclick="filtrarAlertas('churn_critico')" style="border-color:var(--red);color:var(--red)"><i class="ti ti-alert-triangle"></i>Churn Crítico</button>
-  </div>
+  <div id="alertasStats"></div>
   <div id="alertasList"></div>
 </div>
 
@@ -2310,66 +2301,145 @@ function fecharSearchDropdown(){const d=document.getElementById('searchDropdown'
 
 // ═══ ALERTAS — FILTROS ═══
 let _alertaFiltro='';
-function filtrarAlertas(cat){
-  _alertaFiltro=cat;
-  document.querySelectorAll('#alertasFiltros .tl-filter-btn').forEach(b=>{
-    const onclick=b.getAttribute('onclick')||'';
-    b.classList.toggle('active',onclick.includes(`'${cat}'`));
-  });
-  _renderAlertasList();
+function filtrarAlertas(cat){_alertaFiltro=cat;_renderAlertasList();}
+function _renderAlertasStats(){
+  const log=_getAlertasLog();
+  const fechados=log.filter(e=>e.fechadoEm).sort((a,b)=>new Date(b.fechadoEm)-new Date(a.fechadoEm));
+  const slaValidos=fechados.filter(e=>e.slaMinutos>0);
+  const slaMedia=slaValidos.length?Math.round(slaValidos.reduce((s,e)=>s+e.slaMinutos,0)/slaValidos.length):null;
+  const nResolvidos=fechados.filter(e=>e.acao==='resolvido').length;
+  const nDispensados=fechados.filter(e=>e.acao==='dispensado').length;
+  const urgentes=alertasAtuais.filter(a=>a.tipo==='danger').length;
+  const atencao=alertasAtuais.filter(a=>a.tipo==='warn').length;
+  const total=alertasAtuais.length;
+  const GRUPOS=[
+    {label:'Sem Contato',cats:['sem_contato','sem_reuniao'],cor:'rgba(26,111,219,.8)'},
+    {label:'HS Baixo',cats:['hs_baixo'],cor:'rgba(224,136,10,.85)'},
+    {label:'NPS Crítico',cats:['nps_critico','nps_queda'],cor:'rgba(139,92,246,.8)'},
+    {label:'Churn Crítico',cats:['churn_critico','churn_alto'],cor:'rgba(209,0,0,.9)'},
+    {label:'Renovação',cats:['renovacao','vencido'],cor:'rgba(224,136,10,.7)'},
+    {label:'Ações Atrasadas',cats:['acoes_atrasadas'],cor:'rgba(245,158,11,.8)'},
+    {label:'Reuniões',cats:['reuniao_hoje','reuniao_atrasada'],cor:'rgba(26,111,219,.6)'},
+  ].map(g=>({...g,count:alertasAtuais.filter(a=>g.cats.includes(a.categoria)).length})).filter(g=>g.count>0);
+  const el=document.getElementById('alertasStats');if(!el)return;
+  el.innerHTML=`
+  <div class="kpi-grid" style="margin-bottom:14px">
+    <div class="kpi red"><div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Urgentes</div><div class="kpi-val" style="color:var(--red)">${urgentes}</div><div class="kpi-sub">ação imediata</div></div>
+    <div class="kpi yellow"><div class="kpi-lbl"><i class="ti ti-bell"></i>Atenção</div><div class="kpi-val" style="color:var(--yellow)">${atencao}</div><div class="kpi-sub">monitorar</div></div>
+    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-inbox"></i>Total Abertos</div><div class="kpi-val">${total}</div><div class="kpi-sub">alertas ativos</div></div>
+    <div class="kpi ${slaMedia===null?'':slaMedia<=240?'green':'red'}"><div class="kpi-lbl"><i class="ti ti-clock-check"></i>SLA Médio</div><div class="kpi-val" style="color:${_slaCor(slaMedia)}">${_formatSLA(slaMedia)}</div><div class="kpi-sub">${fechados.length} tratados</div></div>
+  </div>
+  <div class="two-col" style="margin-bottom:14px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-ttl"><i class="ti ti-chart-bar"></i>Alertas Abertos por Categoria</div>
+      ${GRUPOS.length?`<div style="position:relative;height:${Math.max(110,GRUPOS.length*38+20)}px"><canvas id="alertasCatChart"></canvas></div>`:
+      `<div style="padding:28px 0;text-align:center;color:var(--gray2)"><i class="ti ti-check" style="font-size:30px;color:var(--green);display:block;margin-bottom:8px"></i>Sem alertas abertos</div>`}
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-ttl"><i class="ti ti-list-check"></i>Desempenho de Atendimento</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="text-align:center;background:var(--gbg);border-radius:8px;padding:12px 6px">
+          <div style="font-size:26px;font-weight:800;color:var(--green)">${nResolvidos}</div>
+          <div style="font-size:11px;color:var(--gray2);margin-top:3px">✓ Resolvidos</div>
+        </div>
+        <div style="text-align:center;background:var(--gray5);border-radius:8px;padding:12px 6px">
+          <div style="font-size:26px;font-weight:800;color:var(--gray2)">${nDispensados}</div>
+          <div style="font-size:11px;color:var(--gray2);margin-top:3px">→ Dispensados</div>
+        </div>
+      </div>
+      ${fechados.slice(0,4).length?`<div style="font-size:10.5px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Últimos tratados</div>
+      ${fechados.slice(0,4).map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--gray5)">
+        <span style="font-size:13px;color:${e.acao==='resolvido'?'var(--green)':'var(--gray2)'}">${e.acao==='resolvido'?'✓':'→'}</span>
+        <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.titulo}">${e.titulo}</span>
+        <span style="font-size:12px;font-weight:700;color:${_slaCor(e.slaMinutos)};white-space:nowrap">${_formatSLA(e.slaMinutos)}</span>
+      </div>`).join('')}`:`<div style="text-align:center;padding:18px;color:var(--gray2);font-size:12px">Nenhum tratamento registrado ainda.</div>`}
+    </div>
+  </div>`;
+  if(window._alertasCatChart){window._alertasCatChart.destroy();window._alertasCatChart=null;}
+  const catEl=document.getElementById('alertasCatChart');
+  if(catEl&&GRUPOS.length){
+    window._alertasCatChart=new Chart(catEl.getContext('2d'),{
+      type:'bar',
+      data:{labels:GRUPOS.map(g=>g.label),datasets:[{data:GRUPOS.map(g=>g.count),backgroundColor:GRUPOS.map(g=>g.cor),borderRadius:5,barPercentage:.65}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw} alerta${ctx.raw>1?'s':''}`}}},
+        scales:{x:{beginAtZero:true,ticks:{stepSize:1,precision:0,font:{size:10},color:'var(--gray2)'},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{font:{size:11},color:'var(--gray2)'},grid:{display:false}}}}
+    });
+  }
 }
 function _renderAlertasList(){
-  const list=_alertaFiltro?alertasAtuais.filter(a=>a.categoria===_alertaFiltro||(_alertaFiltro==='renovacao'&&(a.categoria==='renovacao'||a.categoria==='vencido'))||(_alertaFiltro==='reuniao_hoje'&&(a.categoria==='reuniao_hoje'||a.categoria==='reuniao_atrasada'))):alertasAtuais;
-
-  // Seção: abertos
-  const openLabel=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:13px;font-weight:700;color:var(--black)"><i class="ti ti-bell" style="color:var(--red)"></i> Abertos</span><span class="badge b-risco" style="font-size:11px">${list.length}</span></div>`;
-  const openHtml=list.length?list.map(a=>`<div class="al-item ${a.tipo}" style="cursor:pointer" onclick="abrirTratativaAlerta('${a.id}')">
-    <i class="ti ${a.icone} al-ic ${a.tipo}"></i>
-    <div style="flex:1"><div class="al-ttl">${a.titulo}</div><div class="al-sub">${a.subtitulo}</div></div>
-    <div class="al-tag"><span class="badge ${a.tipo==='danger'?'b-risco':''}" style="${a.tipo==='warn'?'background:var(--ybg);color:var(--yellow)':a.tipo==='info'?'background:var(--bbg);color:var(--blue)':''}">${a.tag}</span></div>
-    <i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:8px;flex-shrink:0"></i>
-  </div>`).join(''):`<div style="text-align:center;padding:30px;color:var(--gray2)"><i class="ti ti-check" style="font-size:36px;color:var(--green);display:block;margin-bottom:10px"></i>Nenhum alerta aberto${_alertaFiltro?' nesta categoria':''}.</div>`;
-
-  // Seção: fechados + SLA
   const log=_getAlertasLog();
   const fechados=log.filter(e=>e.fechadoEm).sort((a,b)=>new Date(b.fechadoEm)-new Date(a.fechadoEm)).slice(0,50);
   const slaValidos=fechados.filter(e=>e.slaMinutos!==null&&e.slaMinutos>0);
   const slaMedia=slaValidos.length?Math.round(slaValidos.reduce((s,e)=>s+e.slaMinutos,0)/slaValidos.length):null;
-
-  const fechadosHtml=fechados.length?`
-  <div style="margin-top:24px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-      <span style="font-size:13px;font-weight:700;color:var(--black)"><i class="ti ti-history" style="color:var(--gray2)"></i> Histórico — Fechados</span>
-      <span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:11px">${fechados.length}</span>
-      ${slaMedia!==null?`<span style="margin-left:auto;font-size:11.5px;color:var(--gray2)">SLA médio: <strong style="color:${_slaCor(slaMedia)}">${_formatSLA(slaMedia)}</strong></span>`:''}
-      <button class="lnk" style="font-size:11px;color:var(--gray2);margin-left:${slaMedia!==null?'8px':'auto'}" onclick="limparHistoricoAlertas()"><i class="ti ti-trash"></i> Limpar</button>
+  const total=alertasAtuais.length;
+  const urgentes=alertasAtuais.filter(a=>a.tipo==='danger').length;
+  const list=_alertaFiltro?alertasAtuais.filter(a=>
+    a.categoria===_alertaFiltro||
+    (_alertaFiltro==='renovacao'&&(a.categoria==='renovacao'||a.categoria==='vencido'))||
+    (_alertaFiltro==='reuniao_hoje'&&(a.categoria==='reuniao_hoje'||a.categoria==='reuniao_atrasada'))
+  ):alertasAtuais;
+  const FILTROS=[
+    {val:'',label:'Todos',ic:'ti-list'},
+    {val:'sem_contato',label:'Sem Contato',ic:'ti-clock'},
+    {val:'hs_baixo',label:'HS Baixo',ic:'ti-trending-down'},
+    {val:'nps_critico',label:'NPS Crítico',ic:'ti-mood-sad'},
+    {val:'churn_critico',label:'Churn Crítico',ic:'ti-alert-triangle',danger:true},
+    {val:'renovacao',label:'Renovação',ic:'ti-calendar-exclamation'},
+    {val:'acoes_atrasadas',label:'Ações Atrasadas',ic:'ti-clipboard-x'},
+    {val:'reuniao_hoje',label:'Reunião Hoje',ic:'ti-calendar-event'},
+  ];
+  const filtroHtml=FILTROS.map(f=>{
+    const isA=_alertaFiltro===f.val;
+    const ds=f.danger?(isA?'background:var(--red);color:#fff;border-color:var(--red)':'color:var(--red);border-color:var(--red)'):'';
+    return`<button class="tl-filter-btn${isA?' active':''}" style="${ds}" onclick="filtrarAlertas('${f.val}')"><i class="ti ${f.ic}"></i>${f.label}</button>`;
+  }).join('');
+  const itemsHtml=list.length?list.map(a=>`<div class="al-item ${a.tipo}" style="cursor:pointer" onclick="abrirTratativaAlerta('${a.id}')">
+    <i class="ti ${a.icone} al-ic ${a.tipo}"></i>
+    <div style="flex:1"><div class="al-ttl">${a.titulo}</div><div class="al-sub">${a.subtitulo}</div></div>
+    <div class="al-tag"><span class="badge ${a.tipo==='danger'?'b-risco':''}" style="${a.tipo==='warn'?'background:var(--ybg);color:var(--yellow)':a.tipo==='info'?'background:var(--bbg);color:var(--blue)':''}">${a.tag}</span></div>
+    <i class="ti ti-chevron-right" style="color:var(--gray3);margin-left:8px;flex-shrink:0"></i>
+  </div>`).join(''):
+  `<div style="text-align:center;padding:30px 20px;color:var(--gray2)"><i class="ti ti-check" style="font-size:32px;color:var(--green);display:block;margin-bottom:8px"></i>Nenhum alerta${_alertaFiltro?' nesta categoria':''} em aberto.</div>`;
+  const fmtDt=d=>`${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+  const fechadosHtml=fechados.length?fechados.map(e=>{const ab=new Date(e.abertoEm),fe=new Date(e.fechadoEm);return`<tr style="border-bottom:1px solid var(--gray5)">
+    <td style="padding:8px 10px;font-size:12.5px;max-width:280px">${e.titulo}</td>
+    <td style="padding:8px 10px;font-size:12px;color:var(--gray2);white-space:nowrap">${fmtDt(ab)}</td>
+    <td style="padding:8px 10px;font-size:12px;color:var(--gray2);white-space:nowrap">${fmtDt(fe)}</td>
+    <td style="padding:8px 10px;white-space:nowrap"><span style="font-weight:700;font-size:13px;color:${_slaCor(e.slaMinutos)}">${_formatSLA(e.slaMinutos)}</span></td>
+    <td style="padding:8px 10px"><span class="badge" style="${e.acao==='resolvido'?'background:var(--gbg);color:var(--green)':'background:var(--gray5);color:var(--gray2)'}">${e.acao==='resolvido'?'✓ Resolvido':'Dispensado'}</span></td>
+  </tr>`;}).join(''):`<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--gray2);font-size:12.5px">Nenhum alerta tratado ainda. Resolva ou dispense alertas para ver o histórico aqui.</td></tr>`;
+  document.getElementById('alertasList').innerHTML=`
+  <div style="background:#fff;border:1px solid var(--gray4);border-radius:10px;overflow:hidden;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:2px solid var(--red)">
+      <i class="ti ti-bell-ringing" style="color:var(--red);font-size:16px"></i>
+      <span style="font-weight:700;font-size:14px;color:var(--black)">Abertos</span>
+      <span class="badge b-risco" style="font-size:11.5px">${total}</span>
+      ${urgentes?`<span class="badge" style="background:#fff0f0;color:var(--red);font-size:11px">${urgentes} urgentes</span>`:''}
+      ${total===0?`<span style="font-size:12px;color:var(--green);font-weight:600;margin-left:4px">✓ Tudo em dia!</span>`:''}
     </div>
-    <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+    <div class="flt-row" style="padding:10px 14px;margin:0;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--gray5)">${filtroHtml}</div>
+    <div>${itemsHtml}</div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--gray4);border-radius:10px;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--gray5);flex-wrap:wrap">
+      <i class="ti ti-history" style="color:var(--gray2);font-size:16px"></i>
+      <span style="font-weight:700;font-size:14px;color:var(--black)">Histórico — Fechados</span>
+      <span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:11px">${fechados.length}</span>
+      ${slaMedia!==null?`<span style="margin-left:auto;font-size:12px">SLA médio: <strong style="color:${_slaCor(slaMedia)}">${_formatSLA(slaMedia)}</strong></span>`:''}
+      ${fechados.length?`<button class="lnk" style="font-size:11px;color:var(--gray3);${slaMedia===null?'margin-left:auto':''}" onclick="limparHistoricoAlertas()"><i class="ti ti-trash"></i> Limpar</button>`:''}
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:var(--gray5)">
-        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Alerta</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600">Alerta</th>
         <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Aberto em</th>
         <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Fechado em</th>
-        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Lead time (SLA)</th>
-        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Ação</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600;white-space:nowrap">Lead time</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10.5px;text-transform:uppercase;color:var(--gray2);font-weight:600">Ação</th>
       </tr></thead>
-      <tbody>${fechados.map(e=>{
-        const ab=new Date(e.abertoEm),fe=new Date(e.fechadoEm);
-        const slaStr=_formatSLA(e.slaMinutos);const slaCor=_slaCor(e.slaMinutos);
-        const fmtDt=d=>`${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
-        return`<tr style="border-bottom:1px solid var(--gray5)">
-          <td style="padding:8px 10px;max-width:300px">${e.titulo}</td>
-          <td style="padding:8px 10px;white-space:nowrap;color:var(--gray2)">${fmtDt(ab)}</td>
-          <td style="padding:8px 10px;white-space:nowrap;color:var(--gray2)">${fmtDt(fe)}</td>
-          <td style="padding:8px 10px;white-space:nowrap"><span style="font-weight:700;color:${slaCor}">${slaStr}</span></td>
-          <td style="padding:8px 10px"><span class="badge" style="${e.acao==='resolvido'?'background:var(--gbg);color:var(--green)':'background:var(--gray5);color:var(--gray2)'}">${e.acao==='resolvido'?'✓ Resolvido':'Dispensado'}</span></td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>
-    </div>
-  </div>`:'';
-
-  document.getElementById('alertasList').innerHTML=openLabel+openHtml+fechadosHtml;
+      <tbody>${fechadosHtml}</tbody>
+    </table></div>
+  </div>`;
 }
 
 // ═══ NOTIFICATIONS ═══
@@ -3442,8 +3512,10 @@ function renderAlertas(){
   alertasAtuais=al;
   al.forEach(a=>_registrarAlertaVisto(a));
   const nFech=_getAlertasLog().filter(e=>e.fechadoEm).length;
-  document.getElementById('alertasCount').textContent=`${al.length} aberto${al.length!==1?'s':''} · ${nFech} fechado${nFech!==1?'s':''}`;
+  const nUrg=al.filter(a=>a.tipo==='danger').length;
+  document.getElementById('alertasCount').textContent=`${al.length} aberto${al.length!==1?'s':''}${nUrg?' · '+nUrg+' urgentes':''} · ${nFech} fechado${nFech!==1?'s':''}`;
   dispararNotificacaoAlertas(al);
+  _renderAlertasStats();
   _renderAlertasList();
 }
 
