@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -658,6 +660,15 @@ tr:hover td{background:#fafafa}
     <div class="card" style="margin-bottom:0"><div class="card-ttl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="hs-list" id="hsList"></div></div>
   </div>
   <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="dashRanking"></div>
+  <div class="card" style="margin-top:14px;margin-bottom:0">
+    <div class="card-ttl"><span><i class="ti ti-map-pin"></i>Distribuição geográfica dos clientes</span><span class="sub" id="dashMapSub"></span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 0 10px;font-size:11px;color:var(--gray2)">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:3px;vertical-align:middle"></span>Saudável HS ≥70</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:3px;vertical-align:middle"></span>Atenção HS 40–69</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:3px;vertical-align:middle"></span>Crítico HS &lt;40</span>
+    </div>
+    <div id="dashMapDiv" style="height:360px;border-radius:8px;overflow:hidden;background:var(--gray5)"></div>
+  </div>
   <div style="margin-top:14px"></div>
   <div class="tbl-card">
     <div class="tbl-head">
@@ -811,6 +822,19 @@ tr:hover td{background:#fafafa}
     <div id="reunioesAgendadasList"></div>
   </div>
   <div class="kpi-grid" id="reunKPIs"></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-ttl">
+      <span><i class="ti ti-chart-bar"></i>Volume de reuniões realizadas</span>
+      <div class="cpb" id="reunPeriodBtns">
+        <button class="cpb-btn active" onclick="renderReunioesVolumeChart('mes',this)">12 meses</button>
+        <button class="cpb-btn" onclick="renderReunioesVolumeChart('tri',this)">Trimestres</button>
+        <button class="cpb-btn" onclick="renderReunioesVolumeChart('sem',this)">Semestres</button>
+        <button class="cpb-btn" onclick="renderReunioesVolumeChart('ano',this)">Anos</button>
+      </div>
+    </div>
+    <div id="reunVolStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
+    <div class="chart-wrap"><canvas id="reunVolChart"></canvas></div>
+  </div>
   <div class="tbl-card"><table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Nota NPS</th><th>Grupo NPS</th><th>CSAT</th><th>Sentimento</th><th>CS</th><th></th></tr></thead>
   <tbody id="reunTbody"></tbody></table></div>
 </div>
@@ -2197,6 +2221,168 @@ function renderDashboard(){
       mkRank('HS Crítico','ti-trending-down',byHS,c=>c.healthScore,c=>hsColor(c.healthScore))+
       mkRank('Sem Contato','ti-clock',semContato,c=>{const r=re2.filter(x=>x.clienteId===c.id)[0];return r?Math.floor((now2-new Date(r.dataISO))/86400000)+'d':'s/reu';},c=>{const r=re2.filter(x=>x.clienteId===c.id)[0];const d=r?Math.floor((now2-new Date(r.dataISO))/86400000):999;return d>45?'var(--red)':d>30?'var(--yellow)':'var(--gray2)';});
   }
+  renderDashMap();
+}
+
+// ═══ MAPA DE CLIENTES ═══
+const _BR_UF_COORDS={
+  AC:[-9.97,-67.81],AL:[-9.67,-35.74],AM:[-3.10,-60.02],AP:[0.03,-51.07],
+  BA:[-12.97,-38.50],CE:[-3.72,-38.54],DF:[-15.78,-47.93],ES:[-20.32,-40.34],
+  GO:[-16.69,-49.25],MA:[-2.53,-44.30],MG:[-19.92,-43.94],MS:[-20.44,-54.65],
+  MT:[-15.60,-56.10],PA:[-1.46,-48.50],PB:[-7.12,-34.87],PE:[-8.05,-34.88],
+  PI:[-5.09,-42.80],PR:[-25.43,-49.27],RJ:[-22.91,-43.18],RN:[-5.79,-35.21],
+  RO:[-8.76,-63.90],RR:[2.82,-60.67],RS:[-30.03,-51.23],SC:[-27.60,-48.55],
+  SE:[-10.91,-37.07],SP:[-23.55,-46.63],TO:[-10.18,-48.33]
+};
+const _BR_CIDADE_COORDS={
+  'São Paulo|SP':[-23.550,-46.634],'Rio de Janeiro|RJ':[-22.906,-43.182],
+  'Belo Horizonte|MG':[-19.921,-43.938],'Porto Alegre|RS':[-30.031,-51.230],
+  'Curitiba|PR':[-25.429,-49.271],'Salvador|BA':[-12.972,-38.502],
+  'Fortaleza|CE':[-3.717,-38.543],'Manaus|AM':[-3.103,-60.025],
+  'Recife|PE':[-8.054,-34.881],'Belém|PA':[-1.456,-48.503],
+  'Goiânia|GO':[-16.686,-49.265],'Itabira|MG':[-19.619,-43.228],
+  'Três Lagoas|MS':[-20.786,-51.702],'Vargem Bonita|SC':[-26.592,-52.032],
+  'Canoas|RS':[-29.918,-51.184],'Brasília|DF':[-15.780,-47.929],
+  'Campo Grande|MS':[-20.469,-54.620],'Joinville|SC':[-26.303,-48.846],
+  'Florianópolis|SC':[-27.597,-48.549],'São Luís|MA':[-2.527,-44.304],
+  'Natal|RN':[-5.793,-35.211],'Teresina|PI':[-5.092,-42.803],
+  'Londrina|PR':[-23.311,-51.162],'Maringá|PR':[-23.426,-51.938],
+  'Santos|SP':[-23.960,-46.334],'Campinas|SP':[-22.905,-47.061],
+  'Ribeirão Preto|SP':[-21.169,-47.810],'São José dos Campos|SP':[-23.179,-45.887],
+  'Sorocaba|SP':[-23.501,-47.459],'Uberlândia|MG':[-18.913,-48.276],
+  'Juiz de Fora|MG':[-21.764,-43.350],'Contagem|MG':[-19.932,-44.053],
+  'Vitória|ES':[-20.319,-40.338],'Niterói|RJ':[-22.884,-43.104],
+  'Caxias do Sul|RS':[-29.168,-51.180],'Pelotas|RS':[-31.773,-52.342],
+  'Maceió|AL':[-9.666,-35.735],'Aracaju|SE':[-10.911,-37.072],
+  'Cuiabá|MT':[-15.601,-56.098],'Porto Velho|RO':[-8.761,-63.900],
+  'Macapá|AP':[0.034,-51.066],'Boa Vista|RR':[2.820,-60.673],
+  'Palmas|TO':[-10.184,-48.333],'Macaé|RJ':[-22.372,-41.787],
+  'Bauru|SP':[-22.315,-49.072],'São Bernardo do Campo|SP':[-23.694,-46.565],
+  'Santo André|SP':[-23.663,-46.533],'Osasco|SP':[-23.533,-46.791],
+  'Guarulhos|SP':[-23.462,-46.533],'Belford Roxo|RJ':[-22.764,-43.400]
+};
+function _getClienteCoords(c){
+  const cidade=(c.cidade||'').trim();
+  const uf=(c.uf||'').trim().toUpperCase();
+  const key=cidade+'|'+uf;
+  if(_BR_CIDADE_COORDS[key])return _BR_CIDADE_COORDS[key];
+  // busca normalizando acentos
+  const norm=cidade.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  for(const[k,v]of Object.entries(_BR_CIDADE_COORDS)){
+    const[kC,kU]=k.split('|');
+    if(kU===uf&&kC.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()===norm)return v;
+  }
+  // fallback: capital do estado com leve deslocamento aleatório
+  if(_BR_UF_COORDS[uf]){const r=()=>(Math.random()-0.5)*1.2;return[_BR_UF_COORDS[uf][0]+r(),_BR_UF_COORDS[uf][1]+r()];}
+  return null;
+}
+let _clienteMap=null;
+function renderDashMap(){
+  if(typeof L==='undefined')return;
+  const cl=CS_DB.getClientes();
+  const mapDiv=document.getElementById('dashMapDiv');
+  if(!mapDiv)return;
+  if(_clienteMap){_clienteMap.remove();_clienteMap=null;}
+  const isDark=document.body.classList.contains('dark');
+  _clienteMap=L.map('dashMapDiv',{center:[-15,-50],zoom:4,zoomControl:true,attributionControl:false});
+  const tileUrl=isDark
+    ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    :'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  L.tileLayer(tileUrl,{maxZoom:18}).addTo(_clienteMap);
+  L.control.attribution({prefix:false}).addTo(_clienteMap);
+  const markers=[];
+  cl.forEach(c=>{
+    const coords=_getClienteCoords(c);
+    if(!coords)return;
+    const hs=c.healthScore??70;
+    const cor=hs>=70?'#22c55e':hs>=40?'#f59e0b':'#ef4444';
+    const sz=hs>=70?14:hs>=40?13:12;
+    const icon=L.divIcon({
+      className:'',
+      html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);cursor:pointer"></div>`,
+      iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2]
+    });
+    const mrr=c.mrr||'—';
+    const popup=`<div style="font-family:'Inter',sans-serif;min-width:160px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.empresa}</div>
+      <div style="font-size:11.5px;color:#555;margin-bottom:2px">${c.cidade||''}${c.uf?', '+c.uf:''}</div>
+      <div style="display:flex;gap:8px;font-size:11.5px;margin-top:6px;flex-wrap:wrap">
+        <span>HS <b style="color:${cor}">${hs}</b></span>
+        <span>MRR <b>${mrr}</b></span>
+        <span>${c.status||''}</span>
+      </div>
+    </div>`;
+    const mk=L.marker(coords,{icon}).bindPopup(popup,{maxWidth:220});
+    mk.addTo(_clienteMap);
+    markers.push(mk);
+  });
+  const sub=document.getElementById('dashMapSub');
+  const semCoords=cl.filter(c=>!_getClienteCoords(c)).length;
+  if(sub)sub.textContent=`${markers.length} cliente${markers.length!==1?'s':''} mapeado${markers.length!==1?'s':''}${semCoords?' · '+semCoords+' sem localização':''}`;
+  if(markers.length>1){const g=L.featureGroup(markers);_clienteMap.fitBounds(g.getBounds().pad(0.25));}
+  else if(markers.length===1){_clienteMap.setView(markers[0].getLatLng(),7);}
+}
+
+// ═══ GRÁFICO VOLUME REUNIÕES ═══
+let _reunVolChart=null;
+function renderReunioesVolumeChart(periodo,btn){
+  if(btn){document.querySelectorAll('#reunPeriodBtns .cpb-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+  const re=CS_DB.getAllReunioes();
+  const now=new Date();
+  const nowY=now.getFullYear(),nowM=now.getMonth();
+  const nowQ=Math.floor(nowM/3),nowS=nowM>=6?1:0;
+  const MESES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  // KPIs de período atual
+  const thisMes=re.filter(r=>{const d=new Date(r.dataISO);return d.getFullYear()===nowY&&d.getMonth()===nowM;}).length;
+  const thisTri=re.filter(r=>{const d=new Date(r.dataISO);return d.getFullYear()===nowY&&Math.floor(d.getMonth()/3)===nowQ;}).length;
+  const thisSem=re.filter(r=>{const d=new Date(r.dataISO);return d.getFullYear()===nowY&&(d.getMonth()>=6?1:0)===nowS;}).length;
+  const thisAno=re.filter(r=>new Date(r.dataISO).getFullYear()===nowY).length;
+  const statsEl=document.getElementById('reunVolStats');
+  if(statsEl)statsEl.innerHTML=[
+    {lbl:'Este mês',val:thisMes,sub:MESES[nowM]+'/'+String(nowY).slice(2)},
+    {lbl:'Este trimestre',val:thisTri,sub:(nowQ+1)+'T'+nowY},
+    {lbl:'Este semestre',val:thisSem,sub:(nowS===0?'1':'2')+'S'+nowY},
+    {lbl:'Este ano',val:thisAno,sub:nowY}
+  ].map(k=>`<div style="text-align:center;padding:8px 10px;background:var(--bbg);border-radius:7px">
+    <div style="font-size:10px;color:var(--gray2);text-transform:uppercase;font-weight:600;letter-spacing:.5px">${k.lbl}</div>
+    <div style="font-size:24px;font-weight:700;color:var(--blue);line-height:1.2;margin:4px 0 2px">${k.val}</div>
+    <div style="font-size:10.5px;color:var(--gray3)">${k.sub}</div>
+  </div>`).join('');
+  // Dados do gráfico
+  let labels=[],data=[];
+  if(periodo==='mes'){
+    for(let i=11;i>=0;i--){const d=new Date(nowY,nowM-i,1);const y=d.getFullYear(),m=d.getMonth();labels.push(MESES[m]+'/'+String(y).slice(2));data.push(re.filter(r=>{const rd=new Date(r.dataISO);return rd.getFullYear()===y&&rd.getMonth()===m;}).length);}
+  }else if(periodo==='tri'){
+    for(let i=7;i>=0;i--){const tq=nowY*4+nowQ-i;const y=Math.floor(tq/4),q=tq%4;labels.push((q+1)+'T'+y);data.push(re.filter(r=>{const rd=new Date(r.dataISO);return rd.getFullYear()===y&&Math.floor(rd.getMonth()/3)===q;}).length);}
+  }else if(periodo==='sem'){
+    for(let i=5;i>=0;i--){const ts=nowY*2+nowS-i;const y=Math.floor(ts/2),s=ts%2;labels.push((s===0?'1':'2')+'S'+y);data.push(re.filter(r=>{const rd=new Date(r.dataISO);return rd.getFullYear()===y&&(rd.getMonth()>=6?1:0)===s;}).length);}
+  }else{
+    const anos=[...new Set([...re.map(r=>new Date(r.dataISO).getFullYear()),nowY])].sort();
+    const minA=nowY-4;for(let y=minA;y<=nowY;y++)if(!anos.includes(y))anos.push(y);anos.sort();
+    labels=anos.map(y=>String(y));data=anos.map(y=>re.filter(r=>new Date(r.dataISO).getFullYear()===y).length);
+  }
+  const canvas=document.getElementById('reunVolChart');if(!canvas)return;
+  if(_reunVolChart){_reunVolChart.destroy();_reunVolChart=null;}
+  const isDark=document.body.classList.contains('dark');
+  const gridC=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+  const txtC=isDark?'#aaa':'#888';
+  const maxV=Math.max(...data,1);
+  _reunVolChart=new Chart(canvas.getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{
+      label:'Reuniões',data,
+      backgroundColor:data.map((v,i)=>i===data.length-1?'rgba(59,130,246,0.92)':v===maxV?'rgba(59,130,246,0.7)':'rgba(59,130,246,0.38)'),
+      borderRadius:5,borderSkipped:false
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw} reunião${c.raw!==1?'ões':''}`}}},
+      scales:{
+        x:{grid:{color:gridC},ticks:{color:txtC,font:{size:11}}},
+        y:{grid:{color:gridC},ticks:{color:txtC,stepSize:1,font:{size:11}},beginAtZero:true,min:0}
+      }
+    }
+  });
 }
 
 // ═══ SORT STATE ═══
@@ -2686,6 +2872,7 @@ function renderReunioes(){
   const kpis=document.getElementById('reunKPIs');
   if(kpis){const m=new Date().getMonth();const este=re.filter(r=>new Date(r.dataISO).getMonth()===m);const csatMed=re.length?Math.round(re.slice(0,5).reduce((s,r)=>s+(r.csat||0),0)/Math.min(re.length,5)*10)/10:0;const npsMed=re.length?CS_DB.calcNPS(re.map(r=>({nota:r.nps}))).score:null;
   kpis.innerHTML=`<div class="kpi red"><div class="kpi-lbl">Este mês</div><div class="kpi-val">${este.length}</div></div><div class="kpi green"><div class="kpi-lbl">CSAT médio</div><div class="kpi-val">${csatMed||'—'}</div></div><div class="kpi blue"><div class="kpi-lbl">NPS médio</div><div class="kpi-val" style="color:${npsColor(npsMed??0)}">${npsMed??'—'}</div></div><div class="kpi gray"><div class="kpi-lbl">Total registradas</div><div class="kpi-val">${re.length}</div></div>`}
+  renderReunioesVolumeChart('mes');
   if(!re.length){document.getElementById('reunTbody').innerHTML=`<tr><td colspan="9"><div class="empty-state"><i class="ti ti-calendar-off"></i><p>Nenhuma reunião registrada ainda.</p><button class="lnk" onclick="openM('mReuniao')">Registrar primeira reunião</button></div></td></tr>`;return;}
   document.getElementById('reunTbody').innerHTML=re.map(r=>{const g=npsGrupo(r.nps);return`<tr>
     <td style="color:var(--gray2);font-size:11.5px">${r.data}</td>
