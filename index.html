@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -2092,6 +2092,7 @@ function nav(el,p){
   if(p==='voc')renderVoC();
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='grupos')renderGrupos();
+  if(p==='dashboard')renderDashboard();
   if(p==='relatorios')populateRelatoriosSelects();
   if(p==='pipeline')renderPipeline();
   // Close mobile sidebar on navigation
@@ -2266,61 +2267,77 @@ function _getClienteCoords(c){
   const uf=(c.uf||'').trim().toUpperCase();
   const key=cidade+'|'+uf;
   if(_BR_CIDADE_COORDS[key])return _BR_CIDADE_COORDS[key];
-  // busca normalizando acentos
-  const norm=cidade.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const _strip=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const norm=_strip(cidade);
   for(const[k,v]of Object.entries(_BR_CIDADE_COORDS)){
     const[kC,kU]=k.split('|');
-    if(kU===uf&&kC.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()===norm)return v;
+    if(kU===uf&&_strip(kC)===norm)return v;
   }
-  // fallback: capital do estado com leve deslocamento aleatório
-  if(_BR_UF_COORDS[uf]){const r=()=>(Math.random()-0.5)*1.2;return[_BR_UF_COORDS[uf][0]+r(),_BR_UF_COORDS[uf][1]+r()];}
+  if(_BR_UF_COORDS[uf])return[..._BR_UF_COORDS[uf]];
   return null;
 }
 let _clienteMap=null;
+let _clienteMapPending=false;
 function renderDashMap(){
   if(typeof L==='undefined')return;
-  const cl=CS_DB.getClientes();
   const mapDiv=document.getElementById('dashMapDiv');
   if(!mapDiv)return;
-  if(_clienteMap){_clienteMap.remove();_clienteMap=null;}
-  const isDark=document.body.classList.contains('dark');
-  _clienteMap=L.map('dashMapDiv',{center:[-15,-50],zoom:4,zoomControl:true,attributionControl:false});
-  const tileUrl=isDark
-    ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    :'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  L.tileLayer(tileUrl,{maxZoom:18}).addTo(_clienteMap);
-  L.control.attribution({prefix:false}).addTo(_clienteMap);
-  const markers=[];
-  cl.forEach(c=>{
-    const coords=_getClienteCoords(c);
-    if(!coords)return;
-    const hs=c.healthScore??70;
-    const cor=hs>=70?'#22c55e':hs>=40?'#f59e0b':'#ef4444';
-    const sz=hs>=70?14:hs>=40?13:12;
-    const icon=L.divIcon({
-      className:'',
-      html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);cursor:pointer"></div>`,
-      iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-sz/2]
+  // Remove mapa anterior se existir
+  if(_clienteMap){try{_clienteMap.remove();}catch(_){}  _clienteMap=null;}
+  _clienteMapPending=true;
+  // Aguarda o browser terminar o layout antes de inicializar o Leaflet
+  setTimeout(()=>{
+    if(!_clienteMapPending)return;
+    _clienteMapPending=false;
+    const div=document.getElementById('dashMapDiv');
+    if(!div||!div.offsetParent)return; // div não visível
+    const cl=CS_DB.getClientes();
+    const isDark=document.body.classList.contains('dark');
+    try{
+      _clienteMap=L.map(div,{center:[-15,-50],zoom:4,zoomControl:true,attributionControl:false,preferCanvas:true});
+    }catch(e){return;}
+    const tileUrl=isDark
+      ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      :'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    L.tileLayer(tileUrl,{maxZoom:18,attribution:'© OpenStreetMap · CartoDB'}).addTo(_clienteMap);
+    const markers=[];
+    cl.forEach(c=>{
+      const coords=_getClienteCoords(c);
+      if(!coords)return;
+      const hs=c.healthScore??70;
+      const cor=hs>=70?'#22c55e':hs>=40?'#f59e0b':'#ef4444';
+      const sz=13;
+      const icon=L.divIcon({
+        className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);cursor:pointer"></div>`,
+        iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-(sz/2+4)]
+      });
+      const mrr=c.mrr||'—';
+      const popup=`<div style="font-family:'Inter',sans-serif;min-width:160px;padding:2px 0">
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px">${c.empresa}</div>
+        <div style="font-size:11.5px;color:#666;margin-bottom:4px">${c.cidade||''}${c.uf?', '+c.uf:''}</div>
+        <div style="display:flex;gap:10px;font-size:11.5px;flex-wrap:wrap">
+          <span>HS <b style="color:${cor}">${hs}</b></span>
+          <span>MRR <b>${mrr}</b></span>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:3px">${c.status||''} · ${c.tier||''}</div>
+      </div>`;
+      const mk=L.marker(coords,{icon}).bindPopup(popup,{maxWidth:230});
+      mk.addTo(_clienteMap);
+      markers.push(mk);
     });
-    const mrr=c.mrr||'—';
-    const popup=`<div style="font-family:'Inter',sans-serif;min-width:160px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.empresa}</div>
-      <div style="font-size:11.5px;color:#555;margin-bottom:2px">${c.cidade||''}${c.uf?', '+c.uf:''}</div>
-      <div style="display:flex;gap:8px;font-size:11.5px;margin-top:6px;flex-wrap:wrap">
-        <span>HS <b style="color:${cor}">${hs}</b></span>
-        <span>MRR <b>${mrr}</b></span>
-        <span>${c.status||''}</span>
-      </div>
-    </div>`;
-    const mk=L.marker(coords,{icon}).bindPopup(popup,{maxWidth:220});
-    mk.addTo(_clienteMap);
-    markers.push(mk);
-  });
-  const sub=document.getElementById('dashMapSub');
-  const semCoords=cl.filter(c=>!_getClienteCoords(c)).length;
-  if(sub)sub.textContent=`${markers.length} cliente${markers.length!==1?'s':''} mapeado${markers.length!==1?'s':''}${semCoords?' · '+semCoords+' sem localização':''}`;
-  if(markers.length>1){const g=L.featureGroup(markers);_clienteMap.fitBounds(g.getBounds().pad(0.25));}
-  else if(markers.length===1){_clienteMap.setView(markers[0].getLatLng(),7);}
+    const sub=document.getElementById('dashMapSub');
+    const semCoords=cl.filter(c=>!_getClienteCoords(c)).length;
+    if(sub)sub.textContent=`${markers.length} cliente${markers.length!==1?'s':''} mapeado${markers.length!==1?'s':''}${semCoords?' · '+semCoords+' sem localização':''}`;
+    if(markers.length>1){
+      const g=L.featureGroup(markers);
+      _clienteMap.fitBounds(g.getBounds().pad(0.3));
+    }else if(markers.length===1){
+      _clienteMap.setView(markers[0].getLatLng(),7);
+    }
+    // Garante redimensionamento correto após qualquer transição CSS
+    setTimeout(()=>{if(_clienteMap)_clienteMap.invalidateSize();},200);
+  },80);
 }
 
 // ═══ GRÁFICO VOLUME REUNIÕES ═══
