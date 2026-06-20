@@ -6107,12 +6107,27 @@ function renderGrupos(){
         ${membros.length?membros.sort((a,b)=>a.tipoNoGrupo==='matriz'?-1:b.tipoNoGrupo==='matriz'?1:0).map(c=>{
           const gbClass=c.tipoNoGrupo==='matriz'?'gb-matriz':c.tipoNoGrupo==='filial'?'gb-filial':'gb-sem';
           const gbLabel=c.tipoNoGrupo==='matriz'?'Matriz':c.tipoNoGrupo==='filial'?'Filial':'Sem tipo';
+          const reuC=CS_DB.getReunioesCliente(c.id);
+          const hoje=new Date();hoje.setHours(0,0,0,0);
+          const passadas=reuC.filter(r=>r.dataISO&&new Date(r.dataISO)<hoje);
+          const futuras=reuC.filter(r=>r.dataISO&&new Date(r.dataISO)>=hoje).sort((a,b)=>new Date(a.dataISO)-new Date(b.dataISO));
+          const ultContato=passadas[0];
+          const proxReuniao=futuras[0];
+          const diasSemContato=ultContato?Math.floor((hoje-new Date(ultContato.dataISO))/86400000):null;
+          const contStr=diasSemContato===null?'<span style="color:var(--gray3)">Sem reuniões</span>':diasSemContato===0?'<span style="color:var(--green)">Hoje</span>':diasSemContato<=7?`<span style="color:var(--green)">${diasSemContato}d atrás</span>`:diasSemContato<=30?`<span style="color:var(--yellow)">${diasSemContato}d atrás</span>`:`<span style="color:var(--red)">${diasSemContato}d atrás</span>`;
+          const proxStr=proxReuniao?`<span style="color:var(--blue)"><i class="ti ti-calendar-event" style="font-size:10px"></i> ${proxReuniao.data}</span>`:'<span style="color:var(--gray3)">—</span>';
           return `<div class="grupo-member ${c.tipoNoGrupo==='matriz'?'is-matriz':''}">
             <div class="hs-pill ${c.healthScore>=70?'hs-g':c.healthScore>=40?'hs-y':'hs-r'}" style="width:28px;height:28px;font-size:10px">${c.healthScore}</div>
-            <div class="grupo-member-nome" onclick="irParaCliente360('${c.id}')">${c.empresa}</div>
+            <div style="flex:1;min-width:0">
+              <div class="grupo-member-nome" onclick="irParaCliente360('${c.id}')" style="margin-bottom:3px">${c.empresa}</div>
+              <div style="font-size:10.5px;color:var(--gray2);display:flex;gap:10px">
+                <span><i class="ti ti-clock" style="font-size:10px"></i> ${contStr}</span>
+                <span>Próx: ${proxStr}</span>
+              </div>
+            </div>
             <span class="gb ${gbClass}">${gbLabel}</span>
             <span class="badge ${c.status==='Ativo'?'b-ativo':c.status==='Em Risco'?'b-risco':c.status==='Implantação'?'b-impl':c.status==='Expansão'?'b-exp':'b-cancel'}">${c.status}</span>
-            <div style="margin-left:auto;display:flex;gap:4px">
+            <div style="display:flex;gap:4px">
               <button class="btn-ghost" style="padding:3px 8px;font-size:11px" onclick="editarMembroGrupo('${c.id}')"><i class="ti ti-edit"></i></button>
               <button class="btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--gray3)" onclick="desvincularMembro('${c.id}','${c.empresa.replace(/'/g,'')}')"><i class="ti ti-unlink"></i></button>
             </div>
