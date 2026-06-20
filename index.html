@@ -584,6 +584,39 @@ tr:hover td{background:#fafafa}
 </style>
 </head>
 <body>
+<!-- ═══ NPS PÚBLICO ═══ -->
+<div id="npsPublicoScreen" style="display:none;position:fixed;inset:0;background:var(--gray5);z-index:2000;overflow-y:auto">
+  <div style="max-width:560px;margin:40px auto;padding:0 16px 40px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:7px;height:28px;background:var(--red);border-radius:2px"></div><span style="font-size:18px;font-weight:700">creare sistemas</span></div>
+      <div style="font-size:21px;font-weight:700;color:var(--black);margin-bottom:5px">Pesquisa de Satisfação</div>
+      <div style="font-size:13px;color:var(--gray2)">Sua opinião é muito importante para nós</div>
+    </div>
+    <div class="card" style="padding:24px">
+      <div id="npsPubEmpresa" style="font-size:14.5px;font-weight:700;color:var(--black);margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--gray4)"></div>
+      <div style="font-size:13.5px;font-weight:600;color:var(--black);margin-bottom:12px">Em uma escala de 0 a 10, qual a probabilidade de você recomendar a Creare para um amigo ou colega?</div>
+      <div id="npsPubBtns" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray3);margin-bottom:10px"><span>Muito improvável</span><span>Muito provável</span></div>
+      <div id="npsPubGrupo" style="text-align:center;margin-bottom:18px;font-size:13px;font-weight:600;min-height:18px"></div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12.5px;font-weight:500;color:var(--black);display:block;margin-bottom:6px">Qual o principal motivo para esta nota?</label>
+        <textarea id="npsPubComentario" placeholder="Conte-nos um pouco mais..." style="width:100%;border:1px solid var(--gray4);border-radius:8px;padding:10px 12px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:vertical;min-height:80px;color:var(--black)"></textarea>
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:12.5px;font-weight:500;color:var(--black);display:block;margin-bottom:6px">Seu nome</label>
+        <input id="npsPubRespondente" type="text" placeholder="Nome do respondente" style="width:100%;border:1px solid var(--gray4);border-radius:8px;padding:9px 12px;font-size:13px;font-family:Inter,sans-serif;outline:none;color:var(--black)">
+      </div>
+      <button onclick="submitNPSPublico()" style="width:100%;background:var(--red);color:#fff;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Enviar avaliação</button>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--gray3);margin-top:14px">Creare Sistemas · CS Manager</div>
+  </div>
+</div>
+<div id="npsPublicoObrigado" style="display:none;position:fixed;inset:0;background:var(--gray5);z-index:2001;align-items:center;justify-content:center;flex-direction:column">
+  <i class="ti ti-circle-check" style="font-size:60px;color:var(--green);margin-bottom:18px"></i>
+  <div style="font-size:22px;font-weight:700;color:var(--black);margin-bottom:8px">Obrigado pelo feedback!</div>
+  <div style="font-size:13px;color:var(--gray2);text-align:center;max-width:340px">Sua avaliação foi registrada com sucesso. Ela nos ajuda a melhorar continuamente.</div>
+</div>
+
 <!-- ═══ LOGIN ═══ -->
 <div id="loginScreen">
   <div class="lb">
@@ -653,7 +686,7 @@ tr:hover td{background:#fafafa}
     <div class="tb-title" id="tbTitle"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
       <div class="tb-right">
         <div class="search-wrap">
-          <input class="tb-search" id="globalSearchInput" placeholder="Buscar... (Ctrl+K)" oninput="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off">
+          <input class="tb-search" id="globalSearchInput" placeholder="Buscar... (Ctrl+K)" oninput="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off" title="Ctrl+K: buscar | Ctrl+N: novo cliente | Ctrl+Shift+R: nova reunião | Ctrl+Shift+T: nova tarefa">
           <div class="sd-drop" id="searchDropdown"></div>
         </div>
         <div class="ib" onclick="nav(document.querySelector('[data-p=alertas]'),'alertas')"><i class="ti ti-bell"></i><div class="ndot" id="ndot"></div></div>
@@ -926,7 +959,10 @@ tr:hover td{background:#fafafa}
 <!-- NPS -->
 <div class="page" id="page-nps">
   <div class="ph"><h2><i class="ti ti-star"></i>NPS & Satisfação</h2>
-    <button class="btn-primary" onclick="openM('mNPS')"><i class="ti ti-plus"></i>Registrar NPS</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="openM('mGerarLinkNPS')"><i class="ti ti-link"></i>Gerar link de pesquisa</button>
+      <button class="btn-primary" onclick="openM('mNPS')"><i class="ti ti-plus"></i>Registrar NPS</button>
+    </div>
   </div>
   <div class="flt-row" style="margin-bottom:14px">
     <button class="tl-filter-btn active" data-npstab="geral" onclick="trocarAbaNPS('geral',this)"><i class="ti ti-building-community"></i>Visão Geral Creare</button>
@@ -1151,6 +1187,7 @@ tr:hover td{background:#fafafa}
 <div class="modal-ov" id="mEditarCliente">
   <div class="modal" style="max-width:680px">
     <div class="modal-ttl"><span><i class="ti ti-edit"></i>Editar Cliente</span><span class="modal-close" onclick="closeM('mEditarCliente')"><i class="ti ti-x"></i></span></div>
+    <div id="completudeBadge" style="margin-bottom:12px"></div>
     <input type="hidden" id="editClienteId">
     <div class="sec-div"><i class="ti ti-building-store"></i>Dados da empresa</div>
     <div class="form-g2">
@@ -1207,6 +1244,19 @@ tr:hover td{background:#fafafa}
       <button class="btn-ghost" onclick="abrirHistoricoCliente(document.getElementById('editClienteId').value)"><i class="ti ti-history"></i>Histórico</button>
       <button class="btn-ghost" onclick="closeM('mEditarCliente')">Cancelar</button>
       <button class="btn-primary" onclick="salvarEdicao()"><i class="ti ti-device-floppy"></i>Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRÓXIMO PASSO -->
+<div class="modal-ov" id="mProximoPasso">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-ttl"><span><i class="ti ti-flag"></i>Próximo passo</span><span class="modal-close" onclick="closeM('mProximoPasso')"><i class="ti ti-x"></i></span></div>
+    <p style="font-size:13px;color:var(--gray2);margin-bottom:16px">Reunião salva! Deseja registrar uma ação de follow-up para <strong id="ppEmpresa"></strong>?</p>
+    <div id="ppSugestoes" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mProximoPasso')">Não agora</button>
+      <button class="btn-primary" id="ppCriarAcao" onclick=""><i class="ti ti-plus"></i>Criar ação de follow-up</button>
     </div>
   </div>
 </div>
@@ -1619,6 +1669,24 @@ tr:hover td{background:#fafafa}
 </div>
 
 <!-- MODAL REGISTRO ENVIO NPS -->
+<!-- MODAL GERAR LINK NPS -->
+<div class="modal-ov" id="mGerarLinkNPS">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-ttl"><span><i class="ti ti-link"></i>Gerar Link de Pesquisa NPS</span><span class="modal-close" onclick="closeM('mGerarLinkNPS')"><i class="ti ti-x"></i></span></div>
+    <p style="font-size:12.5px;color:var(--gray2);margin-bottom:14px">Selecione o cliente e gere um link para ele preencher a pesquisa NPS diretamente no navegador, sem precisar de login.</p>
+    <div class="fg" style="margin-bottom:14px"><label>Cliente</label><select id="linkNPSCliente"></select></div>
+    <div id="linkNPSResult" style="display:none;background:var(--gbg);border-radius:8px;padding:12px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--gtxt);margin-bottom:6px;font-weight:600"><i class="ti ti-check"></i> Link gerado com sucesso!</div>
+      <input id="linkNPSUrl" readonly style="width:100%;background:#fff;border:1px solid var(--gray4);border-radius:6px;padding:7px 10px;font-size:11.5px;color:var(--black);cursor:text" onclick="this.select()">
+      <div style="font-size:11px;color:var(--gray2);margin-top:6px"><i class="ti ti-info-circle"></i> Copie e envie via e-mail, WhatsApp ou qualquer canal. O cliente não precisa de senha.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mGerarLinkNPS')">Fechar</button>
+      <button class="btn-primary" onclick="gerarLinkNPS()"><i class="ti ti-link"></i>Gerar link</button>
+      <button class="btn-ghost" id="btnCopiarLink" style="display:none" onclick="copiarLinkNPS()"><i class="ti ti-copy"></i>Copiar</button>
+    </div>
+  </div>
+</div>
 <div class="modal-ov" id="mNPSEnvio">
   <div class="modal" style="max-width:420px">
     <div class="modal-ttl"><span><i class="ti ti-send"></i>Registrar Envio de Pesquisa NPS</span><span class="modal-close" onclick="closeM('mNPSEnvio')"><i class="ti ti-x"></i></span></div>
@@ -2176,6 +2244,7 @@ function openM(id){
   if(id==='mAcao')populateAcaoSelect();
   if(id==='mNovoVoC')populateVoCSelect();
   if(id==='mMetas')openM_mMetas();
+  if(id==='mGerarLinkNPS')_populateLinkNPSSelect();
   document.getElementById(id).classList.add('open');
 }
 function closeM(id){if(id==='mReuniao')_resetMReuniao?.();document.getElementById(id).classList.remove('open')}
@@ -2236,6 +2305,143 @@ function registrarBackup(){
   CS_DB.set('lastBackup',{data:new Date().toISOString(),totalRegistros});
   toast('Backup exportado! Salve o arquivo no Google Drive ou Dropbox.');
   updateStatusBar();
+}
+
+// ═══ NPS PÚBLICO ═══
+let _npsPubNota=null;
+function checkNPSPublicoUrl(){
+  const params=new URLSearchParams(window.location.search);
+  const enc=params.get('nps');
+  if(!enc)return false;
+  try{
+    const cid=atob(enc);
+    const c=CS_DB.getClienteById(cid);
+    const el=document.getElementById('npsPublicoScreen');
+    if(!el)return false;
+    document.getElementById('loginScreen').style.display='none';
+    el.style.display='block';
+    document.getElementById('npsPubEmpresa').innerHTML=`<i class="ti ti-building" style="margin-right:8px;color:var(--gray3)"></i>${c?.empresa||'Sua empresa'}`;
+    el.dataset.cid=cid;
+    el.dataset.empresa=c?.empresa||'';
+    // Build rating buttons
+    const btnsEl=document.getElementById('npsPubBtns');
+    if(btnsEl)btnsEl.innerHTML=[0,1,2,3,4,5,6,7,8,9,10].map(n=>{
+      const cor=n<=6?'#ef4444':n<=8?'#f59e0b':'#22c55e';
+      return`<button id="npsPubBtn${n}" onclick="selNPSPub(${n})" style="width:44px;height:44px;border-radius:8px;border:2px solid var(--gray4);background:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;color:${cor}">${n}</button>`;
+    }).join('');
+    return true;
+  }catch(_){return false;}
+}
+function selNPSPub(n){
+  _npsPubNota=n;
+  [0,1,2,3,4,5,6,7,8,9,10].forEach(i=>{
+    const b=document.getElementById('npsPubBtn'+i);
+    if(!b)return;
+    const cor=i<=6?'#ef4444':i<=8?'#f59e0b':'#22c55e';
+    b.style.background=i===n?cor:'#fff';
+    b.style.color=i===n?'#fff':cor;
+    b.style.borderColor=i===n?cor:'var(--gray4)';
+  });
+  const g=n>=9?'Promotor ✓':n>=7?'Neutro':'Detrator';
+  const cor=n>=9?'var(--green)':n>=7?'var(--yellow)':'var(--red)';
+  const gEl=document.getElementById('npsPubGrupo');
+  if(gEl){gEl.textContent=g;gEl.style.color=cor;}
+}
+function submitNPSPublico(){
+  if(_npsPubNota===null){alert('Por favor, selecione uma nota de 0 a 10.');return;}
+  const el=document.getElementById('npsPublicoScreen');
+  const cid=el?.dataset.cid;
+  const empresa=el?.dataset.empresa||'';
+  const respondente=document.getElementById('npsPubRespondente')?.value||'Anônimo';
+  const comentario=document.getElementById('npsPubComentario')?.value||'';
+  const nps={clienteId:cid,empresa,nota:_npsPubNota,respondente,comentario,cs:'Sistema',data:new Date().toLocaleDateString('pt-BR'),dataISO:new Date().toISOString(),canal:'link_publico'};
+  CS_DB.saveNPS(nps);
+  if(el)el.style.display='none';
+  const ok=document.getElementById('npsPublicoObrigado');
+  if(ok){ok.style.display='flex';}
+}
+function gerarLinkNPS(){
+  const sel=document.getElementById('linkNPSCliente');
+  if(!sel||!sel.value){alert('Selecione um cliente.');return;}
+  const enc=btoa(sel.value);
+  const base=window.location.origin+window.location.pathname;
+  const url=`${base}?nps=${enc}`;
+  const inp=document.getElementById('linkNPSUrl');
+  if(inp)inp.value=url;
+  const res=document.getElementById('linkNPSResult');
+  if(res)res.style.display='block';
+  const btn=document.getElementById('btnCopiarLink');
+  if(btn)btn.style.display='';
+}
+function copiarLinkNPS(){
+  const inp=document.getElementById('linkNPSUrl');
+  if(!inp)return;
+  navigator.clipboard?.writeText(inp.value).then(()=>toast('Link copiado!','ok')).catch(()=>{inp.select();document.execCommand('copy');toast('Link copiado!','ok');});
+}
+function _populateLinkNPSSelect(){
+  const sel=document.getElementById('linkNPSCliente');
+  if(!sel)return;
+  const cl=CS_DB.getClientes();
+  sel.innerHTML=cl.map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+  const res=document.getElementById('linkNPSResult');
+  if(res)res.style.display='none';
+  const btn=document.getElementById('btnCopiarLink');
+  if(btn)btn.style.display='none';
+}
+
+// ═══ PRÓXIMO PASSO APÓS REUNIÃO ═══
+function _abrirProximoPasso(clienteId,empresa,tipoReuniao){
+  const ppEmp=document.getElementById('ppEmpresa');
+  if(ppEmp)ppEmp.textContent=empresa;
+  const sugs=[
+    {label:`Enviar e-mail de follow-up para ${empresa}`,desc:'Acompanhar pontos discutidos na reunião'},
+    {label:`Criar ação de acompanhamento — ${tipoReuniao}`,desc:'Registrar próximo passo no Kanban'},
+    {label:`Agendar próxima reunião com ${empresa}`,desc:'Marcar nova data de follow-up'},
+  ];
+  const el=document.getElementById('ppSugestoes');
+  if(el)el.innerHTML=sugs.map((s,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--gray4);border-radius:8px;cursor:pointer;transition:background .12s" onclick="selProximoPasso(this,${i},'${clienteId}')" data-idx="${i}">
+    <div style="width:18px;height:18px;border-radius:50%;border:2px solid var(--gray4);flex-shrink:0" class="pp-radio"></div>
+    <div><div style="font-weight:500;font-size:12.5px">${s.label}</div><div style="font-size:11.5px;color:var(--gray2)">${s.desc}</div></div>
+  </div>`).join('');
+  const btn=document.getElementById('ppCriarAcao');
+  if(btn)btn.onclick=()=>{closeM('mProximoPasso');const sel=document.querySelector('#ppSugestoes [data-selected]');const desc=sel?sugs[parseInt(sel.dataset.idx)].label:sugs[1].label;setTimeout(()=>{populateAcaoSelect();const s=document.getElementById('acCliente');if(s)s.value=clienteId;document.getElementById('acDesc').value=desc;openM('mAcao');},100);};
+  openM('mProximoPasso');
+}
+function selProximoPasso(el,idx,cid){
+  document.querySelectorAll('#ppSugestoes [data-idx]').forEach(e=>{e.style.background='';e.style.borderColor='var(--gray4)';e.querySelector('.pp-radio').style.borderColor='var(--gray4)';delete e.dataset.selected;});
+  el.style.background='var(--bbg)';el.style.borderColor='var(--blue)';
+  el.querySelector('.pp-radio').style.borderColor='var(--blue)';
+  el.dataset.selected='1';
+}
+
+// ═══ SCORE DE COMPLETUDE ═══
+const _CAMPOS_COMPLETUDE=['empresa','cnpj','segmento','tier','status','mrr','veiculos','responsavelCS','contato','email','telefone','cidade','uf','produtos','dataRenovacao'];
+function _calcCompletude(c){
+  const total=_CAMPOS_COMPLETUDE.length;
+  const filled=_CAMPOS_COMPLETUDE.filter(k=>c[k]&&String(c[k]).trim()!==''&&c[k]!=='—').length;
+  return{pct:Math.round(filled/total*100),filled,total};
+}
+function _renderCompletude(c){
+  const el=document.getElementById('completudeBadge');if(!el)return;
+  const {pct,filled,total}=_calcCompletude(c);
+  const cor=pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
+  el.innerHTML=`<div style="background:var(--gray5);border-radius:7px;padding:9px 13px;display:flex;align-items:center;gap:12px">
+    <div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray2);margin-bottom:4px"><span><i class="ti ti-checklist"></i> Completude do cadastro</span><span style="font-weight:600;color:${cor}">${pct}% — ${filled}/${total} campos</span></div>
+    <div style="background:var(--gray4);border-radius:3px;height:5px"><div style="width:${pct}%;background:${cor};border-radius:3px;height:5px;transition:width .4s"></div></div></div>
+    ${pct<100?`<button class="btn-ghost" style="font-size:10.5px;padding:3px 8px;flex-shrink:0;color:${cor}" onclick="destacarCamposVazios()"><i class="ti ti-alert-circle"></i>Ver lacunas</button>`:'<span style="color:var(--green);font-size:12px"><i class="ti ti-circle-check"></i> Completo</span>'}
+  </div>`;
+}
+function destacarCamposVazios(){
+  const c=CS_DB.getClienteById(document.getElementById('editClienteId').value);if(!c)return;
+  const mapa={cnpj:'eCNPJ',segmento:'eSeg',tier:'eTier',status:'eStatus',mrr:'eMRR',veiculos:'eVeiculos',responsavelCS:'eRespCS',contato:'eContato',email:'eEmail',telefone:'eTelefone',cidade:'eCidade',uf:'eUF',produtos:'eProdutos',dataRenovacao:'eRenovacao'};
+  let primeiro=null;
+  Object.entries(mapa).forEach(([k,id])=>{
+    const el=document.getElementById(id);if(!el)return;
+    const vazio=!c[k]||String(c[k]).trim()===''||c[k]==='—';
+    el.style.borderColor=vazio?'var(--red)':'';
+    if(vazio&&!primeiro)primeiro=el;
+  });
+  if(primeiro)primeiro.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 // ═══ PAINEL DO DIA ═══
@@ -3187,6 +3393,7 @@ function salvarReuniao(){
   CS_DB.saveReuniao(reu);closeM('mReuniao');toast(`Reunião ${reu.tipo} ${isEdit?'atualizada':'salva'}! NPS, HS e Timeline atualizados.`);
   renderDashboard();renderReunioes();updateStatusBar();
   resetParticipantes();
+  if(!isEdit)setTimeout(()=>_abrirProximoPasso(cid,cli?.empresa||'',reu.tipo),400);
 }
 
 // ═══ AÇÕES / KANBAN ═══
@@ -4778,6 +4985,7 @@ function toggleTheme(){dark=!dark;document.documentElement.classList.toggle('dar
 // ═══ INIT ═══
 function initApp(){
   CS_DB.init();
+  if(checkNPSPublicoUrl())return;
   seedOnboardingsIfEmpty();
   renderDashboard();renderClientes();renderReunioes();renderKanban();renderAlertas();
   buildRatings();populateTlSelect();populateObSelect();populateEngSelect();populateGrupoSelect();
@@ -4791,6 +4999,8 @@ function initApp(){
     if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();nav(document.querySelector('[data-p=novo-cliente]'),'novo-cliente');}
     if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='A'){e.preventDefault();nav(document.querySelector('[data-p=alertas]'),'alertas');}
     if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();const s=document.getElementById('fltQ');if(s){nav(document.querySelector('[data-p=clientes]'),'clientes');setTimeout(()=>s.focus(),80);}}
+    if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='R'){e.preventDefault();openM('mReuniao');}
+    if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='T'){e.preventDefault();populateAcaoSelect();openM('mAcao');}
   });
   // Limpar campo-erro ao digitar
   document.addEventListener('input',e=>{if(e.target.classList.contains('campo-erro')&&e.target.value.trim())e.target.classList.remove('campo-erro');});
@@ -4853,6 +5063,7 @@ function abrirEditar(id) {
   hiddenOrig.type='hidden';hiddenOrig.id='eCNPJOriginal';hiddenOrig.value=c.cnpj||'';
   document.getElementById('editClienteId').after(hiddenOrig);
   openM('mEditarCliente');
+  _renderCompletude(c);
   // Mostrar última observação registrada na timeline, como referência (não editável aqui)
   const tl = CS_DB.getTimeline(c.id);
   const ultimaObs = tl.find(t => t.tipo === 'comentario');
@@ -7373,6 +7584,18 @@ window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promis
     btn.onclick=function(){
       try{doLogin();}catch(err){alert('Erro ao entrar: '+err.message);}
     };
+  }
+})();
+// Verificar NPS público no carregamento da página (antes do login)
+(function(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('nps')){
+    try{
+      CS_DB.init();
+      if(checkNPSPublicoUrl()){
+        document.getElementById('loginScreen').style.display='none';
+      }
+    }catch(_){}
   }
 })();
 </script>
