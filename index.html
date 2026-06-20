@@ -1473,6 +1473,22 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- MODAL NOVA META - PLANO DE SUCESSO -->
+<div class="modal-ov" id="mNovaMetaSP">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-ttl"><span><i class="ti ti-target"></i>Nova Meta — Plano de Sucesso</span><span class="modal-close" onclick="closeM('mNovaMetaSP')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="mMetaSPClienteId">
+    <input type="hidden" id="mMetaSPIdx" value="-1">
+    <div class="fg"><label>Título da meta <span class="req">*</span></label><input type="text" id="mMetaSPTitulo" placeholder="Ex: Atingir NPS ≥ 70 no Q3" onkeydown="if(event.key==='Enter')salvarMetaSPModal()"></div>
+    <div class="fg"><label>Prazo</label><input type="text" id="mMetaSPPrazo" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDataMeta(this)" onkeydown="if(event.key==='Enter')salvarMetaSPModal()"></div>
+    <div class="fg"><label>Indicador de sucesso</label><input type="text" id="mMetaSPIndicador" placeholder="Ex: NPS≥70, churn=0, 3 reuniões/mês" onkeydown="if(event.key==='Enter')salvarMetaSPModal()"></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mNovaMetaSP')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarMetaSPModal()"><i class="ti ti-device-floppy"></i>Salvar meta</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL REUNIÃO -->
 <div class="modal-ov" id="mReuniao">
   <div class="modal">
@@ -5209,6 +5225,7 @@ function renderPlanoSucesso(cid){
         <div style="font-weight:600;font-size:12.5px;${m.concluida?'text-decoration:line-through;color:var(--gray2)':''}">${m.titulo}</div>
         <div style="font-size:11px;color:var(--gray3)">${m.prazo||'Sem prazo'} ${m.indicador?'· '+m.indicador:''}</div>
       </div>
+      <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="editarMetaSP('${cid}',${i})"><i class="ti ti-edit"></i></button>
       <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="toggleMetaSP('${cid}',${i})">${m.concluida?'Reabrir':'Concluir'}</button>
       <button class="btn-ghost" style="padding:4px 8px;font-size:11px;color:var(--red)" onclick="removerMetaSP('${cid}',${i})"><i class="ti ti-trash"></i></button>
     </div>`).join('');
@@ -5224,26 +5241,53 @@ function renderPlanoSucesso(cid){
       ${marcos.map(m=>{const dt=plano.marcos?.[m.id];return`<div style="text-align:center;padding:14px 8px;background:${dt?'var(--gbg)':'var(--gray5)'};border-radius:10px;border:1px solid ${dt?'#5dcaa5':'var(--gray4)'}">
         <i class="ti ${m.icone}" style="font-size:22px;color:${dt?'var(--green)':'var(--gray3)'}"></i>
         <div style="font-size:11.5px;font-weight:600;margin:6px 0 4px">${m.label}</div>
-        ${dt?`<div style="font-size:10.5px;color:var(--gray2)">${dt}</div>`:`<button class="btn-ghost" style="font-size:10px;padding:3px 7px;margin-top:3px" onclick="registrarMarcoSP('${cid}','${m.id}')">Registrar</button>`}
+        ${dt?`<div style="font-size:10.5px;color:var(--gray2)">${dt}</div>`:`<span id="marcoBtnWrap_${m.id}"><button class="btn-ghost" style="font-size:10px;padding:3px 7px;margin-top:3px" onclick="registrarMarcoSP('${cid}','${m.id}',this.parentElement)">Registrar</button></span>`}
       </div>`}).join('')}
     </div>`;
   }
 }
 function abrirModalPlanoSucesso(cid){
-  const titulo=prompt('Título da meta:');if(!titulo)return;
-  const prazo=prompt('Prazo (dd/mm/aaaa) — opcional:');
-  const indicador=prompt('Indicador de sucesso (ex: NPS≥70) — opcional:');
-  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
-  plano.metas.push({titulo,prazo:prazo||'',indicador:indicador||'',concluida:false,criadaEm:new Date().toISOString()});
-  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
-  renderPlanoSucesso(cid);
-  toast('Meta adicionada!','ok');
+  document.getElementById('mMetaSPClienteId').value=cid;
+  document.getElementById('mMetaSPIdx').value='-1';
+  document.getElementById('mMetaSPTitulo').value='';
+  document.getElementById('mMetaSPPrazo').value='';
+  document.getElementById('mMetaSPIndicador').value='';
+  openM('mNovaMetaSP');
+  setTimeout(()=>document.getElementById('mMetaSPTitulo')?.focus(),80);
 }
+function salvarMetaSPModal(){
+  const cid=document.getElementById('mMetaSPClienteId').value;
+  const titulo=document.getElementById('mMetaSPTitulo').value.trim();
+  if(!titulo){toast('Informe o título da meta.','warn');return;}
+  const prazo=document.getElementById('mMetaSPPrazo').value.trim();
+  const indicador=document.getElementById('mMetaSPIndicador').value.trim();
+  const idx=parseInt(document.getElementById('mMetaSPIdx').value);
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(idx>=0&&plano.metas[idx]){
+    plano.metas[idx].titulo=titulo;plano.metas[idx].prazo=prazo;plano.metas[idx].indicador=indicador;
+  }else{
+    plano.metas.push({titulo,prazo,indicador,concluida:false,criadaEm:new Date().toISOString()});
+  }
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  closeM('mNovaMetaSP');renderPlanoSucesso(cid);toast(idx>=0?'Meta atualizada!':'Meta adicionada!','ok');
+}
+function maskDataMeta(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5,9);el.value=v;}
 function toggleMetaSP(cid,idx){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
   if(plano.metas[idx])plano.metas[idx].concluida=!plano.metas[idx].concluida;
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
   renderPlanoSucesso(cid);
+}
+function editarMetaSP(cid,idx){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  const m=plano.metas[idx];if(!m)return;
+  document.getElementById('mMetaSPClienteId').value=cid;
+  document.getElementById('mMetaSPIdx').value=String(idx);
+  document.getElementById('mMetaSPTitulo').value=m.titulo||'';
+  document.getElementById('mMetaSPPrazo').value=m.prazo||'';
+  document.getElementById('mMetaSPIndicador').value=m.indicador||'';
+  openM('mNovaMetaSP');
+  setTimeout(()=>document.getElementById('mMetaSPTitulo')?.focus(),80);
 }
 function removerMetaSP(cid,idx){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
@@ -5251,8 +5295,15 @@ function removerMetaSP(cid,idx){
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
   renderPlanoSucesso(cid);
 }
-function registrarMarcoSP(cid,marco){
-  const data=prompt('Data do marco (dd/mm/aaaa):');if(!data)return;
+function registrarMarcoSP(cid,marco,btnEl){
+  const wrap=btnEl.parentElement;
+  wrap.innerHTML=`<input type="date" id="marcoDate_${marco}" style="font-size:10.5px;padding:3px 6px;border:1px solid var(--gray4);border-radius:6px;width:130px" value="${new Date().toISOString().slice(0,10)}"><button class="btn-primary" style="font-size:10px;padding:3px 8px;margin-left:4px" onclick="confirmarMarcoSP('${cid}','${marco}')"><i class="ti ti-check"></i></button><button class="btn-ghost" style="font-size:10px;padding:3px 6px" onclick="renderPlanoSucesso('${cid}')"><i class="ti ti-x"></i></button>`;
+}
+function confirmarMarcoSP(cid,marco){
+  const inp=document.getElementById('marcoDate_'+marco);
+  if(!inp||!inp.value){toast('Informe a data.','warn');return;}
+  const [y,m,d]=inp.value.split('-');
+  const data=`${d}/${m}/${y}`;
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
   if(!plano.marcos)plano.marcos={};
   plano.marcos[marco]=data;
