@@ -6027,7 +6027,8 @@ function renderGrupos(){
   if(!grupos.length){wrap.innerHTML=`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-building-community" style="font-size:36px;display:block;margin-bottom:12px;color:var(--gray4)"></i><div style="font-size:14px;font-weight:500">Nenhum grupo econômico cadastrado</div><div style="font-size:12px;margin-top:6px">Clique em "Novo Grupo" para começar.</div></div>`;return;}
   wrap.innerHTML=grupos.map(g=>{
     const membros=CS_DB.getClientes().filter(c=>c.grupoId===g.id);
-    const mrrTotal=membros.reduce((s,c)=>s+((parseFloat(c.mensalidadePorVeiculo)||0)*(parseFloat(c.veiculos)||0)),0);
+    const _parseMRR=c=>parseInt((c.mrr||'').replace(/\D/g,''))||((parseFloat(c.mensalidadePorVeiculo)||0)*(parseFloat(c.veiculos)||0));
+    const mrrTotal=membros.reduce((s,c)=>s+_parseMRR(c),0);
     const hsMedia=membros.length?Math.round(membros.reduce((s,c)=>s+(c.healthScore||70),0)/membros.length):null;
     const npsAll=CS_DB.getAllNPS().filter(n=>membros.some(c=>c.id===n.clienteId));
     const npsCalc=CS_DB.calcNPS(npsAll);
@@ -6079,7 +6080,7 @@ function _abrirNovoGrupoModal(){document.getElementById('mGrupoId').value='';doc
 function salvarGrupo(){const id=document.getElementById('mGrupoId').value;const nome=document.getElementById('mGrupoNome').value.trim();const descricao=document.getElementById('mGrupoDesc').value.trim();if(!nome){toast('Informe o nome do grupo.','warn');return}CS_DB.saveGrupo({id:id||undefined,nome,descricao});closeM('mGrupo');renderGrupos();populateGrupoSelect();toast('Grupo salvo!')}
 function salvarGrupoEAdicionar(){const nome=document.getElementById('mGrupoNome').value.trim();const descricao=document.getElementById('mGrupoDesc').value.trim();if(!nome){toast('Informe o nome do grupo.','warn');return}const g=CS_DB.saveGrupo({id:undefined,nome,descricao});closeM('mGrupo');renderGrupos();populateGrupoSelect();toast('Grupo criado! Agora adicione a primeira empresa.');setTimeout(()=>abrirNovaFilial(g.id),200);}
 function excluirGrupo(id,nome){confirmar(`Excluir o grupo "${nome}"?\nAs empresas vinculadas não serão apagadas — apenas desvinculadas.`,()=>{CS_DB.deleteGrupo(id);renderGrupos();populateGrupoSelect();toast('Grupo excluído.');},'Excluir grupo','Excluir');}
-function irParaCliente360(clienteId){const el=document.querySelector('[data-p=cliente360]');nav(el,'cliente360');setTimeout(()=>{const sel=document.getElementById('selC360');if(sel){sel.value=clienteId;sel.dispatchEvent(new Event('change'))}},150)}
+function irParaCliente360(clienteId){const el=document.querySelector('[data-p=cliente360]');nav(el,'cliente360');setTimeout(()=>{const sel=document.getElementById('c360Select');if(sel){sel.value=clienteId;renderCliente360()}},150)}
 
 function abrirNovaFilial(grupoId){
   document.getElementById('mFilialGrupoId').value=grupoId;
