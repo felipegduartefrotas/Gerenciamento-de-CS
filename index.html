@@ -5674,6 +5674,21 @@ function gerarRelatorioDiretoria(){
     </tr>`;
   }).join('');
 
+  // Grupos Econômicos consolidado
+  const grupos=CS_DB.getGrupos();
+  const todosClientes=CS_DB.getClientes();
+  const gruposHtml=grupos.length?grupos.map(g=>{
+    const mb=todosClientes.filter(c=>c.grupoId===g.id);
+    if(!mb.length)return'';
+    const mrrG=mb.reduce((s,c)=>s+(parseInt((c.mrr||'').replace(/\D/g,''))||((parseFloat(c.mensalidadePorVeiculo)||0)*(parseFloat(c.veiculos)||0))),0);
+    const hsG=Math.round(mb.reduce((s,c)=>s+(c.healthScore||70),0)/mb.length);
+    const npsGAll=CS_DB.getAllNPS().filter(n=>mb.some(c=>c.id===n.clienteId));
+    const npsGCalc=CS_DB.calcNPS(npsGAll);
+    const npsGStr=npsGCalc.total?`${npsGCalc.score>=0?'+':''}${npsGCalc.score}`:'—';
+    const risco=mb.filter(c=>calcChurnScore(c)>=40).length;
+    return`<tr><td style="font-weight:700">${g.nome}</td><td>${mb.length}</td><td style="font-weight:700">R$${(mrrG/1000).toFixed(1)}K</td><td style="color:${hsColor(hsG)};font-weight:700">${hsG}</td><td>${npsGStr}</td><td style="color:${risco>0?'#D10000':'#1d9e75'};font-weight:600">${risco>0?risco+' em risco':'Saudável'}</td></tr>`;
+  }).filter(Boolean).join(''):null;
+
   // Recomendações específicas por cliente crítico
   const recCrit=clientes.filter(c=>calcChurnScore(c)>=40).slice(0,5).map(c=>{
     const rec=recomendarAcao(c,c.id);const score=calcChurnScore(c);const lb=churnLabel(score);
@@ -5734,6 +5749,7 @@ ${mrrRisco>0?`<div class="alert-box"><strong style="color:#8a6000">⚠ MRR em ri
 <h2>Análise Executiva — Conta a Conta</h2>
 <table><thead><tr><th>Cliente</th><th>Tier</th><th>MRR</th><th>HS</th><th>Tendência</th><th>NPS</th><th>Churn</th><th>Renovação</th><th>Próxima ação</th></tr></thead><tbody>${rows}</tbody></table>
 ${recCrit?`<h2>Recomendações Priorizadas — Contas em Risco</h2><div>${recCrit}</div>`:''}
+${gruposHtml?`<h2>Grupos Econômicos — Visão Consolidada</h2><table><thead><tr><th>Grupo</th><th>Empresas</th><th>MRR Consolidado</th><th>HS Médio</th><th>NPS</th><th>Status</th></tr></thead><tbody>${gruposHtml}</tbody></table>`:''}
 <h2>Resumo Executivo</h2>
 <div style="background:#f9f9f9;border-left:4px solid #111;padding:14px 16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.8">
   A carteira conta com <strong>${clientes.length} clientes ativos</strong>, MRR de <strong>R$${(mrrTotal/1000).toFixed(1)}K</strong> e ARR projetado de <strong>R$${(mrrTotal*12/1000).toFixed(0)}K</strong>.
