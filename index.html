@@ -3485,12 +3485,40 @@ function renderAgendaResumo(){
   }).join('');
   listEl.innerHTML=html||'<div style="text-align:center;padding:30px 0;color:var(--gray3)"><i class="ti ti-calendar-off" style="font-size:30px;display:block;margin-bottom:8px"></i><div style="font-size:12px">Nenhuma reunião encontrada</div></div>';
 }
+function _buildEnderecoCliente(cli){
+  if(!cli)return'';
+  var rua=(cli.logradouro||'').trim();
+  var num=(cli.numero||'').trim();
+  var bairro=(cli.bairro||'').trim();
+  var cidade=(cli.cidade||'').trim();
+  var uf=(cli.uf||'').trim();
+  var partes=[];
+  if(rua)partes.push(rua+(num?', '+num:''));
+  if(bairro)partes.push(bairro);
+  if(cidade)partes.push(cidade+(uf?' - '+uf:''));
+  else if(uf)partes.push(uf);
+  return partes.join(', ');
+}
 function agendaToggleModalidade(mod){
   document.getElementById('agrModalidade').value=mod;
   document.getElementById('modBtnOnline').className='mod-btn online'+(mod==='online'?' active':'');
   document.getElementById('modBtnPres').className='mod-btn pres'+(mod==='presencial'?' active':'');
   var wrap=document.getElementById('agrEnderecoWrap');
   if(wrap)wrap.style.display=mod==='presencial'?'':'none';
+  // Ao mudar para presencial: auto-preenche endereço do cliente se campo estiver vazio
+  if(mod==='presencial'){
+    var endFld=document.getElementById('agrEndereco');
+    if(endFld&&!endFld.value.trim()){
+      var cid2=document.getElementById('agrCliente')?.value;
+      var cli2=cid2?CS_DB.getClienteById(cid2):null;
+      var endCli=_buildEnderecoCliente(cli2);
+      if(endCli){
+        endFld.value=endCli;
+        document.getElementById('agrLat').value='';
+        document.getElementById('agrLng').value='';
+      }
+    }
+  }
 }
 function _endParsearPartes(q){
   // Detecta rua, número e cidade em formatos variados:
@@ -3553,8 +3581,19 @@ async function _nominatimBuscar(q,limite){
   // Fallback geral: busca livre com query original
   try{
     var fr=await fetch(base+'&q='+encodeURIComponent(q),{headers:hdrs});
-    return await fr.json();
-  }catch(e){return[];}
+    var fd=await fr.json();
+    if(fd&&fd.length)return fd;
+  }catch(e){}
+  // Fallback cidade: pin aproximado quando endereço completo não é reconhecido pelo Nominatim
+  var _cityFb=pts.city||(function(){var s=q.split(/\s*,\s*/);return(s[s.length-1]||'').split(/\s*[-–]\s*/)[0].trim();})();
+  if(_cityFb){
+    try{
+      var fcd=await fetch(base+'&q='+encodeURIComponent(_cityFb),{headers:hdrs});
+      var fcdd=await fcd.json();
+      if(fcdd&&fcdd.length)return fcdd;
+    }catch(e){}
+  }
+  return[];
 }
 var _agrEndTimer=null;
 function agendaEnderecoBuscar(q){
@@ -4332,6 +4371,13 @@ function _agrUpdateInfo(){
   if(!cli){el.innerHTML='';return;}
   // auto-fill email
   if(cli.email){const em=document.getElementById('agrEmailCliente');if(!em.value)em.value=cli.email;}
+  // auto-fill endereço quando presencial e campo vazio
+  var _mod=document.getElementById('agrModalidade')?.value;
+  var _endFld=document.getElementById('agrEndereco');
+  if(_mod==='presencial'&&_endFld&&!_endFld.value.trim()){
+    var _endCli=_buildEnderecoCliente(cli);
+    if(_endCli){_endFld.value=_endCli;document.getElementById('agrLat').value='';document.getElementById('agrLng').value='';}
+  }
   const hs=cli.healthScore??'—';
   const nps=cli.nps??'—';
   const mrr=cli.mrr?`R$ ${Number(cli.mrr).toLocaleString('pt-BR')}`:'—';
