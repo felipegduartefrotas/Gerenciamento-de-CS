@@ -322,6 +322,7 @@ tr:hover td{background:#fafafa}
 .cr-name{font-size:13px;font-weight:600;color:var(--black)}
 .cr-type{font-size:11.5px;color:var(--gray2);margin-top:2px}
 .cr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.cr-f-full{grid-column:1/-1}
 .cr-field{background:var(--white);border:1px solid var(--gray4);border-radius:7px;padding:7px 9px}
 .cr-f-lbl{font-size:9.5px;color:var(--gray2);margin-bottom:2px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 .cr-f-val{font-size:12px;color:var(--black);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -5261,18 +5262,87 @@ async function buscarCNPJ(){
   const raw=document.getElementById('fCNPJ').value.replace(/\D/g,'');
   if(raw.length!==14){sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ deve ter 14 dígitos.';return}
   sd('cnpjLoad',true);sd('cnpjErr',false);document.getElementById('cnpjResult').style.display='none';
-  try{const r=await fetch(`https://publica.cnpj.ws/cnpj/${raw}`);if(!r.ok)throw new Error();const d=await r.json();
+  try{
+    // Normaliza dados das duas APIs para estrutura única
+    let d=null;
+    try{
+      const r=await fetch('https://publica.cnpj.ws/cnpj/'+raw);
+      if(r.ok){
+        const j=await r.json();
+        const est=j.estabelecimento||{};
+        const cepRaw=(est.cep||'').replace(/\D/g,'');
+        const tel=est.ddd1&&est.telefone1?'('+est.ddd1+') '+est.telefone1:'';
+        d={
+          razao:j.razao_social||'',fantasia:j.nome_fantasia||'',
+          natJur:j.natureza_juridica?.descricao||'',sit:est.situacao_cadastral||'',
+          abertura:est.data_inicio_atividade||'',
+          cnae:est.atividade_principal?(est.atividade_principal.id+' — '+est.atividade_principal.descricao):'',
+          logradouro:est.logradouro||'',numero:est.numero||'',
+          complemento:est.complemento||'',bairro:est.bairro||'',
+          cidade:est.municipio?.nome||'',uf:est.estado?.sigla||'',
+          cep:cepRaw,tel:tel,email:est.email||''
+        };
+      }
+    }catch(_){}
+    if(!d){
+      // Fallback: BrasilAPI
+      const r2=await fetch('https://brasilapi.com.br/api/cnpj/v1/'+raw);
+      if(!r2.ok)throw new Error('nao_encontrado');
+      const b=await r2.json();
+      const cepRaw=(b.cep||'').replace(/\D/g,'');
+      const tel=(b.ddd_telefone_1||'').trim();
+      d={
+        razao:b.razao_social||'',fantasia:b.nome_fantasia||'',
+        natJur:b.natureza_juridica||'',sit:b.descricao_situacao_cadastral||'',
+        abertura:b.data_inicio_atividade||'',
+        cnae:b.cnae_fiscal?(b.cnae_fiscal+' — '+(b.cnae_fiscal_descricao||'')):'',
+        logradouro:b.logradouro||'',numero:b.numero||'',
+        complemento:b.complemento||'',bairro:b.bairro||'',
+        cidade:b.municipio||'',uf:b.uf||'',
+        cep:cepRaw,tel:tel,email:b.email||''
+      };
+    }
     sd('cnpjLoad',false);
-    document.getElementById('fRazao').value=d.razao_social||'';document.getElementById('fFantasia').value=d.nome_fantasia||'';
-    document.getElementById('fNatJur').value=d.natureza_juridica?.descricao||'';document.getElementById('fSit').value=d.estabelecimento?.situacao_cadastral||'—';
-    document.getElementById('fAbert').value=d.estabelecimento?.data_inicio_atividade?formatDate(d.estabelecimento.data_inicio_atividade):'—';
-    document.getElementById('fCNAE').value=d.estabelecimento?.atividade_principal?(d.estabelecimento.atividade_principal.id+' — '+d.estabelecimento.atividade_principal.descricao):'';
-    const cep=(d.estabelecimento?.cep||'').replace(/\D/g,'');if(cep.length===8){document.getElementById('fCEP').value=cep.slice(0,5)+'-'+cep.slice(5);buscarCEP()}
-    const ini=(d.razao_social||'--').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();const sit=d.estabelecimento?.situacao_cadastral||'';
+    // Dados da empresa
+    document.getElementById('fRazao').value=d.razao;
+    document.getElementById('fFantasia').value=d.fantasia;
+    document.getElementById('fNatJur').value=d.natJur;
+    document.getElementById('fSit').value=d.sit;
+    document.getElementById('fAbert').value=d.abertura?formatDate(d.abertura.slice(0,10)):'';
+    document.getElementById('fCNAE').value=d.cnae;
+    // Endereço completo diretamente da API (sem segundo lookup)
+    if(d.cep.length===8)document.getElementById('fCEP').value=d.cep.slice(0,5)+'-'+d.cep.slice(5);
+    document.getElementById('fLogr').value=d.logradouro;
+    document.getElementById('fNum').value=d.numero;
+    document.getElementById('fComp').value=d.complemento;
+    document.getElementById('fBairro').value=d.bairro;
+    document.getElementById('fCidade').value=d.cidade;
+    const uf=d.uf;
+    for(const o of document.getElementById('fUF').options)if(o.value===uf){o.selected=true;break;}
+    document.getElementById('fRegiao').value=REGIOES[uf]||'—';
+    // Contato (só preenche se estiver vazio)
+    if(d.email&&!document.getElementById('fContEmail').value)document.getElementById('fContEmail').value=d.email;
+    if(d.tel&&!document.getElementById('fContTel').value)document.getElementById('fContTel').value=d.tel;
+    // Atualiza mapa
+    atualizarMapa(d.cidade,uf,REGIOES[uf]||'—',d.logradouro,d.bairro);
+    // Card de resultado com endereço completo
+    const ini=d.razao.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'??';
+    const sitCls=d.sit.toLowerCase()==='ativa'?'s-ativo':'s-inativo';
+    const endParts=[d.logradouro,d.numero,d.complemento,d.bairro,d.cidade+(uf?' - '+uf:''),d.cep.length===8?'CEP '+d.cep.slice(0,5)+'-'+d.cep.slice(5):''].filter(Boolean);
     document.getElementById('cnpjResult').style.display='block';
-    document.getElementById('cnpjResult').innerHTML=`<div class="cr-hdr"><div class="cr-av">${ini}</div><div><div class="cr-name">${d.razao_social||''}</div><div class="cr-type">${d.nome_fantasia?d.nome_fantasia+' · ':''}<span class="${sit.toLowerCase()==='ativa'?'s-ativo':'s-inativo'}">${sit}</span></div></div></div><div class="cr-grid"><div class="cr-field"><div class="cr-f-lbl">CNAE</div><div class="cr-f-val">${d.estabelecimento?.atividade_principal?.id||'—'}</div></div><div class="cr-field"><div class="cr-f-lbl">Natureza</div><div class="cr-f-val">${d.natureza_juridica?.descricao||'—'}</div></div><div class="cr-field"><div class="cr-f-lbl">Abertura</div><div class="cr-f-val">${d.estabelecimento?.data_inicio_atividade?formatDate(d.estabelecimento.data_inicio_atividade):'—'}</div></div></div>`;
-    toast('CNPJ encontrado! Dados preenchidos automaticamente.');
-  }catch(_e){sd('cnpjLoad',false);sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ não encontrado. Preencha manualmente.'}}
+    document.getElementById('cnpjResult').innerHTML=
+      '<div class="cr-hdr"><div class="cr-av">'+ini+'</div><div><div class="cr-name">'+d.razao+'</div><div class="cr-type">'+(d.fantasia?d.fantasia+' &middot; ':'')+'<span class="'+sitCls+'">'+d.sit+'</span></div></div></div>'
+      +'<div class="cr-grid">'
+        +'<div class="cr-field"><div class="cr-f-lbl">CNAE</div><div class="cr-f-val">'+( d.cnae.split(' — ')[0]||'—')+'</div></div>'
+        +'<div class="cr-field"><div class="cr-f-lbl">Abertura</div><div class="cr-f-val">'+(d.abertura?formatDate(d.abertura.slice(0,10)):'—')+'</div></div>'
+        +'<div class="cr-field"><div class="cr-f-lbl">Situação</div><div class="cr-f-val"><span class="'+sitCls+'">'+d.sit+'</span></div></div>'
+        +(endParts.length?'<div class="cr-field cr-f-full"><div class="cr-f-lbl"><i class="ti ti-map-pin" style="font-size:10px"></i> Endereço</div><div class="cr-f-val" style="white-space:normal;font-size:11.5px">'+endParts.join(', ')+'</div></div>':'')
+        +(d.tel?'<div class="cr-field"><div class="cr-f-lbl">Telefone</div><div class="cr-f-val">'+d.tel+'</div></div>':'')
+        +(d.email?'<div class="cr-field cr-f-full"><div class="cr-f-lbl">E-mail</div><div class="cr-f-val">'+d.email+'</div></div>':'')
+      +'</div>';
+    toast('CNPJ encontrado! Endereço completo preenchido automaticamente.','ok');
+  }catch(_e){sd('cnpjLoad',false);sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ não encontrado. Verifique o número ou preencha manualmente.'}
+}
 async function buscarCEP(){
   const raw=document.getElementById('fCEP').value.replace(/\D/g,'');if(raw.length!==8)return;
   sd('cepLoad',true);sd('cepErr',false);sd('cepOk',false);
