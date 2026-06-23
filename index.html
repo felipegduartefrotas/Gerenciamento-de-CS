@@ -3378,20 +3378,36 @@ function renderAgendaMapa(){
   var mapDiv=document.getElementById('agendaMapDiv');
   var emptyDiv=document.getElementById('agendaMapEmpty');
   if(!mapDiv)return;
-  // Se Leaflet não carregou, mostra apenas estado vazio
   if(typeof L==='undefined'){
     mapDiv.style.display='none';
     if(emptyDiv)emptyDiv.style.display='flex';
     return;
   }
   var acoes=CS_DB.get('acoes')||[];
-  var presenciais=acoes.filter(function(a){
-    return a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.modalidade==='presencial'&&a.lat&&a.lng;
+  var todasPres=acoes.filter(function(a){
+    return a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.modalidade==='presencial';
   });
-  if(!presenciais.length){
+  var comCoords=todasPres.filter(function(a){return a.lat&&a.lng;});
+  var semCoords=todasPres.filter(function(a){return(!a.lat||!a.lng)&&a.reuniaoEndereco;});
+  if(semCoords.length){
+    semCoords.forEach(function(a,i){setTimeout(function(){_geocodificarEAtualizar(a.id,a.reuniaoEndereco);},i*1500);});
+  }
+  if(!comCoords.length){
     if(window._agdMap){try{window._agdMap.remove();}catch(e){}window._agdMap=null;}
     mapDiv.style.display='none';
-    if(emptyDiv)emptyDiv.style.display='flex';
+    if(emptyDiv){
+      emptyDiv.style.display='flex';
+      var _emsg='';
+      if(semCoords.length){
+        _emsg='Localizando endereços das reuniões...<br>O mapa será exibido em instantes.';
+      }else if(todasPres.length){
+        _emsg='Reuniões presenciais sem endereço.<br>Use <b style="color:var(--green)">Editar dados da reunião</b> para adicionar o endereço.';
+      }else{
+        _emsg='Nenhuma reunião presencial com endereço cadastrado.<br>Ao agendar uma reunião <b style="color:var(--green)">Presencial</b>, informe o endereço para ela aparecer aqui.';
+      }
+      emptyDiv.innerHTML='<i class="ti ti-map-pin-off" style="font-size:34px"></i>'
+        +'<div style="font-size:12px;text-align:center;line-height:1.6;padding:0 24px">'+_emsg+'</div>';
+    }
     return;
   }
   mapDiv.style.display='block';
@@ -3403,7 +3419,7 @@ function renderAgendaMapa(){
     try{window._agdMap.eachLayer(function(l){if(l instanceof L.Marker)window._agdMap.removeLayer(l);});}catch(e){}
   }
   var bounds=[];
-  presenciais.forEach(function(a){
+  comCoords.forEach(function(a){
     var pop='<b>'+(a.empresa||'—')+'</b><br>'+(a.reuniaoData||'')+(a.reuniaoHora?' às '+a.reuniaoHora:'')+'<br><i>'+a.reuniaoTipo+'</i>';
     L.marker([a.lat,a.lng]).bindPopup(pop).addTo(window._agdMap);
     bounds.push([a.lat,a.lng]);
@@ -3598,6 +3614,21 @@ async function agendaGeocodificarEndereco(){
     document.getElementById('agrLng').value=data[0].lon;
     toast('Localização obtida! Reunião aparecerá no mapa.','ok');
   }catch(e){toast('Erro ao buscar endereço.','err');}
+}
+async function _geocodificarEAtualizar(acaoId,endereco){
+  if(!acaoId||!endereco)return;
+  try{
+    var data=await _nominatimBuscar(endereco,1);
+    if(!data||!data.length)return;
+    var acoes=CS_DB.get('acoes')||[];
+    var idx=acoes.findIndex(function(a){return a.id===acaoId;});
+    if(idx<0||acoes[idx].lat)return;
+    acoes[idx].lat=parseFloat(data[0].lat);
+    acoes[idx].lng=parseFloat(data[0].lon);
+    CS_DB.set('acoes',acoes);
+    var pg=document.getElementById('page-agenda');
+    if(pg&&pg.classList.contains('active'))try{renderAgendaMapa();}catch(e){}
+  }catch(e){}
 }
 var _agrParticipantes=[];
 function agrRenderParticipantes(){
@@ -4256,13 +4287,13 @@ function salvarReuniaoAgendada(){
     acoes[idx].reuniaoPauta=pauta;
     acoes[idx].modalidade=modalidade;
     acoes[idx].reuniaoEndereco=endereco;
-    if(lat)acoes[idx].lat=lat;
-    if(lng)acoes[idx].lng=lng;
+    if(lat){acoes[idx].lat=lat;acoes[idx].lng=lng;}
     acoes[idx].reuniaoParticipantes=_agrParticipantes.slice();
     acoes[idx].status='Pendente';
     var _logMsg=dataAnterior!==dataStr?'Reunião remarcada de '+dataAnterior+' para '+dataStr+(hora?' às '+hora:''):'Reunião atualizada: '+dataStr+(hora?' às '+hora:'');
     _addLogAcao(acoes[idx],_logMsg);
     CS_DB.set('acoes',acoes);
+    if(modalidade==='presencial'&&endereco&&!lat)_geocodificarEAtualizar(idExistente,endereco);
     if(cid)CS_DB._addTimeline(cid,'reuniao','Reunião atualizada: '+tipo,'Atualizada por '+quem+'. Data: '+dataStr+(hora?' às '+hora:'')+'.');
     closeM('mAgendarReuniao');
     toast(dataAnterior!==dataStr?'Reunião remarcada para '+dataStr+'!':'Reunião atualizada!');
@@ -4282,6 +4313,7 @@ function salvarReuniaoAgendada(){
       log:[{texto:`Reunião agendada para ${dataStr}${hora?' às '+hora:''}`,em:agora,por:quem}]
     };
     CS_DB.saveAcao(acao);
+    if(modalidade==='presencial'&&endereco&&!lat)_geocodificarEAtualizar(acao.id,endereco);
     if(cid)CS_DB._addTimeline(cid,'reuniao',`Reunião agendada: ${tipo}`,`Agendada por ${quem} para ${dataStr}${hora?' às '+hora:''}. Pauta: ${pauta||'—'}`);
     closeM('mAgendarReuniao');
     toast(`Reunião agendada para ${dataStr}! Card criado no Plano de Ação.`);
