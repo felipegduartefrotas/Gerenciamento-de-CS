@@ -3819,7 +3819,11 @@ function _renderDetDevSection(a){
   }
   if(devs.length){
     thread.style.display='block';
-    thread.innerHTML=`<div class="dev-thread">${devs.slice().reverse().map(d=>`<div class="dev-msg ${d.tipo}"><div class="dev-msg-hdr"><strong>${d.tipo==='solicitacao'?`<i class="ti ti-send"></i> Solicitação → ${d.paraArea}`:'<i class="ti ti-message-reply"></i> Resposta recebida'}</strong><span>${formatarDataHora(d.em)}</span></div><div class="dev-msg-txt">${d.texto}</div><div style="font-size:10px;color:var(--gray3);margin-top:3px">por ${d.por}</div></div>`).join('')}</div>`;
+    const rows=devs.slice().reverse().map(function(d){
+      const hdr=d.tipo==='solicitacao'?'<i class="ti ti-send"></i> Solicitação → '+d.paraArea:'<i class="ti ti-message-reply"></i> Resposta recebida';
+      return'<div class="dev-msg '+d.tipo+'"><div class="dev-msg-hdr"><strong>'+hdr+'</strong><span>'+formatarDataHora(d.em)+'</span></div><div class="dev-msg-txt">'+d.texto+'</div><div style="font-size:10px;color:var(--gray3);margin-top:3px">por '+d.por+'</div></div>';
+    });
+    thread.innerHTML='<div class="dev-thread">'+rows.join('')+'</div>';
   }else{
     thread.style.display='none';thread.innerHTML='';
   }
