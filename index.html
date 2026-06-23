@@ -602,6 +602,27 @@ tr:hover td{background:#fafafa}
 .teams-period-btn.active{background:#5059c9;color:#fff;border-color:#5059c9}
 .dark-mode .teams-meeting-icon{background:#3d45a0}
 .dark-mode .teams-transcript-box{background:#1a1a1a;border-color:#2e2e2e;color:#e0e0e0}
+/* Agenda modalidade */
+.mod-toggle{display:flex;border:1px solid var(--gray4);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.mod-btn{flex:1;padding:8px 10px;font-size:12.5px;background:none;border:none;border-right:1px solid var(--gray4);cursor:pointer;color:var(--gray2);display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;font-family:inherit}
+.mod-btn:last-child{border-right:none}
+.mod-btn.active.pres{background:var(--green);color:#fff}
+.mod-btn.active.online{background:#5059c9;color:#fff}
+.agd-badge-pres{display:inline-flex;align-items:center;gap:3px;background:rgba(29,158,117,.12);color:var(--green);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;margin-top:3px}
+.agd-badge-online{display:inline-flex;align-items:center;gap:3px;background:rgba(80,89,201,.1);color:#5059c9;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;margin-top:3px}
+#agendaMapDiv{height:300px;border-radius:10px;overflow:hidden;border:1px solid var(--gray4);background:var(--gray5)}
+.dark-mode .mod-btn{color:rgba(255,255,255,.4)}
+/* Devolutiva */
+.dev-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:600}
+.dev-chip.aguardando{background:rgba(234,179,8,.12);color:var(--yellow)}
+.dev-chip.recebida{background:rgba(29,158,117,.12);color:var(--green)}
+.dev-thread{display:flex;flex-direction:column;gap:5px;margin-top:8px;max-height:180px;overflow-y:auto}
+.dev-msg{background:var(--gray5);border-radius:8px;padding:9px 12px;border-left:3px solid transparent}
+.dev-msg.solicitacao{border-left-color:var(--yellow)}
+.dev-msg.resposta{border-left-color:var(--green)}
+.dev-msg-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;font-size:10.5px;color:var(--gray2)}
+.dev-msg-txt{font-size:12.5px}
+.k-dev-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;background:rgba(234,179,8,.15);color:var(--yellow);border-radius:3px;padding:1px 5px;font-weight:700;margin-top:3px}
 </style>
 </head>
 <body>
@@ -1565,6 +1586,10 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
   <div id="agendaContent"></div>
+  <div id="agendaMapWrap" style="display:none;margin-top:14px">
+    <div style="font-size:13px;font-weight:600;color:var(--black);margin-bottom:10px"><i class="ti ti-map-pin"></i> Reuniões Presenciais da Semana</div>
+    <div id="agendaMapDiv"></div>
+  </div>
 </div>
 
     </div><!-- /content -->
@@ -1848,10 +1873,50 @@ tr:hover td{background:#fafafa}
       <div style="font-size:10.5px;font-weight:600;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px"><i class="ti ti-history"></i> Log de alterações — quem e quando</div>
       <div id="detAcaoLogList" style="font-size:11.5px;color:var(--gray2);max-height:140px;overflow-y:auto"></div>
     </div>
+    <div id="detDevSection" style="border-top:1px solid var(--gray4);padding-top:12px;margin-top:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:10.5px;font-weight:600;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px"><i class="ti ti-send"></i> Devolutiva de Área</div>
+        <span id="detDevChip"></span>
+      </div>
+      <div id="detDevThread"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn-ghost" id="btnSolicitarDev" style="flex:1;justify-content:center;font-size:12px" onclick="abrirSolicitarDevolutiva()"><i class="ti ti-send"></i>Solicitar devolutiva</button>
+        <button class="btn-ghost" id="btnResponderDev" style="flex:1;justify-content:center;font-size:12px;display:none;color:var(--green);border-color:var(--green)" onclick="abrirRegistrarDevolutiva()"><i class="ti ti-message-reply"></i>Registrar resposta</button>
+      </div>
+    </div>
     <div class="btn-row">
       <button class="btn-ghost" style="color:var(--red);border-color:var(--red)" onclick="excluirAcaoDetalhes()"><i class="ti ti-trash"></i>Excluir</button>
       <button class="btn-ghost" onclick="closeM('mDetalhesAcao')">Cancelar</button>
       <button class="btn-primary" onclick="salvarDetalhesAcao()"><i class="ti ti-device-floppy"></i>Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DEVOLUTIVA DE ÁREA -->
+<div class="modal-ov" id="mDevolutiva">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-ttl"><span id="mDevTtl"><i class="ti ti-send"></i>Solicitar Devolutiva</span><span class="modal-close" onclick="closeM('mDevolutiva')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="devAcaoId">
+    <input type="hidden" id="devTipo">
+    <div id="devFormSol">
+      <div class="fg" style="margin-bottom:8px">
+        <label>Área responsável</label>
+        <select id="devArea"><option>CS</option><option>Operações</option><option>TI</option><option>Comercial</option><option>Infra</option><option>Dados</option><option>Técnico</option></select>
+      </div>
+      <div class="fg">
+        <label>Mensagem / Contexto da solicitação</label>
+        <textarea id="devMensagem" placeholder="Descreva o problema e o que precisa da área responsável resolver..." style="min-height:100px"></textarea>
+      </div>
+    </div>
+    <div id="devFormResp" style="display:none">
+      <div class="fg">
+        <label>Devolutiva / Resposta recebida</label>
+        <textarea id="devResposta" placeholder="Registre a resposta ou feedback recebido da área..." style="min-height:100px"></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mDevolutiva')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarDevolutiva()"><i class="ti ti-device-floppy"></i>Registrar</button>
     </div>
   </div>
 </div>
@@ -1861,6 +1926,9 @@ tr:hover td{background:#fafafa}
   <div class="modal" style="max-width:570px">
     <div class="modal-ttl"><span><i class="ti ti-calendar-plus"></i>Agendar Reunião</span><span class="modal-close" onclick="closeM('mAgendarReuniao')"><i class="ti ti-x"></i></span></div>
     <input type="hidden" id="agrId">
+    <input type="hidden" id="agrModalidade" value="online">
+    <input type="hidden" id="agrLat" value="">
+    <input type="hidden" id="agrLng" value="">
 
     <div class="fg" style="margin-bottom:8px"><label>Cliente</label><select id="agrCliente" onchange="_agrUpdateInfo()"></select></div>
     <div id="agrClienteInfo" style="margin-bottom:10px"></div>
@@ -1899,6 +1967,17 @@ tr:hover td{background:#fafafa}
         <button class="lnk" style="font-size:11px" onclick="_agrSugerirPautaAuto(true)"><i class="ti ti-sparkles"></i> Sugerir pauta</button>
       </label>
       <textarea id="agrPauta" placeholder="O que será tratado nesta reunião..." style="min-height:80px"></textarea>
+    </div>
+
+    <div class="mod-toggle">
+      <button type="button" class="mod-btn online active" id="modBtnOnline" onclick="agendaToggleModalidade('online')"><i class="ti ti-video"></i>Online</button>
+      <button type="button" class="mod-btn pres" id="modBtnPres" onclick="agendaToggleModalidade('presencial')"><i class="ti ti-building"></i>Presencial</button>
+    </div>
+    <div id="agrEnderecoWrap" style="display:none;margin-bottom:10px">
+      <div class="fg" style="margin:0">
+        <label style="display:flex;align-items:center;justify-content:space-between">Endereço<button type="button" class="lnk" style="font-size:11px" onclick="agendaGeocodificarEndereco()"><i class="ti ti-map-pin"></i> Ver no mapa</button></label>
+        <input type="text" id="agrEndereco" placeholder="Rua, número, cidade...">
+      </div>
     </div>
 
     <div style="border:1px solid var(--gray4);border-radius:9px;padding:12px 14px;margin-bottom:12px">
@@ -3205,6 +3284,11 @@ function dispararNotificacaoAlertas(alertas){
 }
 
 // ═══ AGENDA ═══
+function _agdBadge(mod){
+  return mod==='presencial'
+    ?'<span class="agd-badge-pres"><i class="ti ti-building" style="font-size:9px"></i>Presencial</span>'
+    :'<span class="agd-badge-online"><i class="ti ti-video" style="font-size:9px"></i>Online</span>';
+}
 let _agendaSemana=0;
 function renderAgenda(){
   const now=new Date();
@@ -3228,10 +3312,12 @@ function renderAgenda(){
       ...rRea.map(r=>`<div class="agenda-reuniao" onclick="abrirTimeline('${r.clienteId}')" title="Ver timeline de ${r.empresa}" style="border-left:3px solid var(--red)">
         <div style="font-weight:600;font-size:12px">${r.empresa.split(' ')[0]}</div>
         <div style="color:var(--gray2);font-size:10.5px">${r.tipo} · CSAT ${r.csat}/10</div>
+        ${_agdBadge(r.modalidade||'online')}
       </div>`),
       ...rAg.map(a=>`<div class="agenda-reuniao" onclick="abrirTratarReuniaoAgendada('${a.id}')" title="Tratar reunião agendada" style="border-left:3px solid var(--blue)">
         <div style="font-weight:600;font-size:12px">${a.empresa||'—'}</div>
         <div style="color:var(--blue);font-size:10.5px">${a.reuniaoTipo||'Reunião'} ${a.reuniaoHora?'às '+a.reuniaoHora:''}</div>
+        ${_agdBadge(a.modalidade||'online')}
       </div>`)
     ];
     return`<div class="agenda-day">
@@ -3242,9 +3328,56 @@ function renderAgenda(){
       ${items.length?items.join(''):`<div class="agenda-vazio" onclick="agendaAbrirModalDia('${dStr}')" title="Agendar reunião" style="cursor:pointer">+ agendar</div>`}
     </div>`;
   }).join('')}</div>`;
+  renderAgendaMapa(reunioes,agendadas);
 }
 function agendaNavSemana(d){_agendaSemana+=d;renderAgenda()}
 function agendaIrHoje(){_agendaSemana=0;renderAgenda()}
+function renderAgendaMapa(reunioes,agendadas){
+  var presenciais=[];
+  reunioes.forEach(function(r){if(r.modalidade==='presencial'&&r.lat&&r.lng)presenciais.push(r);});
+  agendadas.forEach(function(a){if(a.modalidade==='presencial'&&a.lat&&a.lng)presenciais.push(a);});
+  var wrap=document.getElementById('agendaMapWrap');
+  if(!wrap)return;
+  wrap.style.display=presenciais.length?'block':'none';
+  if(!presenciais.length){
+    if(window._agdMap){window._agdMap.remove();window._agdMap=null;}
+    return;
+  }
+  if(!window._agdMap){
+    window._agdMap=L.map('agendaMapDiv',{scrollWheelZoom:false}).setView([-15.788,-47.879],5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(window._agdMap);
+  }else{
+    window._agdMap.eachLayer(function(l){if(l instanceof L.Marker)window._agdMap.removeLayer(l);});
+  }
+  var bounds=[];
+  presenciais.forEach(function(r){
+    var pop='<b>'+(r.empresa||'—')+'</b><br>'+(r.data||r.reuniaoData||'')+(r.reuniaoHora?' às '+r.reuniaoHora:'');
+    L.marker([r.lat,r.lng]).bindPopup(pop).addTo(window._agdMap);
+    bounds.push([r.lat,r.lng]);
+  });
+  if(bounds.length)window._agdMap.fitBounds(bounds,{padding:[30,30]});
+}
+function agendaToggleModalidade(mod){
+  document.getElementById('agrModalidade').value=mod;
+  document.getElementById('modBtnOnline').className='mod-btn online'+(mod==='online'?' active':'');
+  document.getElementById('modBtnPres').className='mod-btn pres'+(mod==='presencial'?' active':'');
+  var wrap=document.getElementById('agrEnderecoWrap');
+  if(wrap)wrap.style.display=mod==='presencial'?'':'none';
+}
+function agendaGeocodificarEndereco(){
+  var end=(document.getElementById('agrEndereco')?.value||'').trim();
+  if(!end){toast('Informe o endereço antes de buscar.','err');return;}
+  toast('Buscando endereço...','info');
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(end)+'&limit=1',{headers:{'Accept-Language':'pt-BR'}})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!data||!data.length){toast('Endereço não encontrado.','warn');return;}
+      document.getElementById('agrLat').value=data[0].lat;
+      document.getElementById('agrLng').value=data[0].lon;
+      toast('Endereço encontrado! Coordenadas salvas.','ok');
+    })
+    .catch(function(){toast('Erro ao buscar endereço.','err');});
+}
 
 function _openDP(pickerId){
   const pk=document.getElementById(pickerId);
@@ -3478,7 +3611,12 @@ function renderKanban(){
       const cardStyle=isReuniao?'border-left:3px solid var(--blue)':isAtrasada?'border-left:3px solid var(--red);background:rgba(239,68,68,.04)':'';
       const diasAtraso=isAtrasada?Math.ceil((new Date()-new Date(a.prazoISO))/86400000):0;
       const atrasadaBadge=isAtrasada?`<span style="font-size:9px;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;margin-left:5px">Atrasada${diasAtraso>0?' '+diasAtraso+'d':''}</span>`:'';
-      return`<div id="kcard-${a.id}" class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${cardStyle}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;font-size:10px;color:${isAtrasada?'var(--red)':'var(--gray2)'};font-weight:${isAtrasada?700:400}">${a.prazo||''}${atrasadaBadge}</span></div></div>`}).join('')}${!items.length?`<div style="padding:18px 0;text-align:center;color:var(--gray3);font-size:12px"><i class="ti ti-circle-dashed" style="display:block;font-size:22px;margin-bottom:6px"></i>Vazio</div>`:''}</div></div>`;
+      const _devs=a.devolutivas||[];
+      const _lastSol=_devs.filter(d=>d.tipo==='solicitacao').slice(-1)[0];
+      const _lastResp=_devs.filter(d=>d.tipo==='resposta').slice(-1)[0];
+      const _devPend=_lastSol&&(!_lastResp||new Date(_lastResp.em)<new Date(_lastSol.em));
+      const devBadge=_devPend?('<span class="k-dev-badge"><i class="ti ti-send" style="font-size:9px"></i>'+_lastSol.paraArea+'</span>'):'';
+      return`<div id="kcard-${a.id}" class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${cardStyle}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}${devBadge}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;font-size:10px;color:${isAtrasada?'var(--red)':'var(--gray2)'};font-weight:${isAtrasada?700:400}">${a.prazo||''}${atrasadaBadge}</span></div></div>`}).join('')}${!items.length?`<div style="padding:18px 0;text-align:center;color:var(--gray3);font-size:12px"><i class="ti ti-circle-dashed" style="display:block;font-size:22px;margin-bottom:6px"></i>Vazio</div>`:''}</div></div>`;
   }).join('');
 }
 function irParaAcao(acaoId){
@@ -3589,6 +3727,7 @@ function abrirDetalhesAcao(acaoId){
   }else{
     logEl.style.display='none';
   }
+  _renderDetDevSection(a);
   openM('mDetalhesAcao');
 }
 function salvarDetalhesAcao(){
@@ -3644,6 +3783,96 @@ function excluirAcaoDetalhes(){
     renderKanban();
     updateStatusBar();
   },'Excluir ação','Excluir');
+}
+function _renderDetDevSection(a){
+  var devs=a.devolutivas||[];
+  var chip=document.getElementById('detDevChip');
+  var thread=document.getElementById('detDevThread');
+  var btnResp=document.getElementById('btnResponderDev');
+  var btnSol=document.getElementById('btnSolicitarDev');
+  var sols=devs.filter(function(d){return d.tipo==='solicitacao';});
+  var resps=devs.filter(function(d){return d.tipo==='resposta';});
+  var lastSol=sols.length?sols[sols.length-1]:null;
+  var lastResp=resps.length?resps[resps.length-1]:null;
+  var hasPending=lastSol&&(!lastResp||new Date(lastResp.em)<new Date(lastSol.em));
+  if(!devs.length){
+    chip.innerHTML='<span style="font-size:11px;color:var(--gray3)">Nenhuma</span>';
+  }else if(hasPending){
+    chip.innerHTML='<span class="dev-chip aguardando"><i class="ti ti-clock"></i>Aguardando &middot; '+lastSol.paraArea+'</span>';
+  }else{
+    chip.innerHTML='<span class="dev-chip recebida"><i class="ti ti-check"></i>Respondida</span>';
+  }
+  if(devs.length){
+    thread.style.display='block';
+    var rows=devs.slice().reverse().map(function(d){
+      var hdr=d.tipo==='solicitacao'
+        ?('<i class="ti ti-send"></i> Solicitação &rarr; '+d.paraArea)
+        :'<i class="ti ti-message-reply"></i> Resposta recebida';
+      return '<div class="dev-msg '+d.tipo+'">'
+        +'<div class="dev-msg-hdr"><strong>'+hdr+'</strong><span>'+formatarDataHora(d.em)+'</span></div>'
+        +'<div class="dev-msg-txt">'+d.texto+'</div>'
+        +'<div style="font-size:10px;color:var(--gray3);margin-top:3px">por '+d.por+'</div>'
+        +'</div>';
+    });
+    thread.innerHTML='<div class="dev-thread">'+rows.join('')+'</div>';
+  }else{
+    thread.style.display='none';thread.innerHTML='';
+  }
+  btnResp.style.display=hasPending?'':'none';
+  btnSol.innerHTML=hasPending
+    ?'<i class="ti ti-send"></i>Nova solicitação'
+    :'<i class="ti ti-send"></i>Solicitar devolutiva';
+}
+function abrirSolicitarDevolutiva(){
+  var id=document.getElementById('detAcaoId').value;
+  document.getElementById('devAcaoId').value=id;
+  document.getElementById('devTipo').value='solicitacao';
+  document.getElementById('mDevTtl').innerHTML='<i class="ti ti-send"></i> Solicitar Devolutiva';
+  document.getElementById('devFormSol').style.display='';
+  document.getElementById('devFormResp').style.display='none';
+  var areaEl=document.getElementById('detAcaoArea');
+  document.getElementById('devArea').value=areaEl?areaEl.value:'CS';
+  document.getElementById('devMensagem').value='';
+  openM('mDevolutiva');
+}
+function abrirRegistrarDevolutiva(){
+  var id=document.getElementById('detAcaoId').value;
+  document.getElementById('devAcaoId').value=id;
+  document.getElementById('devTipo').value='resposta';
+  document.getElementById('mDevTtl').innerHTML='<i class="ti ti-message-reply"></i> Registrar Resposta';
+  document.getElementById('devFormSol').style.display='none';
+  document.getElementById('devFormResp').style.display='';
+  document.getElementById('devResposta').value='';
+  openM('mDevolutiva');
+}
+function salvarDevolutiva(){
+  var id=document.getElementById('devAcaoId').value;
+  var tipo=document.getElementById('devTipo').value;
+  var acoes=CS_DB.get('acoes')||[];
+  var idx=acoes.findIndex(function(a){return a.id===id;});
+  if(idx<0)return;
+  var a=acoes[idx];
+  if(!a.devolutivas)a.devolutivas=[];
+  var quem=(CS_DB.getSession()&&CS_DB.getSession().nome)||'Felipe Duarte';
+  if(tipo==='solicitacao'){
+    var msg=(document.getElementById('devMensagem').value||'').trim();
+    if(!msg){toast('Descreva a solicitação.','err');return;}
+    var area=document.getElementById('devArea').value;
+    a.devolutivas.push({id:'dev_'+Date.now(),tipo:'solicitacao',texto:msg,paraArea:area,por:quem,em:new Date().toISOString()});
+    _addLogAcao(a,'Devolutiva solicitada para area: '+area);
+    toast('Solicitacao endereçada para '+area+'!','ok');
+  }else{
+    var resp=(document.getElementById('devResposta').value||'').trim();
+    if(!resp){toast('Registre a resposta recebida.','err');return;}
+    a.devolutivas.push({id:'dev_'+Date.now(),tipo:'resposta',texto:resp,por:quem,em:new Date().toISOString()});
+    _addLogAcao(a,'Devolutiva registrada');
+    toast('Devolutiva registrada!','ok');
+  }
+  a.ultimaAlteracaoEm=new Date().toISOString();a.ultimaAlteracaoPor=quem;
+  acoes[idx]=a;CS_DB.set('acoes',acoes);
+  closeM('mDevolutiva');
+  _renderDetDevSection(a);
+  renderKanban();
 }
 function renderAcoesList(){
   const ac=CS_DB.getAllAcoes();
@@ -3701,6 +3930,10 @@ function abrirAgendarReuniao(clienteIdPreSelecionado){
   document.getElementById('agrEmailCliente').value='';
   document.getElementById('agrLocal').value='';
   document.getElementById('agrClienteInfo').innerHTML='';
+  agendaToggleModalidade('online');
+  document.getElementById('agrEndereco').value='';
+  document.getElementById('agrLat').value='';
+  document.getElementById('agrLng').value='';
   _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
@@ -3718,6 +3951,10 @@ function salvarReuniaoAgendada(){
   const tipo=document.getElementById('agrTipo').value;
   const resp=document.getElementById('agrResp').value;
   const pauta=document.getElementById('agrPauta').value;
+  const modalidade=document.getElementById('agrModalidade')?.value||'online';
+  const endereco=document.getElementById('agrEndereco')?.value||'';
+  const lat=parseFloat(document.getElementById('agrLat')?.value)||0;
+  const lng=parseFloat(document.getElementById('agrLng')?.value)||0;
   if(!dataStr||!_parseDataBR(dataStr)){toast('Informe uma data válida (DD/MM/AAAA).','err');return}
   const dataISO=_parseDataBR(dataStr).toISOString();
   const quem=CS_DB.getSession()?.nome||'Felipe Duarte';
@@ -3740,6 +3977,10 @@ function salvarReuniaoAgendada(){
     acoes[idx].reuniaoData=dataStr;
     acoes[idx].reuniaoHora=hora;
     acoes[idx].reuniaoPauta=pauta;
+    acoes[idx].modalidade=modalidade;
+    acoes[idx].reuniaoEndereco=endereco;
+    if(lat)acoes[idx].lat=lat;
+    if(lng)acoes[idx].lng=lng;
     acoes[idx].status='Pendente';
     _addLogAcao(acoes[idx],`Reunião remarcada de ${dataAnterior} para ${dataStr}${hora?' às '+hora:''}`);
     CS_DB.set('acoes',acoes);
@@ -3755,6 +3996,8 @@ function salvarReuniaoAgendada(){
       comentarios:pauta,
       categoria:'reuniao_agendada',
       reuniaoTipo:tipo,reuniaoData:dataStr,reuniaoHora:hora,reuniaoPauta:pauta,
+      modalidade:modalidade,reuniaoEndereco:endereco,
+      lat:lat||undefined,lng:lng||undefined,
       criadoEm:agora,criadoPor:quem,
       log:[{texto:`Reunião agendada para ${dataStr}${hora?' às '+hora:''}`,em:agora,por:quem}]
     };
@@ -3972,6 +4215,10 @@ function abrirRemarcarReuniao(){
   document.getElementById('agrEmailCliente').value='';
   document.getElementById('agrLocal').value='';
   document.getElementById('agrClienteInfo').innerHTML='';
+  agendaToggleModalidade(a.modalidade||'online');
+  document.getElementById('agrEndereco').value=a.reuniaoEndereco||'';
+  document.getElementById('agrLat').value=a.lat||'';
+  document.getElementById('agrLng').value=a.lng||'';
   _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
