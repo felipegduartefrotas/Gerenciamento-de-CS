@@ -2008,7 +2008,7 @@ tr:hover td{background:#fafafa}
     </div>
     <div id="agrEnderecoWrap" style="display:none;margin-bottom:10px">
       <div class="fg" style="margin:0;position:relative">
-        <label style="display:flex;align-items:center;justify-content:space-between">Endereço<span style="font-size:10.5px;color:var(--gray3)"><i class="ti ti-sparkles" style="font-size:10px"></i> sugestões automáticas</span></label>
+        <label style="display:flex;align-items:center;justify-content:space-between">Endereço<span style="display:flex;align-items:center;gap:10px"><button type="button" onclick="_agrFillEnderecoCliente()" style="font-size:10.5px;color:var(--blue);background:none;border:none;cursor:pointer;padding:0;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:3px;font-weight:600"><i class="ti ti-address-book" style="font-size:11px"></i> Buscar do cadastro</button><span style="font-size:10.5px;color:var(--gray3)"><i class="ti ti-sparkles" style="font-size:10px"></i> sugestões automáticas</span></span></label>
         <input type="text" id="agrEndereco" placeholder="Digite rua, número, cidade..." autocomplete="off"
           oninput="agendaEnderecoBuscar(this.value)"
           onblur="setTimeout(function(){var d=document.getElementById('agrEnderecoDrop');if(d)d.style.display='none';},220)">
@@ -3484,6 +3484,17 @@ function renderAgendaResumo(){
     }catch(e){return '';}
   }).join('');
   listEl.innerHTML=html||'<div style="text-align:center;padding:30px 0;color:var(--gray3)"><i class="ti ti-calendar-off" style="font-size:30px;display:block;margin-bottom:8px"></i><div style="font-size:12px">Nenhuma reunião encontrada</div></div>';
+}
+function _agrFillEnderecoCliente(){
+  var cid=document.getElementById('agrCliente')?.value;
+  if(!cid){toast('Selecione um cliente primeiro.','err');return;}
+  var cli=CS_DB.getClienteById(cid);
+  var end=_buildEnderecoCliente(cli);
+  if(!end){toast('Cliente sem endereço no cadastro. Edite o cliente para adicionar.','warn');return;}
+  document.getElementById('agrEndereco').value=end;
+  document.getElementById('agrLat').value='';
+  document.getElementById('agrLng').value='';
+  toast('Endereço do cadastro preenchido!','ok');
 }
 function _buildEnderecoCliente(cli){
   if(!cli)return'';
