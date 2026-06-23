@@ -615,6 +615,12 @@ tr:hover td{background:#fafafa}
 .agd-badge-pres{display:inline-flex;align-items:center;gap:3px;background:rgba(29,158,117,.12);color:var(--green);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;margin-top:3px}
 .agd-badge-online{display:inline-flex;align-items:center;gap:3px;background:rgba(80,89,201,.1);color:#5059c9;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600;margin-top:3px}
 #agendaMapDiv{height:300px;border-radius:10px;overflow:hidden;border:1px solid var(--gray4);background:var(--gray5)}
+.agd-drop{position:absolute;left:0;right:0;top:100%;z-index:300;background:var(--white);border:1px solid var(--gray4);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);overflow:hidden;margin-top:3px}
+.agd-drop-item{padding:9px 13px;cursor:pointer;border-bottom:1px solid var(--gray5);transition:background .1s}
+.agd-drop-item:last-child{border-bottom:none}
+.agd-drop-item:hover,.agd-drop-item:focus{background:var(--gray5)}
+.agd-drop-main{font-size:12.5px;font-weight:500;color:var(--black)}
+.agd-drop-sub{font-size:11px;color:var(--gray2);margin-top:2px}
 .dark-mode .mod-btn{color:rgba(255,255,255,.4)}
 /* Devolutiva */
 .dev-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:600}
@@ -1999,9 +2005,12 @@ tr:hover td{background:#fafafa}
       <button type="button" class="mod-btn pres" id="modBtnPres" onclick="agendaToggleModalidade('presencial')"><i class="ti ti-building"></i>Presencial</button>
     </div>
     <div id="agrEnderecoWrap" style="display:none;margin-bottom:10px">
-      <div class="fg" style="margin:0">
-        <label style="display:flex;align-items:center;justify-content:space-between">Endereço<button type="button" class="lnk" style="font-size:11px" onclick="agendaGeocodificarEndereco()"><i class="ti ti-map-pin"></i> Ver no mapa</button></label>
-        <input type="text" id="agrEndereco" placeholder="Rua, número, cidade...">
+      <div class="fg" style="margin:0;position:relative">
+        <label style="display:flex;align-items:center;justify-content:space-between">Endereço<span style="font-size:10.5px;color:var(--gray3)"><i class="ti ti-sparkles" style="font-size:10px"></i> sugestões automáticas</span></label>
+        <input type="text" id="agrEndereco" placeholder="Digite rua, número, cidade..." autocomplete="off"
+          oninput="agendaEnderecoBuscar(this.value)"
+          onblur="setTimeout(function(){var d=document.getElementById('agrEnderecoDrop');if(d)d.style.display='none';},220)">
+        <div id="agrEnderecoDrop" class="agd-drop" style="display:none"></div>
       </div>
     </div>
 
@@ -3455,17 +3464,60 @@ function agendaToggleModalidade(mod){
   var wrap=document.getElementById('agrEnderecoWrap');
   if(wrap)wrap.style.display=mod==='presencial'?'':'none';
 }
+var _agrEndTimer=null;
+function agendaEnderecoBuscar(q){
+  clearTimeout(_agrEndTimer);
+  var drop=document.getElementById('agrEnderecoDrop');
+  if(!drop)return;
+  if(!q||q.length<4){drop.style.display='none';return;}
+  _agrEndTimer=setTimeout(function(){
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=6&addressdetails=1&countrycodes=br',{headers:{'Accept-Language':'pt-BR'}})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if(!data||!data.length){drop.style.display='none';return;}
+        var html=data.map(function(r){
+          var a=r.address||{};
+          var street=[a.road||a.pedestrian||a.footway||a.neighbourhood||'',a.house_number||''].filter(Boolean).join(', ');
+          var city=a.city||a.town||a.village||a.municipality||a.county||'';
+          var stateCode=a.state_code||'';
+          var state=stateCode?stateCode:(a.state||'');
+          var cep=(a.postcode||'').replace(/\D/g,'');
+          if(cep.length===8)cep=cep.slice(0,5)+'-'+cep.slice(5);
+          var main=street||city||r.display_name.split(',')[0];
+          var sub=[city,state,cep?'CEP '+cep:''].filter(Boolean).join(' · ');
+          var endFull=(street?(street+', '):'')+city+(state?' - '+state:'');
+          var safeEnd=endFull.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+          return '<div class="agd-drop-item" onclick="agendaEnderecoSelecionar(\''+safeEnd+'\',\''+r.lat+'\',\''+r.lon+'\')">'
+            +'<div class="agd-drop-main">'+main+'</div>'
+            +(sub?'<div class="agd-drop-sub">'+sub+'</div>':'')
+            +'</div>';
+        }).join('');
+        drop.innerHTML=html;
+        drop.style.display='block';
+      })
+      .catch(function(){drop.style.display='none';});
+  },350);
+}
+function agendaEnderecoSelecionar(end,lat,lng){
+  var inp=document.getElementById('agrEndereco');
+  if(inp)inp.value=end;
+  document.getElementById('agrLat').value=lat;
+  document.getElementById('agrLng').value=lng;
+  var drop=document.getElementById('agrEnderecoDrop');
+  if(drop)drop.style.display='none';
+  toast('Endereço selecionado!','ok');
+}
 function agendaGeocodificarEndereco(){
   var end=(document.getElementById('agrEndereco')?.value||'').trim();
   if(!end){toast('Informe o endereço antes de buscar.','err');return;}
   toast('Buscando endereço...','info');
-  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(end)+'&limit=1',{headers:{'Accept-Language':'pt-BR'}})
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(end)+'&limit=1&addressdetails=1&countrycodes=br',{headers:{'Accept-Language':'pt-BR'}})
     .then(function(r){return r.json();})
     .then(function(data){
-      if(!data||!data.length){toast('Endereço não encontrado.','warn');return;}
+      if(!data||!data.length){toast('Endereço não encontrado. Tente incluir cidade ou CEP.','warn');return;}
       document.getElementById('agrLat').value=data[0].lat;
       document.getElementById('agrLng').value=data[0].lon;
-      toast('Endereço encontrado! Coordenadas salvas.','ok');
+      toast('Coordenadas salvas! Reunião aparecerá no mapa.','ok');
     })
     .catch(function(){toast('Erro ao buscar endereço.','err');});
 }
