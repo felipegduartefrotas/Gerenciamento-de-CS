@@ -4601,7 +4601,6 @@ function _getCPD(type,period){
         const wk=Math.min(3,Math.floor((d.getDate()-1)/7));
         data[wk]+=_calcNPSScore([r])??0;counts[wk]++;
       });
-      const recs=CS_DB.get('nps')||[];
       if(!counts.some(c=>c>0)){const fb=_npsRealMonths(1);return{labels:['S1','S2','S3','S4'],data:[fb.data[0],fb.data[0],fb.data[0],fb.data[0]]}}
       return{labels,data:data.map((s,i)=>counts[i]?Math.round(s/counts[i]):null).map((v,i,a)=>{let last=null;for(let j=0;j<=i;j++)if(a[j]!==null)last=a[j];return last??0;})};
     }
@@ -4640,7 +4639,7 @@ function renderNPSChart(period,btn){
     {label:'Meta (80)',data:meta,borderColor:'rgba(100,100,100,0.5)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
   ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},
     plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:10}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},
-    scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+    scales:{y:{min:-100,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
 }
 
 function renderMRRBar(period,btn){
@@ -4664,7 +4663,7 @@ function renderNPSEvol(period,btn){
     {label:'Meta (80)',data:meta,borderColor:'rgba(100,100,100,0.5)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
   ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeInOutQuart'},
     plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:10}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},
-    scales:{y:{min:0,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
+    scales:{y:{min:-100,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
 }
 
 let execDone=false;
