@@ -196,6 +196,10 @@ tr:hover td{background:#fafafa}
 .k-meta{font-size:10.5px;color:var(--gray2);display:flex;align-items:center;gap:6px}
 .k-av{width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;font-size:8.5px;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
 .k-av.gn{background:var(--green)}
+.k-dev-btn{margin-top:7px;display:flex;align-items:center;gap:5px;font-size:10.5px;cursor:pointer;padding:5px 0 1px 0;border-top:1px solid var(--gray5);color:var(--gray3);transition:color .15s}
+.k-dev-btn:hover{color:var(--yellow)}
+.k-dev-btn.pend{color:var(--yellow)}
+.k-dev-btn.resp{color:var(--green)}
 
 /* TIMELINE */
 .tl-list{display:flex;flex-direction:column}
@@ -3420,6 +3424,23 @@ function agrRemoveParticipante(idx){
   _agrParticipantes.splice(idx,1);
   agrRenderParticipantes();
 }
+function abrirDevolutivaCard(id){
+  var a=(CS_DB.get('acoes')||[]).find(function(x){return x.id===id;});
+  if(!a)return;
+  document.getElementById('detAcaoId').value=id;
+  document.getElementById('detAcaoArea').value=a.area||'CS';
+  var devs=a.devolutivas||[];
+  var sols=devs.filter(function(d){return d.tipo==='solicitacao';});
+  var resps=devs.filter(function(d){return d.tipo==='resposta';});
+  var lastSol=sols.length?sols[sols.length-1]:null;
+  var lastResp=resps.length?resps[resps.length-1]:null;
+  var hasPending=lastSol&&(!lastResp||new Date(lastResp.em)<new Date(lastSol.em));
+  if(hasPending){
+    abrirRegistrarDevolutiva();
+  }else{
+    abrirSolicitarDevolutiva();
+  }
+}
 
 function _openDP(pickerId){
   const pk=document.getElementById(pickerId);
@@ -3657,8 +3678,17 @@ function renderKanban(){
       const _lastSol=_devs.filter(d=>d.tipo==='solicitacao').slice(-1)[0];
       const _lastResp=_devs.filter(d=>d.tipo==='resposta').slice(-1)[0];
       const _devPend=_lastSol&&(!_lastResp||new Date(_lastResp.em)<new Date(_lastSol.em));
+      const _devResp=_lastResp&&(!_lastSol||new Date(_lastResp.em)>=new Date(_lastSol.em));
       const devBadge=_devPend?('<span class="k-dev-badge"><i class="ti ti-send" style="font-size:9px"></i>'+_lastSol.paraArea+'</span>'):'';
-      return`<div id="kcard-${a.id}" class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${cardStyle}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}${devBadge}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;font-size:10px;color:${isAtrasada?'var(--red)':'var(--gray2)'};font-weight:${isAtrasada?700:400}">${a.prazo||''}${atrasadaBadge}</span></div></div>`}).join('')}${!items.length?`<div style="padding:18px 0;text-align:center;color:var(--gray3);font-size:12px"><i class="ti ti-circle-dashed" style="display:block;font-size:22px;margin-bottom:6px"></i>Vazio</div>`:''}</div></div>`;
+      var devBtnCls='k-dev-btn'+(_devPend?' pend':_devResp?' resp':'');
+      var devBtnLbl=_devPend
+        ?('<i class="ti ti-clock" style="font-size:11px"></i>Aguardando resposta: '+_lastSol.paraArea+' <span style="margin-left:auto;font-size:9.5px;opacity:.7">Registrar</span>')
+        :(_devResp
+          ?'<i class="ti ti-check" style="font-size:11px"></i>Devolutiva recebida'
+          :'<i class="ti ti-send" style="font-size:11px"></i>Escalar para área responsável');
+      const devBtn=isReuniao?''
+        :('<div class="'+devBtnCls+'" onclick="event.stopPropagation();abrirDevolutivaCard(\''+a.id+'\')">'+devBtnLbl+'</div>');
+      return`<div id="kcard-${a.id}" class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${cardStyle}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}${devBadge}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;font-size:10px;color:${isAtrasada?'var(--red)':'var(--gray2)'};font-weight:${isAtrasada?700:400}">${a.prazo||''}${atrasadaBadge}</span></div>${devBtn}</div>`}).join('')}${!items.length?`<div style="padding:18px 0;text-align:center;color:var(--gray3);font-size:12px"><i class="ti ti-circle-dashed" style="display:block;font-size:22px;margin-bottom:6px"></i>Vazio</div>`:''}</div></div>`;
   }).join('');
 }
 function irParaAcao(acaoId){
