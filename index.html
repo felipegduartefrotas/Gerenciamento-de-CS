@@ -3326,7 +3326,6 @@ function renderAgenda(){
       ${items.length?items.join(''):`<div class="agenda-vazio" onclick="agendaAbrirModalDia('${dStr}')" title="Agendar reunião" style="cursor:pointer">+ agendar</div>`}
     </div>`;
   }).join('')}</div>`;
-}
   // Mapa de presenciais
   const presenciais=[
     ...reunioes.filter(r=>r.modalidade==='presencial'&&dias.some(d=>d.toLocaleDateString('pt-BR')===r.data)&&r.latLng),
