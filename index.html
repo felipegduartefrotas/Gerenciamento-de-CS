@@ -1961,6 +1961,16 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>Responsável</label><input type="text" id="agrResp"></div>
     </div>
 
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px"><i class="ti ti-users"></i> Participantes</div>
+      <div id="agrParticipantesList" style="min-height:20px;display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
+        <input type="text" id="agrPartNome" placeholder="Nome do participante">
+        <input type="text" id="agrPartCargo" placeholder="Cargo / função">
+        <button type="button" class="btn-ghost" style="padding:6px 12px;white-space:nowrap" onclick="agrAddParticipante()"><i class="ti ti-plus"></i>Add</button>
+      </div>
+    </div>
+
     <div class="fg" style="margin-bottom:10px">
       <label style="display:flex;align-items:center;justify-content:space-between">
         Pauta / objetivo
@@ -2010,6 +2020,10 @@ tr:hover td{background:#fafafa}
     <div style="background:var(--gray5);border-radius:9px;padding:11px 13px;margin-bottom:14px">
       <div style="font-size:13px;font-weight:600;color:var(--black)" id="traResumo">—</div>
       <div style="font-size:12px;color:var(--gray2);margin-top:4px" id="traPauta">—</div>
+      <div id="traParticipantes" style="display:none;margin-top:8px;border-top:1px solid var(--gray4);padding-top:8px">
+        <div style="font-size:10.5px;font-weight:600;color:var(--gray2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px"><i class="ti ti-users"></i> Participantes</div>
+        <div id="traParticipantesLista" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+      </div>
     </div>
     <div class="btn-row" style="flex-direction:column;gap:8px">
       <button class="btn-primary" style="width:100%;justify-content:center" onclick="converterParaReuniaoRealizada()"><i class="ti ti-check"></i>Reunião aconteceu — registrar agora</button>
@@ -3378,6 +3392,34 @@ function agendaGeocodificarEndereco(){
     })
     .catch(function(){toast('Erro ao buscar endereço.','err');});
 }
+var _agrParticipantes=[];
+function agrRenderParticipantes(){
+  var el=document.getElementById('agrParticipantesList');
+  if(!el)return;
+  if(!_agrParticipantes.length){
+    el.innerHTML='<span style="font-size:11.5px;color:var(--gray3)">Nenhum participante adicionado</span>';
+    return;
+  }
+  el.innerHTML=_agrParticipantes.map(function(p,i){
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:var(--gray5);border:1px solid var(--gray4);border-radius:6px;padding:3px 8px 3px 10px;font-size:11.5px">'
+      +'<b>'+p.nome+'</b>'+(p.cargo?' <span style="color:var(--gray2);font-weight:400">· '+p.cargo+'</span>':'')
+      +'<button type="button" onclick="agrRemoveParticipante('+i+')" style="background:none;border:none;cursor:pointer;color:var(--gray3);padding:0 2px;line-height:1;font-size:14px;margin-left:2px">&times;</button>'
+      +'</span>';
+  }).join('');
+}
+function agrAddParticipante(){
+  var nome=(document.getElementById('agrPartNome')?.value||'').trim();
+  if(!nome){toast('Informe o nome do participante.','err');return;}
+  var cargo=(document.getElementById('agrPartCargo')?.value||'').trim();
+  _agrParticipantes.push({nome:nome,cargo:cargo});
+  document.getElementById('agrPartNome').value='';
+  document.getElementById('agrPartCargo').value='';
+  agrRenderParticipantes();
+}
+function agrRemoveParticipante(idx){
+  _agrParticipantes.splice(idx,1);
+  agrRenderParticipantes();
+}
 
 function _openDP(pickerId){
   const pk=document.getElementById(pickerId);
@@ -3934,6 +3976,8 @@ function abrirAgendarReuniao(clienteIdPreSelecionado){
   document.getElementById('agrEndereco').value='';
   document.getElementById('agrLat').value='';
   document.getElementById('agrLng').value='';
+  _agrParticipantes=[];
+  agrRenderParticipantes();
   _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
@@ -3981,6 +4025,7 @@ function salvarReuniaoAgendada(){
     acoes[idx].reuniaoEndereco=endereco;
     if(lat)acoes[idx].lat=lat;
     if(lng)acoes[idx].lng=lng;
+    acoes[idx].reuniaoParticipantes=_agrParticipantes.slice();
     acoes[idx].status='Pendente';
     _addLogAcao(acoes[idx],`Reunião remarcada de ${dataAnterior} para ${dataStr}${hora?' às '+hora:''}`);
     CS_DB.set('acoes',acoes);
@@ -3998,6 +4043,7 @@ function salvarReuniaoAgendada(){
       reuniaoTipo:tipo,reuniaoData:dataStr,reuniaoHora:hora,reuniaoPauta:pauta,
       modalidade:modalidade,reuniaoEndereco:endereco,
       lat:lat||undefined,lng:lng||undefined,
+      reuniaoParticipantes:_agrParticipantes.slice(),
       criadoEm:agora,criadoPor:quem,
       log:[{texto:`Reunião agendada para ${dataStr}${hora?' às '+hora:''}`,em:agora,por:quem}]
     };
@@ -4169,8 +4215,18 @@ function abrirTratarReuniaoAgendada(acaoId){
   const a=(CS_DB.get('acoes')||[]).find(x=>x.id===acaoId);
   if(!a){toast('Reunião não encontrada.','err');return}
   document.getElementById('traId').value=acaoId;
-  document.getElementById('traResumo').textContent=`${a.empresa} — ${a.reuniaoTipo} em ${a.reuniaoData}${a.reuniaoHora?' às '+a.reuniaoHora:''}`;
+  document.getElementById('traResumo').textContent=a.empresa+' — '+a.reuniaoTipo+' em '+a.reuniaoData+(a.reuniaoHora?' às '+a.reuniaoHora:'');
   document.getElementById('traPauta').textContent=a.reuniaoPauta?'Pauta: '+a.reuniaoPauta:'Sem pauta registrada.';
+  var parts=a.reuniaoParticipantes||[];
+  var partsWrap=document.getElementById('traParticipantes');
+  var partsLista=document.getElementById('traParticipantesLista');
+  if(partsWrap&&partsLista){
+    partsWrap.style.display=parts.length?'block':'none';
+    partsLista.innerHTML=parts.map(function(p){
+      return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--gray5);border:1px solid var(--gray4);border-radius:6px;padding:3px 10px;font-size:11.5px">'
+        +'<b>'+p.nome+'</b>'+(p.cargo?' <span style="color:var(--gray2);font-weight:400">· '+p.cargo+'</span>':'')+'</span>';
+    }).join('');
+  }
   openM('mTratarReuniaoAgendada');
 }
 function converterParaReuniaoRealizada(){
@@ -4219,6 +4275,8 @@ function abrirRemarcarReuniao(){
   document.getElementById('agrEndereco').value=a.reuniaoEndereco||'';
   document.getElementById('agrLat').value=a.lat||'';
   document.getElementById('agrLng').value=a.lng||'';
+  _agrParticipantes=(a.reuniaoParticipantes||[]).slice();
+  agrRenderParticipantes();
   _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
