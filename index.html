@@ -547,8 +547,9 @@ tr:hover td{background:#fafafa}
 .nav-badge:empty,.nav-badge[data-zero]{display:none}
 /* TOOLTIPS */
 [data-tooltip]{position:relative}
-[data-tooltip]::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:11px;line-height:1.4;padding:6px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;max-width:220px;white-space:pre-wrap;text-align:center}
+[data-tooltip]::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:11px;line-height:1.4;padding:6px 10px;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;max-width:220px;white-space:pre-wrap;text-align:center}
 [data-tooltip]:hover::after{opacity:1}
+.kpi[data-tooltip]::after{bottom:auto;top:calc(100% + 7px)}
 
 /* AGENDA */
 .agenda-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
