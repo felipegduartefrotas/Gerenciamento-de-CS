@@ -588,6 +588,17 @@ tr:hover td{background:#fafafa}
   #page-exec{display:block!important}
   -webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact
 }
+/* Agenda: modalidade de reunião */
+.mod-toggle{display:flex;border:1px solid var(--gray4);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.mod-btn{flex:1;padding:8px 10px;font-size:12.5px;background:none;border:none;border-right:1px solid var(--gray4);cursor:pointer;color:var(--gray2);display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;font-family:inherit}
+.mod-btn:last-child{border-right:none}
+.mod-btn.active.pres{background:var(--green);color:#fff}
+.mod-btn.active.online{background:#5059c9;color:#fff}
+.agd-badge-pres{display:inline-flex;align-items:center;gap:3px;background:rgba(29,158,117,.12);color:var(--green);font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+.agd-badge-online{display:inline-flex;align-items:center;gap:3px;background:rgba(80,89,201,.1);color:#5059c9;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:600}
+#agendaMapWrap{margin-top:14px}
+#agendaMapDiv{height:300px;border-radius:10px;overflow:hidden;border:1px solid var(--gray4);background:var(--gray5)}
+.dark-mode .mod-btn{color:rgba(255,255,255,.4)}
 .teams-status{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:10px 14px;border-radius:8px;margin-bottom:12px}
 .teams-status.connected{background:rgba(29,158,117,.08);border:1px solid rgba(29,158,117,.2);color:var(--green)}
 .teams-status.disconnected{background:var(--gray5);border:1px solid var(--gray4);color:var(--gray2)}
@@ -1565,6 +1576,12 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
   <div id="agendaContent"></div>
+  <div id="agendaMapWrap" style="display:none">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-ttl"><i class="ti ti-map-pin" style="color:var(--green)"></i>Reuniões Presenciais da Semana<span class="sub" id="agendaMapSub"></span></div>
+      <div id="agendaMapDiv"></div>
+    </div>
+  </div>
 </div>
 
     </div><!-- /content -->
@@ -1903,9 +1920,24 @@ tr:hover td{background:#fafafa}
 
     <div style="border:1px solid var(--gray4);border-radius:9px;padding:12px 14px;margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px"><i class="ti ti-calendar-share"></i> Convite &amp; Calendário</div>
-      <div class="form-g2" style="margin-bottom:8px">
-        <div class="fg" style="margin:0"><label>E-mail do cliente</label><input type="email" id="agrEmailCliente" placeholder="cliente@empresa.com"></div>
-        <div class="fg" style="margin:0"><label>Local / Link</label><input type="text" id="agrLocal" placeholder="Zoom · Teams · Google Meet · Endereço"></div>
+      <div class="fg form-full" style="margin-bottom:8px">
+        <label>E-mail do cliente</label><input type="email" id="agrEmailCliente" placeholder="cliente@empresa.com">
+      </div>
+      <input type="hidden" id="agrModalidade" value="presencial">
+      <input type="hidden" id="agrLatLng" value="">
+      <label style="font-size:11px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Modalidade</label>
+      <div class="mod-toggle">
+        <button type="button" class="mod-btn pres active" id="modBtnPres" onclick="agendaToggleModalidade('presencial')"><i class="ti ti-building"></i>Presencial</button>
+        <button type="button" class="mod-btn online" id="modBtnOnline" onclick="agendaToggleModalidade('online')"><i class="ti ti-video"></i>Online</button>
+      </div>
+      <div id="agrLocalPres">
+        <label style="font-size:11.5px;color:var(--gray2);display:block;margin-bottom:4px">Endereço da reunião</label>
+        <div class="iw"><input type="text" id="agrEndereco" placeholder="Rua, Número, Bairro, Cidade — ex: Av. Paulista, 1000, São Paulo" onkeydown="if(event.key==='Enter'){event.preventDefault();agendaGeocodificarEndereco();}"><button class="ib-search" type="button" onclick="agendaGeocodificarEndereco()" title="Localizar no mapa"><i class="ti ti-map-pin"></i></button></div>
+        <div id="agrMapPreview" style="display:none;margin-top:8px;height:160px;border-radius:8px;overflow:hidden;border:1px solid var(--gray4)"></div>
+      </div>
+      <div id="agrLocalOnline" style="display:none">
+        <label style="font-size:11.5px;color:var(--gray2);display:block;margin-bottom:4px">Link / Plataforma</label>
+        <input type="text" id="agrLocal" placeholder="Zoom · Teams · Google Meet · cole o link da reunião">
       </div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">
         <button class="btn-ghost" style="font-size:11.5px;padding:6px 11px" onclick="_agrGoogleCalendar()"><i class="ti ti-brand-google" style="color:#4285f4"></i>Google Calendar</button>
@@ -3225,14 +3257,16 @@ function renderAgenda(){
     const rRea=reunioes.filter(r=>r.data===dStr);
     const rAg=agendadas.filter(a=>a.reuniaoData===dStr||a.prazo===dStr);
     const items=[
-      ...rRea.map(r=>`<div class="agenda-reuniao" onclick="abrirTimeline('${r.clienteId}')" title="Ver timeline de ${r.empresa}" style="border-left:3px solid var(--red)">
+      ...rRea.map(r=>{const mod=r.modalidade||'online';const badge=mod==='presencial'?`<span class="agd-badge-pres"><i class="ti ti-building" style="font-size:9px"></i>Presencial</span>`:`<span class="agd-badge-online"><i class="ti ti-video" style="font-size:9px"></i>Online</span>`;return`<div class="agenda-reuniao" onclick="abrirTimeline('${r.clienteId}')" title="Ver timeline de ${r.empresa}" style="border-left:3px solid var(--red)">
         <div style="font-weight:600;font-size:12px">${r.empresa.split(' ')[0]}</div>
-        <div style="color:var(--gray2);font-size:10.5px">${r.tipo} · CSAT ${r.csat}/10</div>
-      </div>`),
-      ...rAg.map(a=>`<div class="agenda-reuniao" onclick="abrirTratarReuniaoAgendada('${a.id}')" title="Tratar reunião agendada" style="border-left:3px solid var(--blue)">
+        <div style="color:var(--gray2);font-size:10.5px;margin-bottom:3px">${r.tipo} · CSAT ${r.csat}/10</div>
+        ${badge}
+      </div>`;}),
+      ...rAg.map(a=>{const mod=a.modalidade||'online';const badge=mod==='presencial'?`<span class="agd-badge-pres"><i class="ti ti-building" style="font-size:9px"></i>Presencial</span>`:`<span class="agd-badge-online"><i class="ti ti-video" style="font-size:9px"></i>Online</span>`;return`<div class="agenda-reuniao" onclick="abrirTratarReuniaoAgendada('${a.id}')" title="Tratar reunião agendada" style="border-left:3px solid var(--blue)">
         <div style="font-weight:600;font-size:12px">${a.empresa||'—'}</div>
-        <div style="color:var(--blue);font-size:10.5px">${a.reuniaoTipo||'Reunião'} ${a.reuniaoHora?'às '+a.reuniaoHora:''}</div>
-      </div>`)
+        <div style="color:var(--blue);font-size:10.5px;margin-bottom:3px">${a.reuniaoTipo||'Reunião'} ${a.reuniaoHora?'às '+a.reuniaoHora:''}</div>
+        ${badge}
+      </div>`;})
     ];
     return`<div class="agenda-day">
       <div class="agenda-day-hdr ${ehHoje?'hoje':''}" style="display:flex;align-items:center;justify-content:space-between">
@@ -3242,6 +3276,74 @@ function renderAgenda(){
       ${items.length?items.join(''):`<div class="agenda-vazio" onclick="agendaAbrirModalDia('${dStr}')" title="Agendar reunião" style="cursor:pointer">+ agendar</div>`}
     </div>`;
   }).join('')}</div>`;
+}
+  // Mapa de presenciais
+  const presenciais=[
+    ...reunioes.filter(r=>r.modalidade==='presencial'&&dias.some(d=>d.toLocaleDateString('pt-BR')===r.data)&&r.latLng),
+    ...agendadas.filter(a=>a.modalidade==='presencial'&&dias.some(d=>d.toLocaleDateString('pt-BR')===(a.reuniaoData||a.prazo))&&a.latLng)
+  ];
+  renderAgendaMapa(presenciais);
+}
+let _agendaMap=null;
+function renderAgendaMapa(presenciais){
+  const wrap=document.getElementById('agendaMapWrap');
+  const sub=document.getElementById('agendaMapSub');
+  if(!wrap)return;
+  if(!presenciais.length){wrap.style.display='none';if(_agendaMap){try{_agendaMap.remove();}catch(_){}  _agendaMap=null;}return;}
+  wrap.style.display='block';
+  if(sub)sub.textContent=`${presenciais.length} reunião${presenciais.length>1?'ões':''} presencial${presenciais.length>1?'is':''}`;
+  if(_agendaMap){try{_agendaMap.remove();}catch(_){}  _agendaMap=null;}
+  if(typeof L==='undefined')return;
+  setTimeout(()=>{
+    const div=document.getElementById('agendaMapDiv');if(!div||!div.offsetParent)return;
+    const isDark=document.body.classList.contains('dark');
+    try{_agendaMap=L.map(div,{center:[-15,-50],zoom:5,zoomControl:true,attributionControl:false,preferCanvas:true});}catch(e){return;}
+    L.tileLayer(isDark?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(_agendaMap);
+    const markers=[];
+    presenciais.forEach(r=>{
+      const [lat,lon]=r.latLng;
+      const empresa=r.empresa||r.empresa||'—';
+      const hora=r.hora||r.reuniaoHora||'';
+      const tipo=r.tipo||r.reuniaoTipo||'Reunião';
+      const icon=L.divIcon({className:'',html:`<div style="width:14px;height:14px;border-radius:50%;background:#1d9e75;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45)"></div>`,iconSize:[14,14],iconAnchor:[7,7],popupAnchor:[0,-10]});
+      const popup=`<div style="font-family:'Inter',sans-serif;min-width:160px;padding:2px 0"><div style="font-weight:700;font-size:13px;margin-bottom:3px">${empresa}</div><div style="font-size:11.5px;color:#666;margin-bottom:2px">${tipo}${hora?' · '+hora:''}</div><div style="font-size:11px;color:#888">${r.enderecoPresencial||''}</div></div>`;
+      L.marker([lat,lon],{icon}).bindPopup(popup,{maxWidth:220}).addTo(_agendaMap);
+      markers.push([lat,lon]);
+    });
+    if(markers.length>1){const g=L.featureGroup(markers.map(m=>L.marker(m)));_agendaMap.fitBounds(g.getBounds().pad(0.4));}
+    else if(markers.length===1){_agendaMap.setView(markers[0],14);}
+    setTimeout(()=>{if(_agendaMap)_agendaMap.invalidateSize();},200);
+  },80);
+}
+function agendaToggleModalidade(tipo){
+  const el=document.getElementById('agrModalidade');if(el)el.value=tipo;
+  document.getElementById('modBtnPres')?.classList.toggle('active',tipo==='presencial');
+  document.getElementById('modBtnOnline')?.classList.toggle('active',tipo==='online');
+  const pres=document.getElementById('agrLocalPres');
+  const online=document.getElementById('agrLocalOnline');
+  if(pres)pres.style.display=tipo==='presencial'?'':'none';
+  if(online)online.style.display=tipo==='online'?'':'none';
+}
+async function agendaGeocodificarEndereco(){
+  const addr=document.getElementById('agrEndereco')?.value?.trim();
+  if(!addr){toast('Digite o endereço antes de localizar.','err');return;}
+  const btn=document.querySelector('#agrLocalPres .ib-search');
+  if(btn){btn.innerHTML='<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i>';btn.disabled=true;}
+  try{
+    const q=encodeURIComponent(addr+', Brasil');
+    const data=await(await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`,{headers:{'Accept-Language':'pt-BR','User-Agent':'CSManagerCreare/3.0'}})).json();
+    if(!data||!data.length){toast('Endereço não encontrado. Tente ser mais específico.','warn');return;}
+    const lat=parseFloat(data[0].lat),lon=parseFloat(data[0].lon);
+    document.getElementById('agrLatLng').value=JSON.stringify([lat,lon]);
+    const prev=document.getElementById('agrMapPreview');
+    if(prev){
+      const d=0.008;
+      prev.innerHTML=`<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${lon-d},${lat-d},${lon+d},${lat+d}&layer=mapnik&marker=${lat},${lon}" style="width:100%;height:100%;border:none"></iframe>`;
+      prev.style.display='block';
+    }
+    toast('Endereço localizado no mapa!');
+  }catch(e){toast('Erro ao geocodificar: '+e.message,'err');}
+  finally{if(btn){btn.innerHTML='<i class="ti ti-map-pin"></i>';btn.disabled=false;}}
 }
 function agendaNavSemana(d){_agendaSemana+=d;renderAgenda()}
 function agendaIrHoje(){_agendaSemana=0;renderAgenda()}
@@ -3701,6 +3803,10 @@ function abrirAgendarReuniao(clienteIdPreSelecionado){
   document.getElementById('agrEmailCliente').value='';
   document.getElementById('agrLocal').value='';
   document.getElementById('agrClienteInfo').innerHTML='';
+  agendaToggleModalidade('presencial');
+  if(document.getElementById('agrEndereco'))document.getElementById('agrEndereco').value='';
+  if(document.getElementById('agrLatLng'))document.getElementById('agrLatLng').value='';
+  if(document.getElementById('agrMapPreview')){document.getElementById('agrMapPreview').style.display='none';document.getElementById('agrMapPreview').innerHTML='';}
   _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
@@ -3718,6 +3824,11 @@ function salvarReuniaoAgendada(){
   const tipo=document.getElementById('agrTipo').value;
   const resp=document.getElementById('agrResp').value;
   const pauta=document.getElementById('agrPauta').value;
+  const modalidade=document.getElementById('agrModalidade')?.value||'presencial';
+  const enderecoPresencial=modalidade==='presencial'?(document.getElementById('agrEndereco')?.value?.trim()||''):'';
+  const latLngRaw=document.getElementById('agrLatLng')?.value;
+  const latLng=latLngRaw?JSON.parse(latLngRaw):null;
+  const reuniaoLocal=modalidade==='online'?(document.getElementById('agrLocal')?.value?.trim()||''):enderecoPresencial;
   if(!dataStr||!_parseDataBR(dataStr)){toast('Informe uma data válida (DD/MM/AAAA).','err');return}
   const dataISO=_parseDataBR(dataStr).toISOString();
   const quem=CS_DB.getSession()?.nome||'Felipe Duarte';
@@ -3740,6 +3851,10 @@ function salvarReuniaoAgendada(){
     acoes[idx].reuniaoData=dataStr;
     acoes[idx].reuniaoHora=hora;
     acoes[idx].reuniaoPauta=pauta;
+    acoes[idx].modalidade=modalidade;
+    acoes[idx].enderecoPresencial=enderecoPresencial;
+    acoes[idx].latLng=latLng;
+    acoes[idx].reuniaoLocal=reuniaoLocal;
     acoes[idx].status='Pendente';
     _addLogAcao(acoes[idx],`Reunião remarcada de ${dataAnterior} para ${dataStr}${hora?' às '+hora:''}`);
     CS_DB.set('acoes',acoes);
@@ -3755,6 +3870,7 @@ function salvarReuniaoAgendada(){
       comentarios:pauta,
       categoria:'reuniao_agendada',
       reuniaoTipo:tipo,reuniaoData:dataStr,reuniaoHora:hora,reuniaoPauta:pauta,
+      modalidade,enderecoPresencial,latLng,reuniaoLocal,
       criadoEm:agora,criadoPor:quem,
       log:[{texto:`Reunião agendada para ${dataStr}${hora?' às '+hora:''}`,em:agora,por:quem}]
     };
@@ -3819,7 +3935,8 @@ function _agrGetCalendarData(){
   const tipo=document.getElementById('agrTipo').value;
   const pauta=document.getElementById('agrPauta').value.trim();
   const email=document.getElementById('agrEmailCliente').value.trim();
-  const local=document.getElementById('agrLocal').value.trim();
+  const _agrMod=document.getElementById('agrModalidade')?.value||'presencial';
+  const local=_agrMod==='presencial'?(document.getElementById('agrEndereco')?.value?.trim()||''):(document.getElementById('agrLocal')?.value?.trim()||'');
   if(!dataStr||!_parseDataBR(dataStr)){toast('Informe a data da reunião antes de usar os botões de calendário.','err');return null;}
   const dateParsed=_parseDataBR(dataStr);
   const[hh,mm]=(hora+':00').split(':').map(Number);
@@ -3970,8 +4087,17 @@ function abrirRemarcarReuniao(){
   document.getElementById('agrResp').value=a.responsavel||'';
   document.getElementById('agrPauta').value=a.reuniaoPauta||'';
   document.getElementById('agrEmailCliente').value='';
-  document.getElementById('agrLocal').value='';
   document.getElementById('agrClienteInfo').innerHTML='';
+  const _mod=a.modalidade||'presencial';
+  agendaToggleModalidade(_mod);
+  if(_mod==='presencial'){
+    if(document.getElementById('agrEndereco'))document.getElementById('agrEndereco').value=a.enderecoPresencial||'';
+    if(document.getElementById('agrLatLng'))document.getElementById('agrLatLng').value=a.latLng?JSON.stringify(a.latLng):'';
+    document.getElementById('agrLocal').value='';
+  }else{
+    if(document.getElementById('agrEndereco'))document.getElementById('agrEndereco').value='';
+    document.getElementById('agrLocal').value=a.reuniaoLocal||'';
+  }
   _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
