@@ -587,6 +587,20 @@ tr:hover td{background:#fafafa}
   #page-exec{display:block!important}
   -webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact
 }
+.teams-status{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:10px 14px;border-radius:8px;margin-bottom:12px}
+.teams-status.connected{background:rgba(29,158,117,.08);border:1px solid rgba(29,158,117,.2);color:var(--green)}
+.teams-status.disconnected{background:var(--gray5);border:1px solid var(--gray4);color:var(--gray2)}
+.teams-meeting-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray5)}
+.teams-meeting-row:last-child{border-bottom:none}
+.teams-meeting-icon{width:36px;height:36px;background:#5059c9;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.teams-meeting-title{font-weight:600;font-size:13px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.teams-meeting-meta{font-size:11.5px;color:var(--gray2);margin-bottom:4px}
+.teams-meeting-atts{font-size:11px;color:var(--gray3)}
+.teams-transcript-box{background:var(--gray5);border-radius:8px;padding:12px;font-size:12px;color:var(--gray1);max-height:280px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;margin-top:10px;border:1px solid var(--gray4)}
+.teams-period-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--gray4);background:none;font-size:12px;color:var(--gray2);cursor:pointer;transition:background .15s}
+.teams-period-btn.active{background:#5059c9;color:#fff;border-color:#5059c9}
+.dark-mode .teams-meeting-icon{background:#3d45a0}
+.dark-mode .teams-transcript-box{background:#1a1a1a;border-color:#2e2e2e;color:#e0e0e0}
 </style>
 </head>
 <body>
@@ -1186,6 +1200,20 @@ tr:hover td{background:#fafafa}
       </div>
     </div>
   </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-ttl"><i class="ti ti-brand-teams" style="color:#5059c9"></i>Microsoft Teams</div>
+    <div id="teamsStatusBar" class="teams-status disconnected"><i class="ti ti-plug-x"></i>Não conectado ao Microsoft Teams</div>
+    <div class="fg" style="margin-bottom:12px">
+      <label>Client ID do Azure AD <span style="font-weight:400;color:var(--gray3)">(fornecido pelo TI)</span></label>
+      <div class="iw"><input type="text" id="cfgTeamsClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"><button class="ib-search" onclick="salvarTeamsClientId()" title="Salvar Client ID"><i class="ti ti-device-floppy"></i></button></div>
+      <div style="font-size:11px;color:var(--gray3);margin-top:5px">Solicite ao TI que registre um app no Azure AD e adicione como Redirect URI: <strong id="teamsRedirectUrl" style="user-select:all;color:var(--gray2)"></strong></div>
+    </div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn-primary" id="btnTeamsConnect" onclick="teamsConnect()" style="background:#5059c9;border-color:#5059c9"><i class="ti ti-brand-teams"></i>Conectar ao Teams</button>
+      <button class="btn-ghost" id="btnTeamsDisconnect" style="display:none;color:var(--red);border-color:var(--red)" onclick="teamsDisconnect()"><i class="ti ti-plug-x"></i>Desconectar</button>
+      <button class="btn-ghost" id="btnTeamsSync" style="display:none" onclick="openTeamsPanel()"><i class="ti ti-calendar-event"></i>Ver reuniões</button>
+    </div>
+  </div>
   <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i>Salvar configurações</button></div>
 </div>
 
@@ -1255,6 +1283,32 @@ tr:hover td{background:#fafafa}
 </div>
 
 <!-- PRÓXIMO PASSO -->
+<!-- TEAMS: painel de reuniões -->
+<div class="modal-ov" id="mTeams">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-ttl"><span><i class="ti ti-brand-teams" style="color:#5059c9"></i>Reuniões do Microsoft Teams</span><span class="modal-close" onclick="closeM('mTeams')"><i class="ti ti-x"></i></span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--gray2)">Período:</span>
+      <button class="teams-period-btn active" onclick="teamsSyncMeetings('7d',this)">7 dias</button>
+      <button class="teams-period-btn" onclick="teamsSyncMeetings('30d',this)">30 dias</button>
+      <button class="teams-period-btn" onclick="teamsSyncMeetings('90d',this)">90 dias</button>
+      <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:4px 12px" onclick="teamsSyncMeetings(_teamsPeriod,null)"><i class="ti ti-refresh"></i>Atualizar</button>
+    </div>
+    <div id="teamsListContent" style="min-height:180px"></div>
+  </div>
+</div>
+<!-- TEAMS: visualizador de transcrição -->
+<div class="modal-ov" id="mTeamsTranscript">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-ttl"><span><i class="ti ti-file-text"></i>Transcrição da Reunião</span><span class="modal-close" onclick="closeM('mTeamsTranscript')"><i class="ti ti-x"></i></span></div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--gray1)" id="teamsTranscriptTitle"></div>
+    <div id="teamsTranscriptContent" class="teams-transcript-box">Carregando...</div>
+    <div style="display:flex;gap:9px;margin-top:12px">
+      <button class="btn-ghost" onclick="teamsTranscriptCopiar()"><i class="ti ti-copy"></i>Copiar texto</button>
+      <button class="btn-primary" id="btnUsarTranscricao"><i class="ti ti-import"></i>Usar como ata da reunião</button>
+    </div>
+  </div>
+</div>
 <div class="modal-ov" id="mProximoPasso">
   <div class="modal" style="max-width:420px">
     <div class="modal-ttl"><span><i class="ti ti-flag"></i>Próximo passo</span><span class="modal-close" onclick="closeM('mProximoPasso')"><i class="ti ti-x"></i></span></div>
@@ -2228,7 +2282,7 @@ function nav(el,p){
   if(p==='agenda')renderAgenda();
   if(p==='reunioes'){renderReunioes();renderReunioesAgendadas();}
   if(p==='clientes')renderClientes();
-  if(p==='config')loadConfig();
+  if(p==='config'){loadConfig();teamsUpdateStatusUI();}
   if(p==='onboarding'){populateObSelect();renderOnboarding();}
   if(p==='churn')renderChurn();
   if(p==='engajamento'){populateEngSelect();renderEngajamento();}
@@ -7616,15 +7670,225 @@ window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promis
     };
   }
 })();
+// ═══ MICROSOFT TEAMS INTEGRATION ═══
+let _teamsPeriod='7d';
+let _teamsCurrentMeetings=[];
+
+function teamsGetStoredToken(){const t=CS_DB.get('teams_token');if(!t||!t.access_token)return null;if(Date.now()>t.expires_at-60000)return null;return t.access_token;}
+
+function teamsUpdateStatusUI(){
+  const token=teamsGetStoredToken();
+  const bar=document.getElementById('teamsStatusBar');
+  const btnConn=document.getElementById('btnTeamsConnect');
+  const btnDisc=document.getElementById('btnTeamsDisconnect');
+  const btnSync=document.getElementById('btnTeamsSync');
+  if(!bar)return;
+  if(token){
+    const info=CS_DB.get('teams_user')||{};
+    bar.className='teams-status connected';
+    bar.innerHTML=`<i class="ti ti-plug" style="color:var(--green)"></i>Conectado como <strong>${info.displayName||'usuário Microsoft'}</strong>`;
+    if(btnConn)btnConn.style.display='none';
+    if(btnDisc)btnDisc.style.display='';
+    if(btnSync)btnSync.style.display='';
+  }else{
+    bar.className='teams-status disconnected';
+    bar.innerHTML=`<i class="ti ti-plug-x"></i>Não conectado ao Microsoft Teams`;
+    if(btnConn)btnConn.style.display='';
+    if(btnDisc)btnDisc.style.display='none';
+    if(btnSync)btnSync.style.display='none';
+  }
+  const cEl=document.getElementById('cfgTeamsClientId');
+  if(cEl)cEl.value=CS_DB.getConfig().teamsClientId||'';
+  const uEl=document.getElementById('teamsRedirectUrl');
+  if(uEl)uEl.textContent=window.location.origin+window.location.pathname;
+}
+
+function salvarTeamsClientId(){
+  const v=document.getElementById('cfgTeamsClientId')?.value?.trim();
+  if(!v){toast('Informe o Client ID antes de salvar.','err');return;}
+  const cfg=CS_DB.getConfig();cfg.teamsClientId=v;CS_DB.saveConfig(cfg);toast('Client ID salvo!');
+}
+
+function _teamsGenVerifier(){const a=new Uint8Array(32);crypto.getRandomValues(a);return btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+async function _teamsGenChallenge(v){const d=new TextEncoder().encode(v);const h=await crypto.subtle.digest('SHA-256',d);return btoa(String.fromCharCode(...new Uint8Array(h))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');}
+
+async function teamsConnect(){
+  const clientId=CS_DB.getConfig().teamsClientId?.trim();
+  if(!clientId){toast('Salve o Client ID antes de conectar.','err');return;}
+  const verifier=_teamsGenVerifier();
+  localStorage.setItem('teams_pkce_verifier',verifier);
+  const challenge=await _teamsGenChallenge(verifier);
+  const redirectUri=encodeURIComponent(window.location.origin+window.location.pathname);
+  const scope=encodeURIComponent('User.Read Calendars.Read OnlineMeetings.Read OnlineMeetingTranscript.Read.All');
+  window.location.href=`https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=${scope}&code_challenge=${challenge}&code_challenge_method=S256&state=teams_auth&prompt=select_account`;
+}
+
+async function teamsHandleCallback(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('state')!=='teams_auth'||!params.get('code'))return false;
+  const code=params.get('code');
+  const verifier=localStorage.getItem('teams_pkce_verifier');
+  const clientId=CS_DB.getConfig().teamsClientId?.trim();
+  if(!clientId||!verifier)return false;
+  window.history.replaceState({},'',window.location.pathname);
+  try{
+    const body=new URLSearchParams({client_id:clientId,grant_type:'authorization_code',code,redirect_uri:window.location.origin+window.location.pathname,code_verifier:verifier});
+    const resp=await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+    const data=await resp.json();
+    if(data.access_token){
+      CS_DB.set('teams_token',{access_token:data.access_token,expires_at:Date.now()+(data.expires_in||3600)*1000});
+      localStorage.removeItem('teams_pkce_verifier');
+      const me=await(await fetch('https://graph.microsoft.com/v1.0/me',{headers:{Authorization:'Bearer '+data.access_token}})).json();
+      CS_DB.set('teams_user',{displayName:me.displayName,mail:me.mail});
+      toast('Microsoft Teams conectado com sucesso!');
+      return true;
+    }
+  }catch(e){console.error('Teams callback error:',e);}
+  return false;
+}
+
+async function teamsApiCall(endpoint){
+  const token=teamsGetStoredToken();
+  if(!token)throw new Error('Teams não conectado. Vá em Configurações → Microsoft Teams.');
+  const resp=await fetch('https://graph.microsoft.com/v1.0'+endpoint,{headers:{Authorization:'Bearer '+token}});
+  if(resp.status===401){CS_DB.set('teams_token',null);throw new Error('Sessão expirada. Reconecte ao Teams nas Configurações.');}
+  if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err?.error?.message||`Erro ${resp.status}`);}
+  return resp.json();
+}
+
+async function openTeamsPanel(){
+  if(!teamsGetStoredToken()){toast('Conecte ao Teams primeiro em Configurações.','err');nav(document.querySelector('[data-p=config]'),'config');return;}
+  openM('mTeams');
+  await teamsSyncMeetings(_teamsPeriod);
+}
+
+async function teamsSyncMeetings(period,btn){
+  _teamsPeriod=period;
+  if(btn){document.querySelectorAll('.teams-period-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+  const el=document.getElementById('teamsListContent');if(!el)return;
+  el.innerHTML='<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-loader" style="font-size:26px;animation:spin 1s linear infinite;display:block;margin-bottom:10px"></i>Buscando reuniões no Teams...</div>';
+  const dias={'7d':7,'30d':30,'90d':90}[period]||7;
+  const from=new Date(Date.now()-dias*86400000).toISOString();
+  const to=new Date(Date.now()+7*86400000).toISOString();
+  try{
+    const filter=encodeURIComponent(`isOnlineMeeting eq true and start/dateTime ge '${from}' and start/dateTime le '${to}'`);
+    const sel=encodeURIComponent('subject,start,end,attendees,onlineMeeting,bodyPreview');
+    const data=await teamsApiCall(`/me/events?$filter=${filter}&$orderby=start/dateTime desc&$top=50&$select=${sel}`);
+    _teamsCurrentMeetings=data.value||[];
+    _renderTeamsMeetings(_teamsCurrentMeetings,el);
+  }catch(e){
+    el.innerHTML=`<div style="text-align:center;padding:32px;color:var(--red)"><i class="ti ti-alert-circle" style="font-size:28px;display:block;margin-bottom:8px"></i>${e.message}</div>`;
+  }
+}
+
+function _renderTeamsMeetings(meetings,el){
+  const clientes=CS_DB.getClientes();
+  if(!meetings.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--gray3)"><i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px"></i>Nenhuma reunião do Teams encontrada neste período.</div>';return;}
+  const opts=clientes.map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+  el.innerHTML=meetings.map((m,i)=>{
+    const tz=m.start?.timeZone||'UTC';
+    const start=new Date(m.start?.dateTime+(m.start?.dateTime?.endsWith('Z')?'':'Z'));
+    const end=new Date(m.end?.dateTime+(m.end?.dateTime?.endsWith('Z')?'':'Z'));
+    const dur=Math.round((end-start)/60000);
+    const isPast=start<new Date();
+    const atts=(m.attendees||[]).slice(0,5).map(a=>a.emailAddress?.name||a.emailAddress?.address).filter(Boolean).join(', ');
+    const joinUrl=m.onlineMeeting?.joinUrl||'';
+    return`<div class="teams-meeting-row">
+      <div class="teams-meeting-icon"><i class="ti ti-brand-teams" style="color:#fff;font-size:18px"></i></div>
+      <div style="flex:1;min-width:0">
+        <div class="teams-meeting-title">${m.subject||'(sem título)'}</div>
+        <div class="teams-meeting-meta"><i class="ti ti-calendar"></i> ${start.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'})} · ${start.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}–${end.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${dur}min</div>
+        ${atts?`<div class="teams-meeting-atts"><i class="ti ti-users"></i> ${atts}</div>`:''}
+        <div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;align-items:center">
+          <select id="tmsCliente_${i}" style="font-size:11.5px;padding:3px 8px;border-radius:6px;border:1px solid var(--gray4);color:var(--gray1);background:var(--bg);max-width:220px"><option value="">Vincular cliente...</option>${opts}</select>
+          <button class="btn-ghost" style="font-size:11px;padding:3px 10px" onclick="teamsImportarReuniao(${i})"><i class="ti ti-import"></i>Importar</button>
+          ${isPast&&joinUrl?`<button class="btn-ghost" style="font-size:11px;padding:3px 10px" onclick="teamsVerTranscricao('${joinUrl.replace(/'/g,"\\'")}','${(m.subject||'').replace(/'/g,"\\'")}',${i})"><i class="ti ti-file-text"></i>Transcrição</button>`:''}
+          <span style="margin-left:auto;font-size:10px;padding:2px 8px;border-radius:10px;background:${isPast?'var(--gray5)':'rgba(80,89,201,.1)'};color:${isPast?'var(--gray2)':'#5059c9'}">${isPast?'Realizada':'Agendada'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function teamsImportarReuniao(idx){
+  const m=_teamsCurrentMeetings[idx];if(!m)return;
+  const cid=document.getElementById(`tmsCliente_${idx}`)?.value;
+  if(!cid){toast('Selecione um cliente para vincular.','err');return;}
+  const cli=CS_DB.getClienteById(cid);
+  const start=new Date(m.start?.dateTime+(m.start?.dateTime?.endsWith('Z')?'':'Z'));
+  const quem=CS_DB.getSession()?.nome||'Felipe Duarte';
+  const partsCliente=(m.attendees||[]).filter(a=>!a.emailAddress?.address?.toLowerCase().includes('creare')).map(a=>a.emailAddress?.name||a.emailAddress?.address).filter(Boolean);
+  CS_DB.saveReuniao({
+    clienteId:cid,empresa:cli?.empresa||'',tipo:'Reunião Teams',titulo:m.subject||'Reunião Teams',
+    data:start.toLocaleDateString('pt-BR'),dataISO:start.toISOString(),
+    hora:start.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    positivos:'',problemas:'',melhorias:'',nps:null,csat:null,
+    participantesCreare:[quem],participantesCliente:partsCliente,
+    resumo:m.bodyPreview||'',responsavelCS:quem,importadoTeams:true
+  });
+  toast(`Reunião "${m.subject||'Teams'}" importada para ${cli?.empresa}!`);
+  document.querySelectorAll(`#tmsCliente_${idx}`).forEach(el=>{el.closest('.teams-meeting-row')?.querySelector('.btn-ghost[onclick*="Importar"],button:has(i.ti-import)')?.remove?.();});
+}
+
+async function teamsVerTranscricao(joinUrl,titulo,idx){
+  if(!joinUrl){toast('URL da reunião não disponível.','err');return;}
+  openM('mTeamsTranscript');
+  document.getElementById('teamsTranscriptTitle').textContent=titulo;
+  const box=document.getElementById('teamsTranscriptContent');
+  box.innerHTML='<div style="text-align:center;padding:24px;color:var(--gray2)"><i class="ti ti-loader" style="font-size:24px;animation:spin 1s linear infinite;display:block;margin-bottom:8px"></i>Buscando transcrição...</div>';
+  document.getElementById('btnUsarTranscricao').onclick=()=>{};
+  try{
+    const filter=encodeURIComponent(`joinWebUrl eq '${joinUrl}'`);
+    const mData=await teamsApiCall(`/me/onlineMeetings?$filter=${filter}`);
+    const mid=mData?.value?.[0]?.id;
+    if(!mid)throw new Error('Reunião não encontrada na API — ela pode ter sido realizada antes da integração ser ativada.');
+    const transcripts=await teamsApiCall(`/me/onlineMeetings/${mid}/transcripts`);
+    if(!transcripts?.value?.length){
+      box.innerHTML='<div style="text-align:center;padding:28px;color:var(--gray3)"><i class="ti ti-file-off" style="font-size:30px;display:block;margin-bottom:8px"></i>Nenhuma transcrição disponível para esta reunião.<br><span style="font-size:11px;margin-top:6px;display:block">A gravação/transcrição precisa estar ativada no Teams e pode exigir licença Teams Premium.</span></div>';
+      return;
+    }
+    const tid=transcripts.value[0].id;
+    const token=teamsGetStoredToken();
+    const resp=await fetch(`https://graph.microsoft.com/v1.0/me/onlineMeetings/${mid}/transcripts/${tid}/content?$format=text/plain`,{headers:{Authorization:'Bearer '+token}});
+    if(!resp.ok)throw new Error(`Erro ${resp.status} ao buscar conteúdo da transcrição.`);
+    const text=await resp.text();
+    box.textContent=text||(box.innerHTML='<span style="color:var(--gray3)">(transcrição vazia)</span>');
+    document.getElementById('btnUsarTranscricao').onclick=()=>teamsTranscriptComoAta(text,titulo,idx);
+  }catch(e){
+    box.innerHTML=`<div style="text-align:center;padding:24px;color:var(--red)"><i class="ti ti-alert-circle" style="font-size:26px;display:block;margin-bottom:8px"></i>${e.message}</div>`;
+  }
+}
+
+function teamsTranscriptCopiar(){const t=document.getElementById('teamsTranscriptContent')?.textContent;if(t){navigator.clipboard.writeText(t);toast('Transcrição copiada!');}}
+
+function teamsTranscriptComoAta(texto,titulo,idx){
+  closeM('mTeamsTranscript');
+  openM('mReuniao');
+  const tEl=document.getElementById('rTitulo');if(tEl)tEl.value=titulo;
+  const posiEl=document.getElementById('rPosi');if(posiEl)posiEl.value=texto.slice(0,1200);
+  toast('Transcrição inserida em Pontos Positivos. Selecione o cliente e finalize.');
+}
+
+function teamsDisconnect(){
+  confirmar('Desconectar do Microsoft Teams?',()=>{
+    CS_DB.set('teams_token',null);CS_DB.set('teams_user',null);
+    teamsUpdateStatusUI();toast('Desconectado do Teams.');
+  },'Desconectar','Desconectar');
+}
+
 // Auto-login se houver sessão salva, ou verificar NPS público
-(function(){
+(async function(){
   try{
     CS_DB.init();
-    // NPS público tem prioridade
     const params=new URLSearchParams(window.location.search);
+    // NPS público tem prioridade
     if(params.get('nps')&&checkNPSPublicoUrl()){
       document.getElementById('loginScreen').style.display='none';
       return;
+    }
+    // Callback OAuth do Teams
+    if(params.get('state')==='teams_auth'){
+      await teamsHandleCallback();
     }
     // Auto-login se sessão válida existir
     const session=CS_DB.getSession();
