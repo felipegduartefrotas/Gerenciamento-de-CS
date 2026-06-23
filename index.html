@@ -2052,6 +2052,7 @@ tr:hover td{background:#fafafa}
     </div>
     <div class="btn-row" style="flex-direction:column;gap:8px">
       <button class="btn-primary" style="width:100%;justify-content:center" onclick="converterParaReuniaoRealizada()"><i class="ti ti-check"></i>Reunião aconteceu — registrar agora</button>
+      <button class="btn-ghost" style="width:100%;justify-content:center" onclick="editarReuniaoAgendada()"><i class="ti ti-edit"></i>Editar dados da reunião</button>
       <button class="btn-ghost" style="width:100%;justify-content:center" onclick="abrirRemarcarReuniao()"><i class="ti ti-calendar-time"></i>Remarcar para outra data</button>
       <button class="btn-ghost" style="width:100%;justify-content:center;color:var(--red);border-color:var(--red)" onclick="cancelarReuniaoAgendada()"><i class="ti ti-x"></i>Cancelar esta reunião</button>
     </div>
@@ -4192,11 +4193,12 @@ function salvarReuniaoAgendada(){
     if(lng)acoes[idx].lng=lng;
     acoes[idx].reuniaoParticipantes=_agrParticipantes.slice();
     acoes[idx].status='Pendente';
-    _addLogAcao(acoes[idx],`Reunião remarcada de ${dataAnterior} para ${dataStr}${hora?' às '+hora:''}`);
+    var _logMsg=dataAnterior!==dataStr?'Reunião remarcada de '+dataAnterior+' para '+dataStr+(hora?' às '+hora:''):'Reunião atualizada: '+dataStr+(hora?' às '+hora:'');
+    _addLogAcao(acoes[idx],_logMsg);
     CS_DB.set('acoes',acoes);
-    if(cid)CS_DB._addTimeline(cid,'reuniao',`Reunião remarcada: ${tipo}`,`Remarcada por ${quem} de ${dataAnterior} para ${dataStr}${hora?' às '+hora:''}.`);
+    if(cid)CS_DB._addTimeline(cid,'reuniao','Reunião atualizada: '+tipo,'Atualizada por '+quem+'. Data: '+dataStr+(hora?' às '+hora:'')+'.');
     closeM('mAgendarReuniao');
-    toast(`Reunião remarcada para ${dataStr}!`);
+    toast(dataAnterior!==dataStr?'Reunião remarcada para '+dataStr+'!':'Reunião atualizada!');
   }else{
     const acao={
       clienteId:cid,empresa:cli?.empresa||'',
@@ -4219,6 +4221,8 @@ function salvarReuniaoAgendada(){
   }
   renderKanban();
   if(document.getElementById('page-reunioes').classList.contains('active'))renderReunioesAgendadas();
+  var _pgAgd=document.getElementById('page-agenda');
+  if(_pgAgd&&_pgAgd.classList.contains('active'))try{renderAgenda();}catch(e){}
   updateStatusBar();
 }
 // ────── Reunião: funções auxiliares de calendário/email ──────
@@ -4445,11 +4449,38 @@ function abrirRemarcarReuniao(){
   _agrUpdateInfo();
   openM('mAgendarReuniao');
 }
+function editarReuniaoAgendada(){
+  const acaoId=document.getElementById('traId').value;
+  const a=(CS_DB.get('acoes')||[]).find(x=>x.id===acaoId);
+  if(!a)return;
+  closeM('mTratarReuniaoAgendada');
+  document.getElementById('agrId').value=acaoId;
+  const s=document.getElementById('agrCliente');
+  s.innerHTML=CS_DB.getClientes().map(c=>'<option value="'+c.id+'"'+(c.id===a.clienteId?' selected':'')+'>'+c.empresa+'</option>').join('');
+  s.value=a.clienteId;
+  _agrSetData(a.reuniaoData||'');
+  document.getElementById('agrHora').value=a.reuniaoHora||'';
+  document.getElementById('agrDuracao').value='60';
+  document.getElementById('agrTipo').value=a.reuniaoTipo||'QBR';
+  document.getElementById('agrResp').value=a.responsavel||'';
+  document.getElementById('agrPauta').value=a.reuniaoPauta||'';
+  document.getElementById('agrEmailCliente').value='';
+  document.getElementById('agrLocal').value='';
+  document.getElementById('agrClienteInfo').innerHTML='';
+  agendaToggleModalidade(a.modalidade||'online');
+  document.getElementById('agrEndereco').value=a.reuniaoEndereco||'';
+  document.getElementById('agrLat').value=a.lat||'';
+  document.getElementById('agrLng').value=a.lng||'';
+  _agrParticipantes=(a.reuniaoParticipantes||[]).slice();
+  agrRenderParticipantes();
+  _agrUpdateInfo();
+  openM('mAgendarReuniao');
+}
 function cancelarReuniaoAgendada(){
   const acaoId=document.getElementById('traId').value;
   const a=(CS_DB.get('acoes')||[]).find(x=>x.id===acaoId);
   if(!a)return;
-  confirmar(`Cancelar a reunião de ${a.reuniaoTipo} com ${a.empresa}, agendada para ${a.reuniaoData}?`,()=>{
+  confirmar('Cancelar a reunião de '+a.reuniaoTipo+' com '+a.empresa+', agendada para '+a.reuniaoData+'?',()=>{
     const acoes=CS_DB.get('acoes')||[];
     const idx=acoes.findIndex(x=>x.id===acaoId);
     const quem=CS_DB.getSession()?.nome||'Felipe Duarte';
