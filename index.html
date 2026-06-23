@@ -3475,6 +3475,43 @@ function agendaToggleModalidade(mod){
   var wrap=document.getElementById('agrEnderecoWrap');
   if(wrap)wrap.style.display=mod==='presencial'?'':'none';
 }
+function _endParsearPartes(q){
+  // Split "Rua das Flores, 123, São Paulo" → {street, numero, city}
+  var partes=q.split(/\s*,\s*/);
+  var street='';var numero='';var city='';
+  for(var i=0;i<partes.length;i++){
+    var p=partes[i].trim();
+    if(!numero&&/^\d+[a-zA-Z]?$/.test(p)){numero=p;}
+    else if(!street){street=p;}
+    else if(!city){city=p;}
+  }
+  // Handle "Rua das Flores 123" without comma
+  if(!numero&&street){
+    var m=street.match(/^(.*?)\s+(\d+[a-zA-Z]?)\s*$/);
+    if(m){numero=m[2];street=m[1];}
+  }
+  return{street:street,numero:numero,city:city};
+}
+async function _nominatimBuscar(q,limite){
+  if(!limite)limite=6;
+  var base='https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=br&limit='+limite;
+  var hdrs={'Accept-Language':'pt-BR'};
+  var pts=_endParsearPartes(q);
+  // Try structured query (housenumber separate) when number detected — more precise
+  if(pts.numero&&pts.street){
+    try{
+      var sUrl=base+'&housenumber='+encodeURIComponent(pts.numero)+'&street='+encodeURIComponent(pts.street)+(pts.city?'&city='+encodeURIComponent(pts.city):'');
+      var sr=await fetch(sUrl,{headers:hdrs});
+      var sd=await sr.json();
+      if(sd&&sd.length)return sd;
+    }catch(e){}
+  }
+  // Fallback: free-form query
+  try{
+    var fr=await fetch(base+'&q='+encodeURIComponent(q),{headers:hdrs});
+    return await fr.json();
+  }catch(e){return[];}
+}
 var _agrEndTimer=null;
 function agendaEnderecoBuscar(q){
   clearTimeout(_agrEndTimer);
@@ -3482,32 +3519,34 @@ function agendaEnderecoBuscar(q){
   if(!drop)return;
   if(!q||q.length<4){drop.style.display='none';return;}
   _agrEndTimer=setTimeout(function(){
-    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=6&addressdetails=1&countrycodes=br',{headers:{'Accept-Language':'pt-BR'}})
-      .then(function(r){return r.json();})
-      .then(function(data){
-        if(!data||!data.length){drop.style.display='none';return;}
-        var html=data.map(function(r){
-          var a=r.address||{};
-          var street=[a.road||a.pedestrian||a.footway||a.neighbourhood||'',a.house_number||''].filter(Boolean).join(', ');
-          var city=a.city||a.town||a.village||a.municipality||a.county||'';
-          var stateCode=a.state_code||'';
-          var state=stateCode?stateCode:(a.state||'');
-          var cep=(a.postcode||'').replace(/\D/g,'');
-          if(cep.length===8)cep=cep.slice(0,5)+'-'+cep.slice(5);
-          var main=street||city||r.display_name.split(',')[0];
-          var sub=[city,state,cep?'CEP '+cep:''].filter(Boolean).join(' · ');
-          var endFull=(street?(street+', '):'')+city+(state?' - '+state:'');
-          var safeEnd=endFull.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-          return '<div class="agd-drop-item" onclick="agendaEnderecoSelecionar(\''+safeEnd+'\',\''+r.lat+'\',\''+r.lon+'\')">'
-            +'<div class="agd-drop-main">'+main+'</div>'
-            +(sub?'<div class="agd-drop-sub">'+sub+'</div>':'')
-            +'</div>';
-        }).join('');
-        drop.innerHTML=html;
-        drop.style.display='block';
-      })
-      .catch(function(){drop.style.display='none';});
+    _agrFetchSugestoes(q,drop);
   },350);
+}
+async function _agrFetchSugestoes(q,drop){
+  try{
+    var data=await _nominatimBuscar(q,6);
+    if(!data||!data.length){drop.style.display='none';return;}
+    var html=data.map(function(item){
+      var a=item.address||{};
+      var road=a.road||a.pedestrian||a.footway||a.neighbourhood||'';
+      var num=a.house_number||'';
+      var city=a.city||a.town||a.village||a.municipality||a.county||'';
+      var state=a.state_code||a.state||'';
+      var cep=(a.postcode||'').replace(/\D/g,'');
+      if(cep.length===8)cep=cep.slice(0,5)+'-'+cep.slice(5);
+      var streetDisp=road+(num?', '+num:'');
+      var main=streetDisp||city||item.display_name.split(',')[0];
+      var sub=[city,state,cep?'CEP '+cep:''].filter(Boolean).join(' · ');
+      var endFull=(road?(road+(num?', '+num:'')+', '):'')+city+(state?' - '+state:'');
+      var safeEnd=endFull.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<div class="agd-drop-item" onclick="agendaEnderecoSelecionar(\''+safeEnd+'\',\''+item.lat+'\',\''+item.lon+'\')">'
+        +'<div class="agd-drop-main">'+main+'</div>'
+        +(sub?'<div class="agd-drop-sub">'+sub+'</div>':'')
+        +'</div>';
+    }).join('');
+    drop.innerHTML=html;
+    drop.style.display='block';
+  }catch(e){drop.style.display='none';}
 }
 function agendaEnderecoSelecionar(end,lat,lng){
   var inp=document.getElementById('agrEndereco');
@@ -3518,19 +3557,17 @@ function agendaEnderecoSelecionar(end,lat,lng){
   if(drop)drop.style.display='none';
   toast('Endereço selecionado!','ok');
 }
-function agendaGeocodificarEndereco(){
+async function agendaGeocodificarEndereco(){
   var end=(document.getElementById('agrEndereco')?.value||'').trim();
   if(!end){toast('Informe o endereço antes de buscar.','err');return;}
   toast('Buscando endereço...','info');
-  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(end)+'&limit=1&addressdetails=1&countrycodes=br',{headers:{'Accept-Language':'pt-BR'}})
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(!data||!data.length){toast('Endereço não encontrado. Tente incluir cidade ou CEP.','warn');return;}
-      document.getElementById('agrLat').value=data[0].lat;
-      document.getElementById('agrLng').value=data[0].lon;
-      toast('Coordenadas salvas! Reunião aparecerá no mapa.','ok');
-    })
-    .catch(function(){toast('Erro ao buscar endereço.','err');});
+  try{
+    var data=await _nominatimBuscar(end,1);
+    if(!data||!data.length){toast('Endereço não encontrado. Tente incluir cidade ou CEP.','warn');return;}
+    document.getElementById('agrLat').value=data[0].lat;
+    document.getElementById('agrLng').value=data[0].lon;
+    toast('Coordenadas salvas! Reunião aparecerá no mapa.','ok');
+  }catch(e){toast('Erro ao buscar endereço.','err');}
 }
 var _agrParticipantes=[];
 function agrRenderParticipantes(){
