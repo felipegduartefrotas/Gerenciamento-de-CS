@@ -1605,8 +1605,8 @@ tr:hover td{background:#fafafa}
     </div>
     <div class="card" style="margin:0;overflow:hidden">
       <div class="card-ttl" style="margin-bottom:12px"><i class="ti ti-map-2"></i>Mapa · Reuniões Presenciais</div>
-      <div id="agendaMapDiv" style="height:300px;border-radius:8px;border:1px solid var(--gray4);overflow:hidden;background:var(--gray5)"></div>
-      <div id="agendaMapEmpty" style="display:none;height:300px;border-radius:8px;background:var(--gray5);border:1px dashed var(--gray4);flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--gray3)">
+      <div id="agendaMapDiv" style="height:300px;border-radius:8px;border:1px solid var(--gray4);overflow:hidden;background:var(--gray5);display:none"></div>
+      <div id="agendaMapEmpty" style="display:flex;height:300px;border-radius:8px;background:var(--gray5);border:1px dashed var(--gray4);flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--gray3)">
         <i class="ti ti-map-pin-off" style="font-size:34px"></i>
         <div style="font-size:12px;text-align:center;line-height:1.6;padding:0 24px">Nenhuma reunião presencial com endereço cadastrado.<br>Ao agendar uma reunião <b style="color:var(--green)">Presencial</b>, informe o endereço para ela aparecer aqui.</div>
       </div>
@@ -3367,23 +3367,29 @@ function renderAgenda(){
       ${items.length?items.join(''):`<div class="agenda-vazio" onclick="agendaAbrirModalDia('${dStr}')" title="Agendar reunião" style="cursor:pointer">+ agendar</div>`}
     </div>`;
   }).join('')}</div>`;
-  renderAgendaMapa();
-  renderAgendaResumo();
+  try{renderAgendaMapa();}catch(e){console.error('renderAgendaMapa:',e);}
+  try{renderAgendaResumo();}catch(e){console.error('renderAgendaResumo:',e);}
 }
 function agendaNavSemana(d){_agendaSemana+=d;renderAgenda()}
 function agendaIrHoje(){_agendaSemana=0;renderAgenda()}
 function renderAgendaMapa(){
+  var mapDiv=document.getElementById('agendaMapDiv');
+  var emptyDiv=document.getElementById('agendaMapEmpty');
+  if(!mapDiv)return;
+  // Se Leaflet não carregou, mostra apenas estado vazio
+  if(typeof L==='undefined'){
+    mapDiv.style.display='none';
+    if(emptyDiv)emptyDiv.style.display='flex';
+    return;
+  }
   var acoes=CS_DB.get('acoes')||[];
   var presenciais=acoes.filter(function(a){
     return a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.modalidade==='presencial'&&a.lat&&a.lng;
   });
-  var mapDiv=document.getElementById('agendaMapDiv');
-  var emptyDiv=document.getElementById('agendaMapEmpty');
-  if(!mapDiv)return;
   if(!presenciais.length){
-    if(window._agdMap){window._agdMap.remove();window._agdMap=null;}
+    if(window._agdMap){try{window._agdMap.remove();}catch(e){}window._agdMap=null;}
     mapDiv.style.display='none';
-    if(emptyDiv){emptyDiv.style.display='flex';}
+    if(emptyDiv)emptyDiv.style.display='flex';
     return;
   }
   mapDiv.style.display='block';
@@ -3392,7 +3398,7 @@ function renderAgendaMapa(){
     window._agdMap=L.map('agendaMapDiv',{scrollWheelZoom:false}).setView([-15.788,-47.879],5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(window._agdMap);
   }else{
-    window._agdMap.eachLayer(function(l){if(l instanceof L.Marker)window._agdMap.removeLayer(l);});
+    try{window._agdMap.eachLayer(function(l){if(l instanceof L.Marker)window._agdMap.removeLayer(l);});}catch(e){}
   }
   var bounds=[];
   presenciais.forEach(function(a){
@@ -3406,9 +3412,10 @@ function renderAgendaResumo(){
   var statsEl=document.getElementById('agendaResumoStats');
   var listEl=document.getElementById('agendaResumoList');
   if(!listEl)return;
-  var acoes=CS_DB.get('acoes')||[];
+  var acoes=[];
+  try{acoes=CS_DB.get('acoes')||[];}catch(e){acoes=[];}
   var reunioes=acoes.filter(function(a){
-    return a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada';
+    try{return a&&a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada';}catch(e){return false;}
   });
   reunioes.sort(function(a,b){
     var pa=_parseDataBR(a.reuniaoData||a.prazo||'');
@@ -3434,29 +3441,31 @@ function renderAgendaResumo(){
   var hoje=new Date();hoje.setHours(0,0,0,0);
   var semDias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   var html=reunioes.map(function(a){
-    var dt=_parseDataBR(a.reuniaoData||a.prazo||'');
-    var dtLabel=dt?(semDias[dt.getDay()]+', '+(a.reuniaoData||a.prazo)):'—';
-    var isHoje=dt&&dt.getTime()===hoje.getTime();
-    var isFut=dt&&dt>hoje;
-    var mod=a.modalidade||'online';
-    var modHtml=mod==='presencial'
-      ?'<span class="agd-badge-pres"><i class="ti ti-building" style="font-size:9px"></i>Presencial</span>'
-      :'<span class="agd-badge-online"><i class="ti ti-video" style="font-size:9px"></i>Online</span>';
-    var parts=a.reuniaoParticipantes||[];
-    var partsHtml=parts.length?('<span style="font-size:10.5px;color:var(--gray3);margin-left:6px"><i class="ti ti-users" style="font-size:10px"></i> '+parts.length+'</span>'):'';
-    var dateClr=isHoje?'color:var(--red);font-weight:700':isFut?'color:var(--gray2)':'color:var(--gray3)';
-    var hojeTag=isHoje?'<span style="background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle">Hoje</span>':'';
-    return '<div onclick="abrirTratarReuniaoAgendada(\''+a.id+'\')" style="display:flex;align-items:flex-start;gap:12px;padding:9px 4px;border-bottom:1px solid var(--gray5);cursor:pointer;border-radius:6px;transition:background .1s" onmouseover="this.style.background=\'var(--gray5)\'" onmouseout="this.style.background=\'\'">'
-      +'<div style="min-width:78px;font-size:11px;'+dateClr+';padding-top:2px;line-height:1.5">'+dtLabel+hojeTag+'</div>'
-      +'<div style="flex:1;min-width:0">'
-        +'<div style="font-weight:600;font-size:12.5px;color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+a.empresa+'</div>'
-        +'<div style="font-size:11px;color:var(--gray2);margin-top:1px">'+a.reuniaoTipo+(a.reuniaoHora?' &middot; '+a.reuniaoHora:'')+(a.responsavel?' &middot; '+a.responsavel:'')+'</div>'
-        +'<div style="margin-top:4px;display:flex;align-items:center;gap:4px">'+modHtml+partsHtml+'</div>'
-      +'</div>'
-      +'<div style="padding-top:2px;color:var(--gray3);font-size:13px"><i class="ti ti-chevron-right"></i></div>'
-      +'</div>';
+    try{
+      var dt=_parseDataBR((a.reuniaoData||a.prazo||'').toString());
+      var dtLabel=dt?(semDias[dt.getDay()]+', '+(a.reuniaoData||a.prazo)):'—';
+      var isHoje=dt&&dt.getTime()===hoje.getTime();
+      var isFut=dt&&dt>hoje;
+      var mod=a.modalidade||'online';
+      var modHtml=mod==='presencial'
+        ?'<span class="agd-badge-pres"><i class="ti ti-building" style="font-size:9px"></i>Presencial</span>'
+        :'<span class="agd-badge-online"><i class="ti ti-video" style="font-size:9px"></i>Online</span>';
+      var parts=a.reuniaoParticipantes||[];
+      var partsHtml=parts.length?('<span style="font-size:10.5px;color:var(--gray3);margin-left:6px"><i class="ti ti-users" style="font-size:10px"></i> '+parts.length+'</span>'):'';
+      var dateClr=isHoje?'color:var(--red);font-weight:700':isFut?'color:var(--gray2)':'color:var(--gray3)';
+      var hojeTag=isHoje?'<span style="background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle">Hoje</span>':'';
+      return '<div onclick="abrirTratarReuniaoAgendada(\''+a.id+'\')" style="display:flex;align-items:flex-start;gap:12px;padding:9px 4px;border-bottom:1px solid var(--gray5);cursor:pointer;border-radius:6px;transition:background .1s" onmouseover="this.style.background=\'var(--gray5)\'" onmouseout="this.style.background=\'\'">'
+        +'<div style="min-width:78px;font-size:11px;'+dateClr+';padding-top:2px;line-height:1.5">'+dtLabel+hojeTag+'</div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-weight:600;font-size:12.5px;color:var(--black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(a.empresa||'—')+'</div>'
+          +'<div style="font-size:11px;color:var(--gray2);margin-top:1px">'+(a.reuniaoTipo||'Reunião')+(a.reuniaoHora?' &middot; '+a.reuniaoHora:'')+(a.responsavel?' &middot; '+a.responsavel:'')+'</div>'
+          +'<div style="margin-top:4px;display:flex;align-items:center;gap:4px">'+modHtml+partsHtml+'</div>'
+        +'</div>'
+        +'<div style="padding-top:2px;color:var(--gray3);font-size:13px"><i class="ti ti-chevron-right"></i></div>'
+        +'</div>';
+    }catch(e){return '';}
   }).join('');
-  listEl.innerHTML=html;
+  listEl.innerHTML=html||'<div style="text-align:center;padding:30px 0;color:var(--gray3)"><i class="ti ti-calendar-off" style="font-size:30px;display:block;margin-bottom:8px"></i><div style="font-size:12px">Nenhuma reunião encontrada</div></div>';
 }
 function agendaToggleModalidade(mod){
   document.getElementById('agrModalidade').value=mod;
