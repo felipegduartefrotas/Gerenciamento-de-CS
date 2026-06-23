@@ -1260,7 +1260,7 @@ tr:hover td{background:#fafafa}
     <div class="form-g2">
       <div class="fg form-full"><label>Razão Social *</label><input type="text" id="eRazao"></div>
       <div class="fg"><label>Nome Fantasia</label><input type="text" id="eFantasia"></div>
-      <div class="fg"><label>CNPJ</label><input type="text" id="eCNPJ" placeholder="00.000.000/0001-00"></div>
+      <div class="fg"><label>CNPJ</label><div class="iw"><input type="text" id="eCNPJ" placeholder="00.000.000/0001-00" maxlength="18" oninput="maskCNPJe(this)" onkeydown="if(event.key==='Enter')buscarCNPJ('e')"><button class="ib-search" onclick="buscarCNPJ('e')"><i class="ti ti-search"></i></button></div></div>
       <div class="fg"><label>Natureza Jurídica</label><input type="text" id="eNatJur"></div>
       <div class="fg"><label>Porte</label><select id="ePorte"><option value="">—</option><option>Micro Empresa</option><option>Empresa de Pequeno Porte</option><option>Médio</option><option>Grande</option></select></div>
       <div class="fg"><label>Situação Receita</label><input type="text" id="eSit"></div>
@@ -1270,6 +1270,7 @@ tr:hover td{background:#fafafa}
     </div>
     <div class="sec-div"><i class="ti ti-map-pin"></i>Endereço</div>
     <div class="form-g2">
+      <div class="fg"><label>CEP</label><div class="iw"><input type="text" id="eCEP" placeholder="00000-000" maxlength="9" oninput="maskCEPe(this)" onkeydown="if(event.key==='Enter')buscarCEP('e')"><button class="ib-search" onclick="buscarCEP('e')"><i class="ti ti-search"></i></button></div></div>
       <div class="fg"><label>Logradouro</label><input type="text" id="eLogr"></div>
       <div class="fg"><label>Número</label><input type="text" id="eNum"></div>
       <div class="fg"><label>Complemento</label><input type="text" id="eComp"></div>
@@ -5324,6 +5325,8 @@ async function gerarIA(){
 // ═══ CNPJ / CEP / MAPA ═══
 function maskCNPJ(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'.'+v.slice(2);if(v.length>6)v=v.slice(0,6)+'.'+v.slice(6);if(v.length>10)v=v.slice(0,10)+'/'+v.slice(10);if(v.length>15)v=v.slice(0,15)+'-'+v.slice(15);el.value=v.slice(0,18);if(v.replace(/\D/g,'').length===14)buscarCNPJ()}
 function maskCEP(el){let v=el.value.replace(/\D/g,'');if(v.length>5)v=v.slice(0,5)+'-'+v.slice(5);el.value=v.slice(0,9);if(v.replace(/\D/g,'').length===8)buscarCEP()}
+function maskCNPJe(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'.'+v.slice(2);if(v.length>6)v=v.slice(0,6)+'.'+v.slice(6);if(v.length>10)v=v.slice(0,10)+'/'+v.slice(10);if(v.length>15)v=v.slice(0,15)+'-'+v.slice(15);el.value=v.slice(0,18);if(v.replace(/\D/g,'').length===14)buscarCNPJ('e')}
+function maskCEPe(el){let v=el.value.replace(/\D/g,'');if(v.length>5)v=v.slice(0,5)+'-'+v.slice(5);el.value=v.slice(0,9);if(v.replace(/\D/g,'').length===8)buscarCEP('e')}
 function sd(id,show){const el=document.getElementById(id);if(el)el.style.display=show?'flex':'none'}
 function formatDate(s){const p=s.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s}
 function formatarDataHora(iso){
@@ -5335,14 +5338,20 @@ function formatarDataHora(iso){
   const horaFmt=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   return ehHoje?`Hoje ${horaFmt}`:`${dataFmt} ${horaFmt}`;
 }
-async function buscarCNPJ(){
-  const raw=document.getElementById('fCNPJ').value.replace(/\D/g,'');
-  if(raw.length!==14){sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ deve ter 14 dígitos.';return}
-  sd('cnpjLoad',true);sd('cnpjErr',false);document.getElementById('cnpjResult').style.display='none';
+async function buscarCNPJ(prefixo){
+  if(!prefixo)prefixo='f';
+  var P=prefixo;
+  const raw=document.getElementById(P+'CNPJ').value.replace(/\D/g,'');
+  if(raw.length!==14){
+    if(P==='f'){sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ deve ter 14 dígitos.';}
+    else toast('CNPJ deve ter 14 dígitos.','err');
+    return;
+  }
+  if(P==='f'){sd('cnpjLoad',true);sd('cnpjErr',false);document.getElementById('cnpjResult').style.display='none';}
+  else toast('Consultando CNPJ...','info');
   function _normPorte(p){const n=(p||'').toLowerCase();if(n.includes('micro'))return 'Micro Empresa';if(n.includes('pequeno')||n.includes('epp'))return 'Empresa de Pequeno Porte';if(n.includes('medio')||n.includes('médio'))return 'Médio';if(n.includes('grande')||n.includes('demais'))return 'Grande';return'';}
   try{
     let d=null;
-    // Tenta cnpj.ws (publica.cnpj.ws)
     try{
       const r=await fetch('https://publica.cnpj.ws/cnpj/'+raw);
       if(r.ok){
@@ -5350,28 +5359,12 @@ async function buscarCNPJ(){
         const est=j.estabelecimento||{};
         const cepRaw=(est.cep||'').replace(/\D/g,'');
         const tel=est.ddd1&&est.telefone1?'('+est.ddd1+') '+est.telefone1:'';
-        // atividade_principal pode ser objeto ou array
         const ap=Array.isArray(est.atividade_principal)?est.atividade_principal[0]:est.atividade_principal;
-        // tipo_logradouro + logradouro
         const tipoLogr=est.tipo_logradouro?est.tipo_logradouro+' ':'';
-        // natureza_juridica pode ser objeto {id, descricao} ou string
         const natJur=j.natureza_juridica?(j.natureza_juridica.descricao||j.natureza_juridica):'';
-        d={
-          razao:j.razao_social||'',
-          fantasia:est.nome_fantasia||j.nome_fantasia||'',
-          natJur:typeof natJur==='string'?natJur:(natJur.descricao||''),
-          porte:_normPorte(j.porte?j.porte.descricao||'':''),
-          sit:est.situacao_cadastral||'',
-          abertura:est.data_inicio_atividade||'',
-          cnae:ap?(ap.id+' — '+ap.descricao):'',
-          logradouro:tipoLogr+(est.logradouro||''),
-          numero:est.numero||'',complemento:est.complemento||'',bairro:est.bairro||'',
-          cidade:est.municipio?.nome||'',uf:est.estado?.sigla||'',
-          cep:cepRaw,tel:tel,email:est.email||''
-        };
+        d={razao:j.razao_social||'',fantasia:est.nome_fantasia||j.nome_fantasia||'',natJur:typeof natJur==='string'?natJur:(natJur.descricao||''),porte:_normPorte(j.porte?j.porte.descricao||'':''),sit:est.situacao_cadastral||'',abertura:est.data_inicio_atividade||'',cnae:ap?(ap.id+' — '+ap.descricao):'',logradouro:tipoLogr+(est.logradouro||''),numero:est.numero||'',complemento:est.complemento||'',bairro:est.bairro||'',cidade:est.municipio?.nome||'',uf:est.estado?.sigla||'',cep:cepRaw,tel:tel,email:est.email||''};
       }
     }catch(_){}
-    // Fallback BrasilAPI
     if(!d){
       const r2=await fetch('https://brasilapi.com.br/api/cnpj/v1/'+raw);
       if(!r2.ok)throw new Error('nao_encontrado');
@@ -5379,87 +5372,95 @@ async function buscarCNPJ(){
       const cepRaw=(b.cep||'').replace(/\D/g,'');
       const tel=(b.ddd_telefone_1||'').trim();
       const tipoLogr=b.descricao_tipo_de_logradouro?b.descricao_tipo_de_logradouro+' ':'';
-      d={
-        razao:b.razao_social||'',fantasia:b.nome_fantasia||'',
-        natJur:b.natureza_juridica||'',
-        porte:_normPorte(b.descricao_porte||b.porte||''),
-        sit:b.descricao_situacao_cadastral||'',
-        abertura:b.data_inicio_atividade||'',
-        cnae:b.cnae_fiscal?(b.cnae_fiscal+' — '+(b.cnae_fiscal_descricao||'')):'',
-        logradouro:tipoLogr+(b.logradouro||''),numero:b.numero||'',
-        complemento:b.complemento||'',bairro:b.bairro||'',
-        cidade:b.municipio||'',uf:b.uf||'',
-        cep:cepRaw,tel:tel,email:b.email||''
-      };
+      d={razao:b.razao_social||'',fantasia:b.nome_fantasia||'',natJur:b.natureza_juridica||'',porte:_normPorte(b.descricao_porte||b.porte||''),sit:b.descricao_situacao_cadastral||'',abertura:b.data_inicio_atividade||'',cnae:b.cnae_fiscal?(b.cnae_fiscal+' — '+(b.cnae_fiscal_descricao||'')):'',logradouro:tipoLogr+(b.logradouro||''),numero:b.numero||'',complemento:b.complemento||'',bairro:b.bairro||'',cidade:b.municipio||'',uf:b.uf||'',cep:cepRaw,tel:tel,email:b.email||''};
     }
-    sd('cnpjLoad',false);
-    // ── Preenche campos ──
-    document.getElementById('fRazao').value=d.razao;
-    document.getElementById('fFantasia').value=d.fantasia;
-    document.getElementById('fNatJur').value=d.natJur;
-    document.getElementById('fSit').value=d.sit;
-    document.getElementById('fAbert').value=d.abertura?formatDate(d.abertura.slice(0,10)):'';
-    document.getElementById('fCNAE').value=d.cnae;
-    // Porte (select)
-    if(d.porte){const ps=document.getElementById('fPorte');for(const o of ps.options)if(o.value===d.porte||o.text===d.porte){o.selected=true;break;}}
-    // Endereço
-    if(d.cep.length===8)document.getElementById('fCEP').value=d.cep.slice(0,5)+'-'+d.cep.slice(5);
-    document.getElementById('fLogr').value=d.logradouro;
-    document.getElementById('fNum').value=d.numero;
-    document.getElementById('fComp').value=d.complemento;
-    document.getElementById('fBairro').value=d.bairro;
-    document.getElementById('fCidade').value=d.cidade;
+    if(P==='f')sd('cnpjLoad',false);
+    // Preenche campos — usa prefixo P para ambos os modais (f=novo, e=editar)
+    document.getElementById(P+'Razao').value=d.razao;
+    document.getElementById(P+'Fantasia').value=d.fantasia;
+    document.getElementById(P+'NatJur').value=d.natJur;
+    document.getElementById(P+'Sit').value=d.sit;
+    document.getElementById(P+'Abert').value=d.abertura?formatDate(d.abertura.slice(0,10)):'';
+    document.getElementById(P+'CNAE').value=d.cnae;
+    if(d.porte){const ps=document.getElementById(P+'Porte');for(const o of ps.options)if(o.value===d.porte||o.text===d.porte){o.selected=true;break;}}
+    const cepEl=document.getElementById(P+'CEP');
+    if(cepEl&&d.cep.length===8)cepEl.value=d.cep.slice(0,5)+'-'+d.cep.slice(5);
+    document.getElementById(P+'Logr').value=d.logradouro;
+    document.getElementById(P+'Num').value=d.numero;
+    document.getElementById(P+'Comp').value=d.complemento;
+    document.getElementById(P+'Bairro').value=d.bairro;
+    document.getElementById(P+'Cidade').value=d.cidade;
     const uf=d.uf;
-    if(uf){for(const o of document.getElementById('fUF').options)if(o.value===uf){o.selected=true;break;}}
-    document.getElementById('fRegiao').value=REGIOES[uf]||'—';
-    // Contato (só se vazio)
-    if(d.email&&!document.getElementById('fContEmail').value)document.getElementById('fContEmail').value=d.email;
-    if(d.tel&&!document.getElementById('fContTel').value)document.getElementById('fContTel').value=d.tel;
-    // Complementa endereço via ViaCEP se logradouro ou bairro veio vazio
+    if(uf){for(const o of document.getElementById(P+'UF').options)if(o.value===uf){o.selected=true;break;}}
+    document.getElementById(P+'Regiao').value=REGIOES[uf]||'—';
+    if(P==='f'){
+      if(d.email&&!document.getElementById('fContEmail').value)document.getElementById('fContEmail').value=d.email;
+      if(d.tel&&!document.getElementById('fContTel').value)document.getElementById('fContTel').value=d.tel;
+    }else{
+      if(d.email&&!document.getElementById('eEmail').value)document.getElementById('eEmail').value=d.email;
+      if(d.tel&&!document.getElementById('eTelefone').value)document.getElementById('eTelefone').value=d.tel;
+    }
+    // ViaCEP fallback para logradouro ou bairro vazios
     if(d.cep.length===8&&(!d.logradouro.trim()||!d.bairro)){
       try{
         const vc=await fetch('https://viacep.com.br/ws/'+d.cep+'/json/');
         const vd=await vc.json();
         if(!vd.erro){
-          if(!d.logradouro.trim()&&vd.logradouro)document.getElementById('fLogr').value=vd.logradouro;
-          if(!d.bairro&&vd.bairro)document.getElementById('fBairro').value=vd.bairro;
-          if(!d.cidade&&vd.localidade){document.getElementById('fCidade').value=vd.localidade;}
+          if(!d.logradouro.trim()&&vd.logradouro)document.getElementById(P+'Logr').value=vd.logradouro;
+          if(!d.bairro&&vd.bairro)document.getElementById(P+'Bairro').value=vd.bairro;
+          if(!d.cidade&&vd.localidade)document.getElementById(P+'Cidade').value=vd.localidade;
         }
       }catch(_){}
     }
-    // Atualiza mapa com endereço final dos campos (após possível complemento ViaCEP)
-    const logFinal=document.getElementById('fLogr').value;
-    const bFinal=document.getElementById('fBairro').value;
-    const cidFinal=document.getElementById('fCidade').value;
-    const ufFinal=uf||document.getElementById('fUF').value;
-    atualizarMapa(cidFinal,ufFinal,REGIOES[ufFinal]||'—',logFinal,bFinal);
-    // Card de resultado
-    const ini=(d.razao||'??').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'??';
-    const sitCls=(d.sit||'').toLowerCase().includes('ativa')?'s-ativo':'s-inativo';
-    const endParts=[logFinal,d.numero,d.complemento,bFinal,cidFinal+(ufFinal?' - '+ufFinal:''),d.cep.length===8?'CEP '+d.cep.slice(0,5)+'-'+d.cep.slice(5):''].filter(Boolean);
-    document.getElementById('cnpjResult').style.display='block';
-    document.getElementById('cnpjResult').innerHTML=
-      '<div class="cr-hdr"><div class="cr-av">'+ini+'</div><div><div class="cr-name">'+d.razao+'</div><div class="cr-type">'+(d.fantasia?d.fantasia+' &middot; ':'')+'<span class="'+sitCls+'">'+d.sit+'</span></div></div></div>'
-      +'<div class="cr-grid">'
-        +'<div class="cr-field"><div class="cr-f-lbl">CNAE</div><div class="cr-f-val">'+(d.cnae.split(' — ')[0]||'—')+'</div></div>'
-        +'<div class="cr-field"><div class="cr-f-lbl">Abertura</div><div class="cr-f-val">'+(d.abertura?formatDate(d.abertura.slice(0,10)):'—')+'</div></div>'
-        +'<div class="cr-field"><div class="cr-f-lbl">Situação</div><div class="cr-f-val"><span class="'+sitCls+'">'+d.sit+'</span></div></div>'
-        +'<div class="cr-field"><div class="cr-f-lbl">Porte</div><div class="cr-f-val">'+(d.porte||'—')+'</div></div>'
-        +(endParts.length?'<div class="cr-field cr-f-full"><div class="cr-f-lbl"><i class="ti ti-map-pin" style="font-size:10px"></i> Endereço</div><div class="cr-f-val" style="white-space:normal;font-size:11.5px">'+endParts.join(', ')+'</div></div>':'')
-        +(d.tel?'<div class="cr-field"><div class="cr-f-lbl">Telefone</div><div class="cr-f-val">'+d.tel+'</div></div>':'')
-        +(d.email?'<div class="cr-field cr-f-full"><div class="cr-f-lbl">E-mail</div><div class="cr-f-val">'+d.email+'</div></div>':'')
-      +'</div>';
+    if(P==='f'){
+      const logFinal=document.getElementById('fLogr').value;
+      const bFinal=document.getElementById('fBairro').value;
+      const cidFinal=document.getElementById('fCidade').value;
+      const ufFinal=uf||document.getElementById('fUF').value;
+      atualizarMapa(cidFinal,ufFinal,REGIOES[ufFinal]||'—',logFinal,bFinal);
+      const ini=(d.razao||'??').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'??';
+      const sitCls=(d.sit||'').toLowerCase().includes('ativa')?'s-ativo':'s-inativo';
+      const endParts=[logFinal,d.numero,d.complemento,bFinal,cidFinal+(ufFinal?' - '+ufFinal:''),d.cep.length===8?'CEP '+d.cep.slice(0,5)+'-'+d.cep.slice(5):''].filter(Boolean);
+      document.getElementById('cnpjResult').style.display='block';
+      document.getElementById('cnpjResult').innerHTML=
+        '<div class="cr-hdr"><div class="cr-av">'+ini+'</div><div><div class="cr-name">'+d.razao+'</div><div class="cr-type">'+(d.fantasia?d.fantasia+' &middot; ':'')+'<span class="'+sitCls+'">'+d.sit+'</span></div></div></div>'
+        +'<div class="cr-grid">'
+          +'<div class="cr-field"><div class="cr-f-lbl">CNAE</div><div class="cr-f-val">'+(d.cnae.split(' — ')[0]||'—')+'</div></div>'
+          +'<div class="cr-field"><div class="cr-f-lbl">Abertura</div><div class="cr-f-val">'+(d.abertura?formatDate(d.abertura.slice(0,10)):'—')+'</div></div>'
+          +'<div class="cr-field"><div class="cr-f-lbl">Situação</div><div class="cr-f-val"><span class="'+sitCls+'">'+d.sit+'</span></div></div>'
+          +'<div class="cr-field"><div class="cr-f-lbl">Porte</div><div class="cr-f-val">'+(d.porte||'—')+'</div></div>'
+          +(endParts.length?'<div class="cr-field cr-f-full"><div class="cr-f-lbl"><i class="ti ti-map-pin" style="font-size:10px"></i> Endereço</div><div class="cr-f-val" style="white-space:normal;font-size:11.5px">'+endParts.join(', ')+'</div></div>':'')
+          +(d.tel?'<div class="cr-field"><div class="cr-f-lbl">Telefone</div><div class="cr-f-val">'+d.tel+'</div></div>':'')
+          +(d.email?'<div class="cr-field cr-f-full"><div class="cr-f-lbl">E-mail</div><div class="cr-f-val">'+d.email+'</div></div>':'')
+        +'</div>';
+    }
     toast('CNPJ encontrado! Cadastro preenchido automaticamente.','ok');
-  }catch(_e){sd('cnpjLoad',false);sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ não encontrado. Verifique o número ou preencha manualmente.'}
+  }catch(_e){
+    if(P==='f'){sd('cnpjLoad',false);sd('cnpjErr',true);document.getElementById('cnpjErrMsg').textContent='CNPJ não encontrado. Verifique o número ou preencha manualmente.';}
+    else toast('CNPJ não encontrado. Verifique o número ou preencha manualmente.','err');
+  }
 }
-async function buscarCEP(){
-  const raw=document.getElementById('fCEP').value.replace(/\D/g,'');if(raw.length!==8)return;
-  sd('cepLoad',true);sd('cepErr',false);sd('cepOk',false);
-  try{const r=await fetch(`https://viacep.com.br/ws/${raw}/json/`);const d=await r.json();if(d.erro)throw new Error();
-    sd('cepLoad',false);document.getElementById('fLogr').value=d.logradouro||'';document.getElementById('fBairro').value=d.bairro||'';document.getElementById('fCidade').value=d.localidade||'';
-    const uf=d.uf||'';for(let o of document.getElementById('fUF').options)if(o.value===uf)o.selected=true;document.getElementById('fRegiao').value=REGIOES[uf]||'—';
-    sd('cepOk',true);atualizarMapa(d.localidade,uf,REGIOES[uf]||'—',d.logradouro,d.bairro);
-  }catch(_e){sd('cepLoad',false);sd('cepErr',true)}}
+async function buscarCEP(prefixo){
+  if(!prefixo)prefixo='f';
+  var P=prefixo;
+  const raw=document.getElementById(P+'CEP').value.replace(/\D/g,'');if(raw.length!==8)return;
+  if(P==='f'){sd('cepLoad',true);sd('cepErr',false);sd('cepOk',false);}
+  else toast('Buscando CEP...','info');
+  try{
+    const r=await fetch('https://viacep.com.br/ws/'+raw+'/json/');const d=await r.json();if(d.erro)throw new Error();
+    if(P==='f')sd('cepLoad',false);
+    document.getElementById(P+'Logr').value=d.logradouro||'';
+    document.getElementById(P+'Bairro').value=d.bairro||'';
+    document.getElementById(P+'Cidade').value=d.localidade||'';
+    const uf=d.uf||'';for(let o of document.getElementById(P+'UF').options)if(o.value===uf)o.selected=true;
+    document.getElementById(P+'Regiao').value=REGIOES[uf]||'—';
+    if(P==='f'){sd('cepOk',true);atualizarMapa(d.localidade,uf,REGIOES[uf]||'—',d.logradouro,d.bairro);}
+    else toast('Endereço preenchido via CEP!','ok');
+  }catch(_e){
+    if(P==='f'){sd('cepLoad',false);sd('cepErr',true);}
+    else toast('CEP não encontrado.','err');
+  }
+}
 function atualizarMapa(cidade,uf,reg,log,bairro){
   if(!cidade)return;const q=encodeURIComponent((log?log+', ':'')+(bairro?bairro+', ':'')+cidade+', '+uf+', Brasil');
   fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`,{headers:{'Accept-Language':'pt-BR','User-Agent':'CSManagerCreare/3.0'}})
