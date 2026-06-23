@@ -4668,14 +4668,19 @@ function renderNPSEvol(period,btn){
 
 let execDone=false;
 function initExec(){
-  if(execDone)return;execDone=true;
+  const chartsJaFeitos=execDone;execDone=true;
   const cl=CS_DB.getClientes();const npsAll=CS_DB.getAllNPS();const calc=CS_DB.calcNPS(npsAll);const z=CS_DB.npsZona(calc.score);
+  const clAtivos=cl.filter(c=>c.status!=='Cancelado');const cancelados=cl.filter(c=>c.status==='Cancelado');
+  const taxaRen=cl.length?Math.round(clAtivos.length/cl.length*100):100;
+  const churnRate=cl.length?Math.round(cancelados.length/cl.length*1000)/10:0;
+  const hsMed=cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):70;
   document.getElementById('execKPIs').innerHTML=`
-    <div class="kpi green"><div class="kpi-lbl">Taxa de Renovação</div><div class="kpi-val">94%</div><div class="kpi-sub up">Meta: 90% ✓</div></div>
+    <div class="kpi green"><div class="kpi-lbl">Taxa de Renovação</div><div class="kpi-val">${taxaRen}%</div><div class="kpi-sub ${taxaRen>=90?'up':'dn'}">Meta: 90% ${taxaRen>=90?'✓':'✗'}</div></div>
     <div class="kpi blue"><div class="kpi-lbl">NPS Médio</div><div class="kpi-val" style="color:${z.cor||'var(--gray2)'}">${calc.score??'—'}</div><div class="kpi-sub ${calc.score>=50?'up':'dn'}">${z.label}</div></div>
-    <div class="kpi red"><div class="kpi-lbl">Churn Rate</div><div class="kpi-val">4.2%</div><div class="kpi-sub dn">Meta: abaixo 3%</div></div>
-    <div class="kpi gray"><div class="kpi-lbl">HS Médio</div><div class="kpi-val" style="color:${hsColor(cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):70)}">${cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):70}</div><div class="kpi-sub up">Carteira</div></div>`;
+    <div class="kpi red"><div class="kpi-lbl">Churn Rate</div><div class="kpi-val">${churnRate}%</div><div class="kpi-sub ${churnRate<=3?'up':'dn'}">Meta: abaixo 3% ${churnRate<=3?'✓':'✗'}</div></div>
+    <div class="kpi gray"><div class="kpi-lbl">HS Médio</div><div class="kpi-val" style="color:${hsColor(hsMed)}">${hsMed}</div><div class="kpi-sub up">Carteira</div></div>`;
   document.getElementById('riscoList').innerHTML=cl.filter(c=>c.status==='Em Risco').map(c=>`<div class="risk-row"><div><div class="risk-co">${c.empresa}</div><div class="risk-sub">HS: ${c.healthScore} · NPS: ${c.ultimoNPS??'—'} · MRR: ${c.mrr}</div></div><span class="badge b-risco" style="margin-left:auto">Crítico</span></div>`).join('');
+  if(chartsJaFeitos)return;
   const c1=document.getElementById('mrrPie')?.getContext('2d');
   if(c1)new Chart(c1,{type:'doughnut',data:{labels:['Saudável','Atenção','Risco','Implant.'],datasets:[{data:[cl.filter(c=>c.healthScore>=70).length,cl.filter(c=>c.healthScore>=40&&c.healthScore<70).length,cl.filter(c=>c.status==='Em Risco').length,cl.filter(c=>c.status==='Implantação').length],backgroundColor:['#1d9e75','#e0880a','#D10000','#555'],borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeInOutBack'},cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,padding:8,usePointStyle:true}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}}}});
   renderMRRBar('6m');
