@@ -3477,19 +3477,39 @@ function agendaToggleModalidade(mod){
   if(wrap)wrap.style.display=mod==='presencial'?'':'none';
 }
 function _endParsearPartes(q){
-  // Split "Rua das Flores, 123, São Paulo" → {street, numero, city}
+  // Detecta rua, número e cidade em formatos variados:
+  // "Rua X, 123, Cidade" | "Rua X, 123 Cidade - Estado" | "Rua X 123" | "Rua X 123 Cidade"
   var partes=q.split(/\s*,\s*/);
   var street='';var numero='';var city='';
   for(var i=0;i<partes.length;i++){
     var p=partes[i].trim();
-    if(!numero&&/^\d+[a-zA-Z]?$/.test(p)){numero=p;}
-    else if(!street){street=p;}
-    else if(!city){city=p;}
+    if(!numero&&/^\d+[a-zA-Z]?$/.test(p)){
+      // Segmento puramente numérico → número
+      numero=p;
+    }else if(!street){
+      street=p;
+    }else if(!numero){
+      // Já temos rua; verifica se este segmento começa com número (ex: "100 Porto Alegre - RS")
+      var nm=p.match(/^(\d+[a-zA-Z]?)(?:\s+(.+))?$/);
+      if(nm){
+        numero=nm[1];
+        if(nm[2]&&!city)city=nm[2].split(/\s*[-–]\s*/)[0].trim();
+      }else if(!city){
+        city=p.split(/\s*[-–]\s*/)[0].trim();
+      }
+    }else if(!city){
+      city=p.split(/\s*[-–]\s*/)[0].trim();
+    }
   }
-  // Handle "Rua das Flores 123" without comma
+  // Fallback: número colado ao final da rua "Rua das Flores 123"
   if(!numero&&street){
     var m=street.match(/^(.*?)\s+(\d+[a-zA-Z]?)\s*$/);
     if(m){numero=m[2];street=m[1];}
+  }
+  // Fallback: número no meio "Rua das Flores 123 Porto Alegre"
+  if(!numero&&street&&!city){
+    var m2=street.match(/^(.*?)\s+(\d+[a-zA-Z]?)\s+(.+)$/);
+    if(m2){street=m2[1];numero=m2[2];city=m2[3].split(/\s*[-–]\s*/)[0].trim();}
   }
   return{street:street,numero:numero,city:city};
 }
@@ -3498,16 +3518,23 @@ async function _nominatimBuscar(q,limite){
   var base='https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&countrycodes=br&limit='+limite;
   var hdrs={'Accept-Language':'pt-BR'};
   var pts=_endParsearPartes(q);
-  // Try structured query (housenumber separate) when number detected — more precise
+  // Busca estruturada quando temos número — mais precisa para endereços com numeração
   if(pts.numero&&pts.street){
     try{
       var sUrl=base+'&housenumber='+encodeURIComponent(pts.numero)+'&street='+encodeURIComponent(pts.street)+(pts.city?'&city='+encodeURIComponent(pts.city):'');
       var sr=await fetch(sUrl,{headers:hdrs});
-      var sd=await sr.json();
-      if(sd&&sd.length)return sd;
+      var sd2=await sr.json();
+      if(sd2&&sd2.length)return sd2;
+    }catch(e){}
+    // Fallback: busca livre com rua+número+cidade para forçar número no resultado
+    try{
+      var q2=pts.street+(pts.numero?', '+pts.numero:'')+(pts.city?', '+pts.city:'');
+      var fr2=await fetch(base+'&q='+encodeURIComponent(q2),{headers:hdrs});
+      var fd2=await fr2.json();
+      if(fd2&&fd2.length)return fd2;
     }catch(e){}
   }
-  // Fallback: free-form query
+  // Fallback geral: busca livre com query original
   try{
     var fr=await fetch(base+'&q='+encodeURIComponent(q),{headers:hdrs});
     return await fr.json();
@@ -3525,12 +3552,14 @@ function agendaEnderecoBuscar(q){
 }
 async function _agrFetchSugestoes(q,drop){
   try{
+    var parsed=_endParsearPartes(q);
     var data=await _nominatimBuscar(q,6);
     if(!data||!data.length){drop.style.display='none';return;}
     var html=data.map(function(item){
       var a=item.address||{};
       var road=a.road||a.pedestrian||a.footway||a.neighbourhood||'';
-      var num=a.house_number||'';
+      // Usa número do Nominatim ou, se vazio, o número que o usuário digitou
+      var num=a.house_number||(road&&parsed.numero?parsed.numero:'')||'';
       var city=a.city||a.town||a.village||a.municipality||a.county||'';
       var state=a.state_code||a.state||'';
       var cep=(a.postcode||'').replace(/\D/g,'');
@@ -3556,7 +3585,7 @@ function agendaEnderecoSelecionar(end,lat,lng){
   document.getElementById('agrLng').value=lng;
   var drop=document.getElementById('agrEnderecoDrop');
   if(drop)drop.style.display='none';
-  toast('Endereço selecionado!','ok');
+  toast('Endereço selecionado! Coordenadas registradas.','ok');
 }
 async function agendaGeocodificarEndereco(){
   var end=(document.getElementById('agrEndereco')?.value||'').trim();
@@ -3567,7 +3596,7 @@ async function agendaGeocodificarEndereco(){
     if(!data||!data.length){toast('Endereço não encontrado. Tente incluir cidade ou CEP.','warn');return;}
     document.getElementById('agrLat').value=data[0].lat;
     document.getElementById('agrLng').value=data[0].lon;
-    toast('Coordenadas salvas! Reunião aparecerá no mapa.','ok');
+    toast('Localização obtida! Reunião aparecerá no mapa.','ok');
   }catch(e){toast('Erro ao buscar endereço.','err');}
 }
 var _agrParticipantes=[];
