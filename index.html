@@ -451,6 +451,12 @@ tr:hover td{background:#fafafa}
 .dark-mode .storage-bar{background:#0a0a0a}
 .dark-mode .status-inline-drop{background:#1f1f1f;border-color:#2e2e2e}
 .dark-mode .sid-opt:hover{background:#252525}
+.dark-mode #npsPublicoScreen,.dark-mode #npsPublicoObrigado{background:#111}
+.dark-mode #npsPublicoScreen .card{background:#1f1f1f;border-color:#2e2e2e}
+.dark-mode #npsPublicoScreen input,.dark-mode #npsPublicoScreen textarea{background:#151515;border-color:#2e2e2e;color:#f0f0f0}
+.dark-mode #completudeBadge>div{background:#1a1a1a}
+.dark-mode #ppSugestoes>div{background:#1f1f1f;border-color:#2e2e2e}
+.dark-mode #ppSugestoes>div:hover{background:#252525}
 
 /* ── HAMBURGER / MOBILE ── */
 .hamburger{display:none;background:none;border:none;cursor:pointer;font-size:18px;color:var(--gray2);padding:5px 8px;border-radius:6px;margin-right:4px;transition:background .12s}
@@ -611,7 +617,7 @@ tr:hover td{background:#fafafa}
     <div style="text-align:center;font-size:11px;color:var(--gray3);margin-top:14px">Creare Sistemas · CS Manager</div>
   </div>
 </div>
-<div id="npsPublicoObrigado" style="display:none;position:fixed;inset:0;background:var(--gray5);z-index:2001;align-items:center;justify-content:center;flex-direction:column">
+<div id="npsPublicoObrigado" style="display:none;position:fixed;inset:0;background:var(--gray5);z-index:2001">
   <i class="ti ti-circle-check" style="font-size:60px;color:var(--green);margin-bottom:18px"></i>
   <div style="font-size:22px;font-weight:700;color:var(--black);margin-bottom:8px">Obrigado pelo feedback!</div>
   <div style="font-size:13px;color:var(--gray2);text-align:center;max-width:340px">Sua avaliação foi registrada com sucesso. Ela nos ajuda a melhorar continuamente.</div>
@@ -2358,7 +2364,7 @@ function submitNPSPublico(){
   CS_DB.saveNPS(nps);
   if(el)el.style.display='none';
   const ok=document.getElementById('npsPublicoObrigado');
-  if(ok){ok.style.display='flex';}
+  if(ok){ok.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;inset:0;background:var(--gray5);z-index:2001;text-align:center;padding:40px';}
 }
 function gerarLinkNPS(){
   const sel=document.getElementById('linkNPSCliente');
@@ -2554,7 +2560,7 @@ function renderDashMetas(){
   };
   el.innerHTML=
     mkMeta('MRR','ti-currency-dollar',mrrTotal,m.mrr,'R$','var(--green)',false)+
-    mkMeta('NPS Médio','ti-star',npsCalc.score??0,m.nps,'','var(--blue)',false)+
+    mkMeta('NPS Médio','ti-star',npsCalc.score===null?0:(npsCalc.score??0),m.nps,'','var(--blue)',false)+
     mkMeta('Churn Risk','ti-trending-down',churnPct,m.churn,'','var(--red)',true)+
     mkMeta('Clientes Ativos','ti-building-community',clAtivos,m.clientes,'','var(--green)',false);
 }
@@ -3378,7 +3384,10 @@ function _resetMReuniao(){
   if(ttl)ttl.innerHTML='<i class="ti ti-calendar"></i>Registrar Reunião';
 }
 function salvarReuniao(){
-  const cid=document.getElementById('rCliente').value;const cli=CS_DB.getClienteById(cid);
+  const cid=document.getElementById('rCliente').value;
+  if(!cid){toast('Selecione um cliente.','err');return;}
+  const cli=CS_DB.getClienteById(cid);
+  if(!document.getElementById('rTipo').value){toast('Selecione o tipo de reunião.','err');return;}
   const npsBtn=document.querySelector('#ratNPS .rat-btn.sel');const csatBtn=document.querySelector('#ratCSAT .rat-btn.sel');
   const sentBtn=document.querySelector('.sent-btn.sel');
   const partCreare=coletarParticipantes('rPartCreareList');
@@ -3600,7 +3609,8 @@ function salvarAcao(){
   const quem=CS_DB.getSession()?.nome||'Felipe Duarte';
   const agora=new Date().toISOString();
   const acao={clienteId:cid,empresa:cli?.empresa||'',descricao:document.getElementById('acDesc').value,area:document.getElementById('acArea').value,prioridade:document.getElementById('acPri').value,prazo:prazoStr,prazoISO,status:document.getElementById('acStatus').value,progresso:parseInt(document.getElementById('acProg').value)||0,responsavel:document.getElementById('acResp').value,comentarios:document.getElementById('acComent').value,criadoEm:agora,criadoPor:quem,log:[{texto:`Ação criada com status "${document.getElementById('acStatus').value}"`,em:agora,por:quem}]};
-  if(!acao.descricao){toast('Preencha a descrição da ação.','err');return}
+  if(!cid){toast('Selecione o cliente da ação.','err');return;}
+  if(!acao.descricao){toast('Preencha a descrição da ação.','err');return;}
   CS_DB.saveAcao(acao);
   if(cid)CS_DB._addTimeline(cid,'acao',`Ação criada: ${acao.descricao}`,`Criada por ${quem} em ${formatarDataHora(agora)} · Status inicial: ${acao.status}`);
   closeM('mAcao');toast('Ação salva no banco!');renderKanban();updateStatusBar();
@@ -4369,9 +4379,11 @@ function renderNPSCliente(){
   },80);
 }
 function salvarNPS(){
-  const cid=document.getElementById('npsCliente').value;const cli=CS_DB.getClienteById(cid);
+  const cid=document.getElementById('npsCliente').value;
+  if(!cid){toast('Selecione o cliente.','err');return;}
+  const cli=CS_DB.getClienteById(cid);
   const notaBtn=document.querySelector('#ratNPSModal .rat-btn.sel');
-  if(!notaBtn){toast('Selecione uma nota NPS de 0 a 10.','err');return}
+  if(!notaBtn){toast('Selecione uma nota NPS de 0 a 10.','err');return;}
   const nota=parseInt(notaBtn.textContent);const g=npsGrupo(nota);
   CS_DB.saveNPS({clienteId:cid,empresa:cli?.empresa||'',nota,respondente:document.getElementById('npsResp').value||'N/A',cargo:document.getElementById('npsCargoR').value||'',comentario:document.getElementById('npsComent').value||'',data:new Date().toLocaleDateString('pt-BR'),dataISO:new Date().toISOString(),cs:CS_DB.getSession()?.nome||'Felipe Duarte'});
   closeM('mNPS');toast(`NPS ${nota}/10 (${g.g}) registrado para ${cli?.empresa}!`);renderNPSPage();renderDashboard();updateStatusBar();
@@ -6383,8 +6395,9 @@ function renderCliente360(){
   setTimeout(()=>{
     const ctx=document.getElementById('c360NpsChart')?.getContext('2d');
     if(ctx){
+      if(ctx.canvas._ci){ctx.canvas._ci.destroy();ctx.canvas._ci=null;}
       const npsOrdenado=nps.slice().reverse();
-      new Chart(ctx,{type:'line',data:{labels:npsOrdenado.map(n=>n.data),datasets:[
+      ctx.canvas._ci=new Chart(ctx,{type:'line',data:{labels:npsOrdenado.map(n=>n.data),datasets:[
         {label:'Nota',data:npsOrdenado.map(n=>n.nota),borderColor:'var(--red)',backgroundColor:'rgba(209,0,0,.08)',tension:.3,fill:true,borderWidth:2,pointRadius:3,pointBackgroundColor:'var(--red)',pointBorderColor:'#fff',pointBorderWidth:1.5},
         {label:'Meta (9)',data:npsOrdenado.map(()=>9),borderColor:'rgba(100,100,100,.45)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
       ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:8}}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}}},x:{ticks:{color:'var(--gray3)',font:{size:9}}}}}});
@@ -6419,10 +6432,11 @@ function renderCliente360(){
     const sub=document.getElementById('c360HsSubtitle');
     if(sub)sub.textContent=hist.length?`${hist.length} registro(s)`:'sem histórico ainda';
     if(ctx2){
+      if(ctx2.canvas._ci){ctx2.canvas._ci.destroy();ctx2.canvas._ci=null;}
       if(!hist.length){ctx2.canvas.parentElement.innerHTML='<div style="color:var(--gray3);font-size:12px;padding:20px 0;text-align:center">Histórico registrado automaticamente a cada atualização do cliente.</div>';return}
       const labels=hist.map(h=>new Date(h.registrado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
       const scores=hist.map(h=>h.score);
-      new Chart(ctx2,{type:'line',data:{labels,datasets:[
+      ctx2.canvas._ci=new Chart(ctx2,{type:'line',data:{labels,datasets:[
         {label:'Health Score',data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2},
         {label:'Meta saudável (70)',data:scores.map(()=>70),borderColor:'rgba(29,158,117,.6)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
       ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:8}},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>' '+ctx.dataset.label+': '+ctx.parsed.y}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
@@ -7586,17 +7600,28 @@ window.addEventListener('unhandledrejection',e=>{console.error('Unhandled promis
     };
   }
 })();
-// Verificar NPS público no carregamento da página (antes do login)
+// Auto-login se houver sessão salva, ou verificar NPS público
 (function(){
-  const params=new URLSearchParams(window.location.search);
-  if(params.get('nps')){
-    try{
-      CS_DB.init();
-      if(checkNPSPublicoUrl()){
-        document.getElementById('loginScreen').style.display='none';
-      }
-    }catch(_){}
-  }
+  try{
+    CS_DB.init();
+    // NPS público tem prioridade
+    const params=new URLSearchParams(window.location.search);
+    if(params.get('nps')&&checkNPSPublicoUrl()){
+      document.getElementById('loginScreen').style.display='none';
+      return;
+    }
+    // Auto-login se sessão válida existir
+    const session=CS_DB.getSession();
+    if(session&&session.perfil&&session.nome){
+      const iniciais=session.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const ulbl=document.getElementById('userLbl');
+      if(ulbl){const sp=ulbl.querySelector('span');if(sp)sp.textContent=`${session.nome} · ${session.perfil.toUpperCase()}`;}
+      const av=document.getElementById('av');if(av)av.textContent=iniciais;
+      document.getElementById('loginScreen').style.display='none';
+      document.getElementById('app').style.display='flex';
+      try{initApp();}catch(ie){console.error('auto-login initApp error:',ie);}
+    }
+  }catch(e){console.error('auto-login check error:',e);}
 })();
 </script>
 </body>
