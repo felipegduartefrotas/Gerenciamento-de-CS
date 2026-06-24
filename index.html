@@ -1605,6 +1605,67 @@ tr:hover td{background:#fafafa}
     <div class="card-ttl"><i class="ti ti-history"></i>Relatórios gerados recentemente</div>
     <div id="relHistorico" style="font-size:12.5px;color:var(--gray2)">Nenhum relatório gerado nesta sessão ainda.</div>
   </div>
+  <!-- PLANOS DE AÇÃO -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-ttl"><i class="ti ti-clipboard-list"></i>Planos de Ação
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px" onclick="exportarCSVPlanosAcao()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
+      </div>
+    </div>
+    <div id="rpaNos" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px">
+        <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:5px"><i class="ti ti-chart-donut"></i>Status das ações</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+          <svg id="rpaDonut" width="100" height="100" viewBox="0 0 100 100"></svg>
+          <div id="rpaDonutLeg" style="display:flex;flex-direction:column;gap:5px;width:100%"></div>
+        </div>
+      </div>
+      <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px">
+        <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:5px"><i class="ti ti-layout-columns"></i>Por área</div>
+        <div id="rpaBarArea"></div>
+      </div>
+      <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px">
+        <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:5px"><i class="ti ti-clock"></i>Situação de prazos</div>
+        <div id="rpaPrazos" style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px"></div>
+        <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:5px"><i class="ti ti-flag"></i>Por prioridade</div>
+        <div id="rpaBarPri"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding-top:12px;border-top:1px solid var(--gray4)">
+      <div style="display:flex;align-items:center;background:#fff;border:1px solid var(--gray4);border-radius:7px;overflow:hidden;flex:1;max-width:220px">
+        <i class="ti ti-search" style="padding:0 8px;color:var(--gray3);font-size:13px"></i>
+        <input type="text" id="rpaSearch" placeholder="Buscar..." oninput="renderRPA()" style="border:none;outline:none;font-size:12px;padding:6px 8px 6px 0;width:100%;background:transparent;color:var(--gray1)">
+      </div>
+      <select id="rpaFltStatus" onchange="renderRPA()" style="padding:6px 10px;border:1px solid var(--gray4);border-radius:7px;font-size:12px;background:#fff;color:var(--gray1);outline:none"><option value="">Todos os status</option><option>Pendente</option><option>Em Andamento</option><option>Em Revisão</option><option>Concluído</option></select>
+      <select id="rpaFltArea" onchange="renderRPA()" style="padding:6px 10px;border:1px solid var(--gray4);border-radius:7px;font-size:12px;background:#fff;color:var(--gray1);outline:none"><option value="">Todas as áreas</option><option>CS</option><option>Operações</option><option>TI</option><option>Comercial</option><option>Infra</option><option>Dados</option><option>Técnico</option></select>
+      <select id="rpaFltPri" onchange="renderRPA()" style="padding:6px 10px;border:1px solid var(--gray4);border-radius:7px;font-size:12px;background:#fff;color:var(--gray1);outline:none"><option value="">Todas as prioridades</option><option>Alta</option><option>Média</option><option>Baixa</option></select>
+      <select id="rpaFltCliente" onchange="renderRPA()" style="padding:6px 10px;border:1px solid var(--gray4);border-radius:7px;font-size:12px;background:#fff;color:var(--gray1);outline:none"><option value="">Todos os clientes</option></select>
+      <select id="rpaFltPrazo" onchange="renderRPA()" style="padding:6px 10px;border:1px solid var(--gray4);border-radius:7px;font-size:12px;background:#fff;color:var(--gray1);outline:none"><option value="">Qualquer prazo</option><option value="atrasado">Atrasadas</option><option value="hoje">Vencem hoje</option><option value="7d">Próximos 7 dias</option><option value="30d">Próximos 30 dias</option><option value="sem">Sem prazo</option></select>
+      <button class="btn-ghost" onclick="_rpaLimparFiltros()" style="font-size:11.5px;padding:5px 10px"><i class="ti ti-x"></i>Limpar</button>
+      <span id="rpaCount" style="font-size:11.5px;color:var(--gray2);margin-left:2px"></span>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--gray5)">
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4);white-space:nowrap">Cliente</th>
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4)">Descrição</th>
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4)">Área</th>
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4)">Prioridade</th>
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4)">Status</th>
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4)">Progresso</th>
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4)">Prazo</th>
+          <th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--gray4)">Responsável</th>
+        </tr></thead>
+        <tbody id="rpaTbody"></tbody>
+      </table>
+      <div id="rpaEmpty" style="display:none;text-align:center;padding:40px;color:var(--gray3)">
+        <i class="ti ti-clipboard-x" style="font-size:36px;display:block;margin-bottom:10px"></i>
+        <div style="font-size:12.5px">Nenhuma ação encontrada</div>
+        <div style="font-size:11.5px;margin-top:3px">Tente ajustar os filtros ou cadastre planos de ação na carteira</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- AGENDA -->
@@ -7615,6 +7676,227 @@ function _gerarSintese(c,npsCalc,npsPrev,reuPeriodo,acAtrasadas,ob,rec){
 function _getRelHist(){return JSON.parse(localStorage.getItem('cs_rel_hist')||'[]')}
 function _saveRelHist(h){localStorage.setItem('cs_rel_hist',JSON.stringify(h.slice(0,20)))}
 
+// ────── RELATÓRIO PLANOS DE AÇÃO ──────
+function _rpaHoje(){var d=new Date();d.setHours(0,0,0,0);return d;}
+function _rpaDiasParaPrazo(isoStr){
+  if(!isoStr)return null;
+  var p=new Date(isoStr);p.setHours(0,0,0,0);
+  return Math.round((p-_rpaHoje())/86400000);
+}
+function _rpaFmtData(isoStr){
+  if(!isoStr)return'—';
+  return new Date(isoStr).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function _rpaAcoes(){
+  return(CS_DB.get('acoes')||[]).filter(function(a){return a.categoria!=='reuniao_agendada';});
+}
+function _rpaFiltrar(){
+  var acoes=_rpaAcoes();
+  var q=(document.getElementById('rpaSearch')?.value||'').toLowerCase().trim();
+  var st=document.getElementById('rpaFltStatus')?.value||'';
+  var ar=document.getElementById('rpaFltArea')?.value||'';
+  var pr=document.getElementById('rpaFltPri')?.value||'';
+  var cl=document.getElementById('rpaFltCliente')?.value||'';
+  var pz=document.getElementById('rpaFltPrazo')?.value||'';
+  return acoes.filter(function(a){
+    if(q&&!(a.empresa||'').toLowerCase().includes(q)&&!(a.descricao||'').toLowerCase().includes(q)&&!(a.responsavel||'').toLowerCase().includes(q))return false;
+    if(st&&a.status!==st)return false;
+    if(ar&&a.area!==ar)return false;
+    if(pr&&a.prioridade!==pr)return false;
+    if(cl&&a.empresa!==cl)return false;
+    if(pz){
+      var dias=_rpaDiasParaPrazo(a.prazoISO);
+      if(pz==='atrasado'&&(dias===null||dias>=0||a.status==='Concluído'))return false;
+      if(pz==='hoje'&&(dias===null||dias!==0))return false;
+      if(pz==='7d'&&(dias===null||dias<0||dias>7))return false;
+      if(pz==='30d'&&(dias===null||dias<0||dias>30))return false;
+      if(pz==='sem'&&a.prazoISO)return false;
+    }
+    return true;
+  });
+}
+function _rpaLimparFiltros(){
+  ['rpaSearch','rpaFltStatus','rpaFltArea','rpaFltPri','rpaFltCliente','rpaFltPrazo'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+  renderRPA();
+}
+function _rpaPopulateClientes(){
+  var sel=document.getElementById('rpaFltCliente');if(!sel)return;
+  var atual=sel.value;
+  var clientes=[...new Set(_rpaAcoes().map(function(a){return a.empresa||'';}).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todos os clientes</option>'
+    +clientes.map(function(c){return'<option value="'+c+'"'+(c===atual?' selected':'')+'>'+c+'</option>';}).join('');
+}
+function _escH(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderRPA(){
+  var dados=_rpaFiltrar();
+  var total=_rpaAcoes().length;
+  var tbody=document.getElementById('rpaTbody');
+  var empty=document.getElementById('rpaEmpty');
+  if(!tbody)return;
+  var el=document.getElementById('rpaCount');if(el)el.textContent='('+dados.length+' de '+total+')';
+  if(!dados.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  var statusCls={
+    'Pendente':'background:#fef3c7;color:#92400e',
+    'Em Andamento':'background:#dbeafe;color:#1e40af',
+    'Em Revisão':'background:#ede9fe;color:#5b21b6',
+    'Concluído':'background:#dcfce7;color:#166534'
+  };
+  var statusIcon={'Pendente':'ti-clock','Em Andamento':'ti-progress','Em Revisão':'ti-eye','Concluído':'ti-check'};
+  var priCls={'Alta':'background:#fee2e2;color:#991b1b','Média':'background:#fef3c7;color:#92400e','Baixa':'background:#f0fdf4;color:#166534'};
+  var priIcon={'Alta':'ti-arrow-up','Média':'ti-minus','Baixa':'ti-arrow-down'};
+  tbody.innerHTML=dados.map(function(a){
+    var dias=_rpaDiasParaPrazo(a.prazoISO);
+    var prazoTxt,prazoClr;
+    if(a.status==='Concluído'){prazoTxt='Concluída';prazoClr='var(--green)';}
+    else if(dias===null){prazoTxt='Sem prazo';prazoClr='var(--gray3)';}
+    else if(dias<0){prazoTxt=Math.abs(dias)+' dia'+(Math.abs(dias)>1?'s':'')+' atraso';prazoClr='var(--red)';}
+    else if(dias===0){prazoTxt='Vence hoje';prazoClr='var(--yellow)';}
+    else if(dias<=3){prazoTxt='Em '+dias+' dia'+(dias>1?'s':'');prazoClr='var(--yellow)';}
+    else{prazoTxt=_rpaFmtData(a.prazoISO);prazoClr='var(--green)';}
+    var atrasada=dias!==null&&dias<0&&a.status!=='Concluído';
+    var prog=a.progresso||0;
+    var progClr=a.status==='Concluído'?'var(--green)':prog>60?'var(--blue)':prog>30?'var(--yellow)':'var(--red)';
+    var sc=statusCls[a.status]||'background:var(--gray5);color:var(--gray2)';
+    var si=statusIcon[a.status]||'ti-circle';
+    var pc=priCls[a.prioridade]||'background:var(--gray5);color:var(--gray2)';
+    var pi=priIcon[a.prioridade]||'';
+    return '<tr style="border-bottom:1px solid var(--gray4)" onmouseover="this.style.background=\'var(--gray5)\'" onmouseout="this.style.background=\'\'">'+
+      '<td style="padding:9px 12px;font-weight:600;font-size:12px;white-space:nowrap">'+_escH(a.empresa||'—')+'</td>'+
+      '<td style="padding:9px 12px;max-width:260px;font-size:12.5px">'+_escH(a.descricao||'')+
+        (atrasada?'<br><span style="display:inline-flex;align-items:center;gap:3px;background:#fef2f2;border:1px solid #fecaca;color:var(--red);border-radius:20px;font-size:10px;font-weight:600;padding:1px 6px;margin-top:3px"><i class="ti ti-alert-triangle" style="font-size:10px"></i>Atrasada</span>':'')+'</td>'+
+      '<td style="padding:9px 12px"><span style="background:var(--gray5);border:1px solid var(--gray4);border-radius:5px;padding:2px 7px;font-size:11px;color:var(--gray1)">'+_escH(a.area||'—')+'</span></td>'+
+      '<td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;'+pc+'"><i class="ti '+pi+'" style="font-size:10px"></i>'+(a.prioridade||'—')+'</span></td>'+
+      '<td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;'+sc+'"><i class="ti '+si+'" style="font-size:10px"></i>'+(a.status||'—')+'</span></td>'+
+      '<td style="padding:9px 12px;min-width:90px"><div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:5px;background:var(--gray4);border-radius:3px;overflow:hidden"><div style="height:100%;border-radius:3px;background:'+progClr+';width:'+prog+'%"></div></div><span style="font-size:10.5px;color:var(--gray2);width:26px;text-align:right">'+prog+'%</span></div></td>'+
+      '<td style="padding:9px 12px;font-size:12px;color:'+prazoClr+';font-weight:'+(atrasada?'600':'400')+';white-space:nowrap">'+prazoTxt+'</td>'+
+      '<td style="padding:9px 12px;font-size:12px;color:var(--gray1)">'+_escH(a.responsavel||'—')+'</td>'+
+    '</tr>';
+  }).join('');
+}
+function renderRelatorioPlanosAcao(){
+  _rpaPopulateClientes();
+  _rpaRenderKPIs();
+  _rpaRenderCharts();
+  renderRPA();
+}
+function _rpaRenderKPIs(){
+  var el=document.getElementById('rpaNos');if(!el)return;
+  var ac=_rpaAcoes();
+  var total=ac.length;
+  var pend=ac.filter(function(a){return a.status==='Pendente';}).length;
+  var andamento=ac.filter(function(a){return a.status==='Em Andamento'||a.status==='Em Revisão';}).length;
+  var conc=ac.filter(function(a){return a.status==='Concluído';}).length;
+  var atras=ac.filter(function(a){var d=_rpaDiasParaPrazo(a.prazoISO);return d!==null&&d<0&&a.status!=='Concluído';}).length;
+  var pctConc=total?Math.round(conc/total*100):0;
+  function _kpiCard(bClr,icon,lbl,val,vClr,sub){
+    return '<div style="background:var(--bbg);border-radius:10px;padding:12px 14px;border-left:3px solid '+bClr+';box-shadow:0 1px 3px rgba(0,0,0,.07)">'
+      +'<div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:5px;margin-bottom:6px"><i class="ti '+icon+'" style="font-size:12px"></i>'+lbl+'</div>'
+      +'<div style="font-size:24px;font-weight:700;color:'+vClr+';line-height:1">'+val+'</div>'
+      +'<div style="font-size:11px;color:var(--gray3);margin-top:4px">'+sub+'</div>'
+    +'</div>';
+  }
+  el.innerHTML=
+    _kpiCard('var(--blue)','ti-clipboard-list','Total',total,'var(--blue)',pctConc+'% concluídas')+
+    _kpiCard('var(--yellow)','ti-clock','Pendentes',pend,'var(--yellow)',pend?'Aguardando início':'Tudo iniciado')+
+    _kpiCard('var(--blue)','ti-progress','Em andamento',andamento,'var(--blue)','Incl. em revisão')+
+    _kpiCard('var(--green)','ti-check','Concluídas',conc,'var(--green)','de '+total+' no total')+
+    _kpiCard('var(--red)','ti-alert-triangle','Atrasadas',atras,'var(--red)',atras?'Atenção imediata':'Sem atrasos');
+}
+function _rpaRenderCharts(){
+  var ac=_rpaAcoes();
+  var total=ac.length;
+  if(!total){
+    var svgD=document.getElementById('rpaDonut');
+    if(svgD)svgD.innerHTML='<text x="50" y="55" text-anchor="middle" font-size="9" fill="#9ca3af">Sem dados</text>';
+    return;
+  }
+  var counts={'Pendente':0,'Em Andamento':0,'Em Revisão':0,'Concluído':0};
+  ac.forEach(function(a){if(counts[a.status]!==undefined)counts[a.status]++;});
+  var colors={'Pendente':'#f59e0b','Em Andamento':'#3b82f6','Em Revisão':'#8b5cf6','Concluído':'#22c55e'};
+  var cx=50,cy=50,r=40,r2=24,startAngle=-Math.PI/2,paths='',leg='';
+  Object.keys(counts).forEach(function(k){
+    var v=counts[k];if(!v)return;
+    var angle=v/total*Math.PI*2;
+    var x1=cx+r*Math.cos(startAngle),y1=cy+r*Math.sin(startAngle);
+    var x2=cx+r*Math.cos(startAngle+angle),y2=cy+r*Math.sin(startAngle+angle);
+    var x3=cx+r2*Math.cos(startAngle+angle),y3=cy+r2*Math.sin(startAngle+angle);
+    var x4=cx+r2*Math.cos(startAngle),y4=cy+r2*Math.sin(startAngle);
+    var large=angle>Math.PI?1:0;
+    paths+='<path d="M'+x1.toFixed(1)+','+y1.toFixed(1)+' A'+r+','+r+' 0 '+large+',1 '+x2.toFixed(1)+','+y2.toFixed(1)+' L'+x3.toFixed(1)+','+y3.toFixed(1)+' A'+r2+','+r2+' 0 '+large+',0 '+x4.toFixed(1)+','+y4.toFixed(1)+' Z" fill="'+colors[k]+'" stroke="#fff" stroke-width="1.5"/>';
+    leg+='<div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--btxt)">'
+      +'<div style="width:9px;height:9px;border-radius:50%;background:'+colors[k]+';flex-shrink:0"></div>'+k
+      +'<span style="margin-left:auto;font-weight:700;font-size:11px">'+Math.round(v/total*100)+'%</span></div>';
+    startAngle+=angle;
+  });
+  var svgD=document.getElementById('rpaDonut');
+  if(svgD)svgD.innerHTML=paths
+    +'<text x="50" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="#111827">'+total+'</text>'
+    +'<text x="50" y="65" text-anchor="middle" font-size="8.5" fill="#6b7280">ações</text>';
+  var legD=document.getElementById('rpaDonutLeg');if(legD)legD.innerHTML=leg;
+  var areas={};
+  ac.forEach(function(a){if(a.area)areas[a.area]=(areas[a.area]||0)+1;});
+  var areaColors={CS:'#3b82f6',Operações:'#10b981',TI:'#6366f1',Comercial:'#f59e0b',Técnico:'#ef4444',Infra:'#8b5cf6',Dados:'#06b6d4'};
+  var maxA=Math.max.apply(null,Object.values(areas).length?Object.values(areas):[1]);
+  var areaEl=document.getElementById('rpaBarArea');
+  if(areaEl)areaEl.innerHTML=Object.keys(areas).sort(function(a,b){return areas[b]-areas[a];}).map(function(k){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">'
+      +'<div style="width:65px;color:var(--gray2);font-size:11px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+k+'</div>'
+      +'<div style="flex:1;height:7px;background:var(--gray4);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:'+(areaColors[k]||'var(--blue)')+';width:'+Math.round(areas[k]/maxA*100)+'%"></div></div>'
+      +'<div style="width:22px;text-align:right;font-size:11px;color:var(--gray2);font-weight:600">'+areas[k]+'</div>'
+    +'</div>';
+  }).join('');
+  var pAtras=ac.filter(function(a){var d=_rpaDiasParaPrazo(a.prazoISO);return d!==null&&d<0&&a.status!=='Concluído';}).length;
+  var pHoje=ac.filter(function(a){return a.status!=='Concluído'&&_rpaDiasParaPrazo(a.prazoISO)===0;}).length;
+  var p7=ac.filter(function(a){var d=_rpaDiasParaPrazo(a.prazoISO);return a.status!=='Concluído'&&d!==null&&d>0&&d<=7;}).length;
+  var p30=ac.filter(function(a){var d=_rpaDiasParaPrazo(a.prazoISO);return a.status!=='Concluído'&&d!==null&&d>7&&d<=30;}).length;
+  var semPz=ac.filter(function(a){return a.status!=='Concluído'&&!a.prazoISO;}).length;
+  var prazosEl=document.getElementById('rpaPrazos');
+  if(prazosEl)prazosEl.innerHTML=[
+    {dot:'var(--red)',lbl:'Atrasadas',v:pAtras,clrIfPositive:true},
+    {dot:'var(--yellow)',lbl:'Vencem hoje',v:pHoje,clrIfPositive:false},
+    {dot:'var(--blue)',lbl:'Próximos 7 dias',v:p7,clrIfPositive:false},
+    {dot:'var(--green)',lbl:'Próximos 30 dias',v:p30,clrIfPositive:false},
+    {dot:'var(--gray3)',lbl:'Sem prazo',v:semPz,clrIfPositive:false}
+  ].map(function(x){
+    return '<div style="display:flex;align-items:center;gap:8px;font-size:11.5px">'
+      +'<div style="width:8px;height:8px;border-radius:50%;background:'+x.dot+';flex-shrink:0"></div>'
+      +'<div style="flex:1;color:var(--btxt)">'+x.lbl+'</div>'
+      +'<div style="font-weight:700;color:'+(x.clrIfPositive&&x.v?'var(--red)':'var(--btxt)')+'">'+x.v+'</div>'
+    +'</div>';
+  }).join('');
+  var pris={Alta:0,Média:0,Baixa:0};
+  ac.forEach(function(a){if(pris[a.prioridade]!==undefined)pris[a.prioridade]++;});
+  var maxP=Math.max.apply(null,Object.values(pris).length?Object.values(pris):[1]);
+  var priColors={Alta:'var(--red)',Média:'var(--yellow)',Baixa:'var(--green)'};
+  var priEl=document.getElementById('rpaBarPri');
+  if(priEl)priEl.innerHTML=['Alta','Média','Baixa'].map(function(k){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">'
+      +'<div style="width:65px;color:var(--gray2);font-size:11px;text-align:right">'+k+'</div>'
+      +'<div style="flex:1;height:7px;background:var(--gray4);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:'+priColors[k]+';width:'+Math.round(pris[k]/maxP*100)+'%"></div></div>'
+      +'<div style="width:22px;text-align:right;font-size:11px;color:var(--gray2);font-weight:600">'+pris[k]+'</div>'
+    +'</div>';
+  }).join('');
+}
+function exportarCSVPlanosAcao(){
+  var dados=_rpaFiltrar();
+  if(!dados.length){toast('Nenhuma ação para exportar com os filtros atuais.','err');return;}
+  var cols=['Empresa','Descricao','Area','Prioridade','Status','Progresso','Prazo','Responsavel','Criado em'];
+  var rows=dados.map(function(a){
+    return ['"'+(a.empresa||'').replace(/"/g,"'"),'"'+(a.descricao||'').replace(/"/g,"'"),
+      a.area||'',a.prioridade||'',a.status||'',(a.progresso||0)+'%',
+      _rpaFmtData(a.prazoISO),a.responsavel||'',_rpaFmtData(a.criadoEm)].join(';');
+  });
+  var csv='﻿'+cols.join(';')+'\n'+rows.join('\n');
+  try{
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    var url=URL.createObjectURL(blob);
+    var link=document.createElement('a');link.href=url;link.download='planos-de-acao.csv';link.click();
+    toast('CSV exportado!');
+  }catch(e){toast('Erro ao exportar.','err');}
+}
 function populateRelatoriosSelects(){
   const cl=CS_DB.getClientes();
   const opts=cl.map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
@@ -7623,6 +7905,7 @@ function populateRelatoriosSelects(){
   const escopoSel=document.getElementById('relEscopoDir');
   if(escopoSel)escopoSel.onchange=()=>{document.getElementById('relClienteDirWrap').style.display=escopoSel.value==='cliente'?'block':'none'};
   _renderRelHistorico();
+  try{renderRelatorioPlanosAcao();}catch(e){console.error('renderRelatorioPlanosAcao:',e);}
 }
 function registrarRelatorioGerado(nome,tipo){
   const hist=_getRelHist();
