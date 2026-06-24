@@ -5525,15 +5525,19 @@ async function buscarCNPJ(prefixo){
       if(d.email&&!document.getElementById('eEmail').value)document.getElementById('eEmail').value=d.email;
       if(d.tel&&!document.getElementById('eTelefone').value)document.getElementById('eTelefone').value=d.tel;
     }
-    // ViaCEP fallback para logradouro ou bairro vazios
-    if(d.cep.length===8&&(!d.logradouro.trim()||!d.bairro)){
+    // ViaCEP: sempre consultar quando temos CEP — complementa campos vazios com dados mais precisos
+    if(d.cep.length===8){
       try{
         const vc=await fetch('https://viacep.com.br/ws/'+d.cep+'/json/');
         const vd=await vc.json();
         if(!vd.erro){
-          if(!d.logradouro.trim()&&vd.logradouro)document.getElementById(P+'Logr').value=vd.logradouro;
-          if(!d.bairro&&vd.bairro)document.getElementById(P+'Bairro').value=vd.bairro;
-          if(!d.cidade&&vd.localidade)document.getElementById(P+'Cidade').value=vd.localidade;
+          if(!document.getElementById(P+'Logr').value.trim()&&vd.logradouro)document.getElementById(P+'Logr').value=vd.logradouro;
+          if(!document.getElementById(P+'Bairro').value.trim()&&vd.bairro)document.getElementById(P+'Bairro').value=vd.bairro;
+          if(!document.getElementById(P+'Cidade').value.trim()&&vd.localidade)document.getElementById(P+'Cidade').value=vd.localidade;
+          if(!uf&&vd.uf){
+            for(const o of document.getElementById(P+'UF').options)if(o.value===vd.uf){o.selected=true;break;}
+            document.getElementById(P+'Regiao').value=REGIOES[vd.uf]||'—';
+          }
         }
       }catch(_){}
     }
