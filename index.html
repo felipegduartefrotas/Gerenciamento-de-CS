@@ -757,6 +757,15 @@ tr:hover td{background:#fafafa}
 </div>
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
+  <div id="wxBar" style="display:none;background:var(--bbg);border:1px solid var(--gray4);border-radius:10px;padding:10px 16px;margin-bottom:12px;align-items:center;gap:14px;font-size:12px;color:var(--btxt)">
+    <span id="wxIcon" style="font-size:26px;line-height:1">⏳</span>
+    <div style="display:flex;flex-direction:column;gap:1px">
+      <span id="wxTemp" style="font-weight:700;color:var(--black);font-size:15px">—</span>
+      <span id="wxDesc" style="color:var(--gray2);font-size:11px">Carregando previsão...</span>
+    </div>
+    <div style="display:flex;gap:16px;margin-left:8px;color:var(--gray2);font-size:11px" id="wxExtra"></div>
+    <span style="margin-left:auto;color:var(--gray3);font-size:11px;white-space:nowrap" id="wxCity"></span>
+  </div>
   <div class="kpi-grid" id="dashKPIs"></div>
   <div class="two-col">
     <div class="card" style="margin-bottom:0"><div class="card-ttl"><span><i class="ti ti-chart-line"></i>Evolução NPS</span><div class="cpb"><button class="cpb-btn" onclick="renderNPSChart('1m',this)">Mês</button><button class="cpb-btn" onclick="renderNPSChart('3m',this)">Tri</button><button class="cpb-btn active" onclick="renderNPSChart('6m',this)">Sem</button><button class="cpb-btn" onclick="renderNPSChart('12m',this)">Ano</button></div></div><div class="chart-wrap"><canvas id="npsChart"></canvas></div></div>
@@ -2779,7 +2788,44 @@ function _renderHistoricoCliente(cid,filtro){
 function imprimirExec(){window.print();}
 
 // ═══ DASHBOARD ═══
+// ────── PREVISÃO DO TEMPO (Open-Meteo, gratuito, sem API key) ──────
+var _wxCache=null;var _wxTs=0;
+function _wxCodeIcon(c){if(c===0)return'☀️';if(c<=2)return'🌤️';if(c===3)return'☁️';if(c<=48)return'🌫️';if(c<=55)return'🌦️';if(c<=65)return'🌧️';if(c<=75)return'❄️';if(c<=82)return'🌧️';return'⛈️';}
+function _wxCodeDesc(c){var m={0:'Céu limpo',1:'Principalmente limpo',2:'Parcialmente nublado',3:'Nublado',45:'Névoa',48:'Névoa com depósito',51:'Garoa leve',53:'Garoa moderada',55:'Garoa forte',61:'Chuva fraca',63:'Chuva moderada',65:'Chuva forte',71:'Neve fraca',73:'Neve moderada',75:'Neve forte',80:'Pancadas de chuva',81:'Chuvas fortes',82:'Chuvas muito fortes',95:'Tempestade',96:'Tempestade c/ granizo',99:'Tempestade c/ granizo forte'};return m[c]||'—';}
+function _wxApply(d){
+  var bar=document.getElementById('wxBar');if(!bar)return;
+  document.getElementById('wxIcon').textContent=_wxCodeIcon(d.code);
+  document.getElementById('wxTemp').textContent=Math.round(d.temp)+'°C';
+  document.getElementById('wxDesc').textContent=_wxCodeDesc(d.code);
+  document.getElementById('wxExtra').innerHTML='<span><i class="ti ti-droplet" style="font-size:11px"></i> '+d.hum+'%</span>'+'<span><i class="ti ti-wind" style="font-size:11px"></i> '+Math.round(d.wind)+' km/h</span>';
+  document.getElementById('wxCity').textContent=d.city;
+  bar.style.display='flex';
+}
+function _wxFetch(lat,lon,city){
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=America%2FSao_Paulo&forecast_days=1';
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    var cur=d.current||{};
+    _wxCache={temp:cur.temperature_2m,code:cur.weather_code,wind:cur.wind_speed_10m,hum:cur.relative_humidity_2m,city:city};
+    _wxTs=Date.now();
+    _wxApply(_wxCache);
+  }).catch(function(){});
+}
+function renderWeather(){
+  if(_wxCache&&Date.now()-_wxTs<1800000){_wxApply(_wxCache);return;}
+  function _fallback(){_wxFetch(-23.5505,-46.6333,'São Paulo, SP');}
+  if(!navigator.geolocation){_fallback();return;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude.toFixed(4),lon=pos.coords.longitude.toFixed(4);
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon+'&accept-language=pt-BR')
+      .then(function(r){return r.json();}).then(function(g){
+        var a=g.address||{};
+        var city=(a.city||a.town||a.village||a.county||'')+(a.state_code?', '+a.state_code:'');
+        _wxFetch(lat,lon,city||'Sua localização');
+      }).catch(function(){_wxFetch(lat,lon,'Sua localização');});
+  },function(){_fallback();},{timeout:6000});
+}
 function renderDashboard(){
+  try{renderWeather();}catch(e){}
   const cl=CS_DB.getClientes();const npsAll=CS_DB.getAllNPS();const ac=CS_DB.getAllAcoes();
   const npsCalc=CS_DB.calcNPS(npsAll);
   const hsMedia=cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):0;
