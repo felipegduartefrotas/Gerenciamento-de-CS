@@ -3494,7 +3494,14 @@ function _agrFillEnderecoCliente(){
   document.getElementById('agrEndereco').value=end;
   document.getElementById('agrLat').value='';
   document.getElementById('agrLng').value='';
-  toast('Endereço do cadastro preenchido!','ok');
+  toast('Buscando localização do endereço...','info');
+  // Geocodifica imediatamente para pré-preencher lat/lng antes de salvar
+  _nominatimBuscar(end,1).then(function(data){
+    if(!data||!data.length){toast('Endereço não localizado no mapa — salve assim mesmo e ele tentará novamente.','warn');return;}
+    document.getElementById('agrLat').value=data[0].lat;
+    document.getElementById('agrLng').value=data[0].lon;
+    toast('Endereço e localização preenchidos!','ok');
+  }).catch(function(){toast('Erro ao buscar localização.','err');});
 }
 function _buildEnderecoCliente(cli){
   if(!cli)return'';
