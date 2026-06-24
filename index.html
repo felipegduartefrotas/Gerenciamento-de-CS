@@ -1197,6 +1197,12 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>E-mail</label><input type="text" id="cfgEmail" value="felipe@creare.com.br"></div>
       <div class="fg"><label>Perfil</label><select id="cfgPerfil"><option>Customer Success</option><option>Administrador</option><option>Diretoria</option></select></div>
       <div class="fg"><label>Cargo</label><input type="text" id="cfgCargo" value="Gerente de Customer Success"></div>
+      <div class="fg"><label>Estado de atuação (UF) <span style="font-weight:400;color:var(--gray3)">— exibe feriados estaduais na Agenda</span></label>
+        <select id="cfgUF">
+          <option value="">— Somente feriados nacionais</option>
+          <option value="AC">AC — Acre</option><option value="AL">AL — Alagoas</option><option value="AM">AM — Amazonas</option><option value="AP">AP — Amapá</option><option value="BA">BA — Bahia</option><option value="CE">CE — Ceará</option><option value="DF">DF — Distrito Federal</option><option value="ES">ES — Espírito Santo</option><option value="GO">GO — Goiás</option><option value="MA">MA — Maranhão</option><option value="MG">MG — Minas Gerais</option><option value="MS">MS — Mato Grosso do Sul</option><option value="MT">MT — Mato Grosso</option><option value="PA">PA — Pará</option><option value="PB">PB — Paraíba</option><option value="PE">PE — Pernambuco</option><option value="PI">PI — Piauí</option><option value="PR">PR — Paraná</option><option value="RJ">RJ — Rio de Janeiro</option><option value="RN">RN — Rio Grande do Norte</option><option value="RO">RO — Rondônia</option><option value="RR">RR — Roraima</option><option value="RS">RS — Rio Grande do Sul</option><option value="SC">SC — Santa Catarina</option><option value="SE">SE — Sergipe</option><option value="SP">SP — São Paulo</option><option value="TO">TO — Tocantins</option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="card" style="margin-bottom:12px">
@@ -3377,6 +3383,33 @@ function _agdBadge(mod){
     :'<span class="agd-badge-online"><i class="ti ti-video" style="font-size:9px"></i>Online</span>';
 }
 var _feriados={};
+var _FERIADOS_ESTADUAIS={
+  'AC':[{m:6,d:15,n:'Aniversário do Acre'},{m:9,d:5,n:'Dia da Amazônia'},{m:11,d:17,n:'Tratado de Petrópolis'}],
+  'AL':[{m:9,d:16,n:'Emancipação Política de Alagoas'}],
+  'AM':[{m:9,d:5,n:'Elevação do Amazonas à Categoria de Província'}],
+  'AP':[{m:3,d:19,n:'Dia de São José (AP)'},{m:7,d:25,n:'Dia de São Tiago'}],
+  'BA':[{m:7,d:2,n:'Independência da Bahia'}],
+  'CE':[{m:3,d:25,n:'Data Magna do Ceará'}],
+  'DF':[{m:4,d:21,n:'Fundação de Brasília'}],
+  'GO':[{m:10,d:24,n:'Criação do Estado de Goiás'}],
+  'MA':[{m:7,d:28,n:'Adesão do Maranhão à Independência do Brasil'}],
+  'MS':[{m:10,d:11,n:'Criação do Estado de Mato Grosso do Sul'}],
+  'MT':[{m:1,d:8,n:'Combate de Laguna e Dourados'}],
+  'PA':[{m:8,d:15,n:'Adesão do Pará à Independência do Brasil'}],
+  'PB':[{m:8,d:5,n:'Fundação de João Pessoa'}],
+  'PE':[{m:3,d:6,n:'Revolução Pernambucana de 1817'}],
+  'PI':[{m:3,d:13,n:'Data Magna do Piauí'},{m:10,d:19,n:'Batalha do Jenipapo'}],
+  'PR':[{m:12,d:19,n:'Emancipação Política do Paraná'}],
+  'RJ':[{m:4,d:23,n:'Dia de São Jorge'}],
+  'RN':[{m:10,d:3,n:'Mártires de Cunhaú e Uruaçu'}],
+  'RO':[{m:1,d:4,n:'Criação do Estado de Rondônia'}],
+  'RR':[{m:10,d:5,n:'Criação do Estado de Roraima'}],
+  'RS':[{m:9,d:20,n:'Proclamação da República Riograndense'}],
+  'SC':[{m:8,d:11,n:'Criação da Capitania de Santa Catarina'}],
+  'SE':[{m:7,d:8,n:'Emancipação Política de Sergipe'}],
+  'SP':[{m:7,d:9,n:'Revolução Constitucionalista de 1932'}],
+  'TO':[{m:10,d:5,n:'Criação do Estado do Tocantins'}]
+};
 async function _carregarFeriados(anos){
   await Promise.all(anos.map(async function(ano){
     if(_feriados[ano])return;
@@ -3385,9 +3418,18 @@ async function _carregarFeriados(anos){
   }));
 }
 function _getFeriado(d){
-  var iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  var lista=_feriados[String(d.getFullYear())]||[];
-  return lista.find(function(f){return f.date===iso;})||null;
+  var ano=String(d.getFullYear()),m=d.getMonth()+1,day=d.getDate();
+  var iso=ano+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  // Nacional (BrasilAPI)
+  var nac=(_feriados[ano]||[]).find(function(f){return f.date===iso;});
+  if(nac)return{name:nac.localName||nac.name,tipo:'Nacional'};
+  // Estadual (hardcoded por UF configurada)
+  var uf=((CS_DB.getConfig&&CS_DB.getConfig().uf)||'').toUpperCase();
+  if(uf){
+    var est=(_FERIADOS_ESTADUAIS[uf]||[]).find(function(f){return f.m===m&&f.d===day;});
+    if(est)return{name:est.n,tipo:'Estadual'};
+  }
+  return null;
 }
 let _agendaSemana=0;
 function renderAgenda(){
@@ -3425,13 +3467,16 @@ function renderAgenda(){
       </div>`)
     ];
     var _fNome=feriado?feriado.name:'';
-    var _hdrBg=feriado?';background:rgba(214,38,38,.07)':'';
-    var _fTag=feriado?'<span style="font-size:9px;color:var(--red);font-weight:700;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_fNome+'</span>':'';
+    var _fTipo=feriado?feriado.tipo:'';
+    var _fClr=_fTipo==='Estadual'?'#b45309':'var(--red)';
+    var _fBgRgb=_fTipo==='Estadual'?'180,87,9':'214,38,38';
+    var _hdrBg=feriado?';background:rgba('+_fBgRgb+',.07)':'';
+    var _fTag=feriado?'<span style="font-size:9px;color:'+_fClr+';font-weight:700;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_fNome+' <span style="font-weight:500;opacity:.7">('+_fTipo+')</span></span>':'';
     var _conteudo;
     if(items.length){
-      _conteudo=(feriado?'<div style="font-size:10px;color:var(--red);font-weight:600;margin-bottom:4px"><i class="ti ti-calendar-event" style="font-size:10px"></i> Feriado: '+_fNome+'</div>':'')+items.join('');
+      _conteudo=(feriado?'<div style="font-size:10px;color:'+_fClr+';font-weight:600;margin-bottom:4px"><i class="ti ti-calendar-event" style="font-size:10px"></i> '+_fTipo+': '+_fNome+'</div>':'')+items.join('');
     }else if(feriado){
-      _conteudo='<div class="agenda-vazio" style="color:var(--red);opacity:.65;cursor:default"><i class="ti ti-calendar-event" style="font-size:11px"></i> '+_fNome+'</div>'
+      _conteudo='<div class="agenda-vazio" style="color:'+_fClr+';opacity:.65;cursor:default"><i class="ti ti-calendar-event" style="font-size:11px"></i> '+_fNome+' <span style="font-size:9px">('+_fTipo+')</span></div>'
                +'<div class="agenda-vazio" onclick="agendaAbrirModalDia(\''+dStr+'\')" style="cursor:pointer;font-size:10.5px;opacity:.7">+ agendar mesmo assim</div>';
     }else{
       _conteudo='<div class="agenda-vazio" onclick="agendaAbrirModalDia(\''+dStr+'\')" title="Agendar reunião" style="cursor:pointer">+ agendar</div>';
@@ -3841,7 +3886,7 @@ function agendaAbrirModalDia(dStr){
   var pts=dStr.split('/');
   var _df=new Date(pts[2]+'-'+pts[1]+'-'+pts[0]);
   var _fer=_getFeriado(_df);
-  if(_fer)setTimeout(function(){toast('Atenção: '+_fer.name+' — confirme a disponibilidade do cliente.','warn');},120);
+  if(_fer)setTimeout(function(){toast('Atenção: '+_fer.name+' (Feriado '+_fer.tipo+') — confirme a disponibilidade do cliente.','warn');},120);
 }
 
 // ═══ RENOVAÇÃO RÁPIDA ═══
@@ -5867,9 +5912,9 @@ function downloadTemplate(){
 }
 
 // ═══ CONFIG ═══
-function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
+function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgUF'))document.getElementById('cfgUF').value=cfg.uf||'';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
-function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||''};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
+function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||''};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
 async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}const cfg=CS_DB.getConfig();const hsMin=Number(cfg.alertaHSMinimo)||50;const diasMin=Number(cfg.alertaDiasSemContato)||30;const clientes=CS_DB.getClientes();const reunioes=CS_DB.getReunioesAll?CS_DB.getReunioesAll():[];const now=new Date();const alertas=[];for(const c of clientes){const reu=reunioes.filter(r=>r.clienteId===c.id);const ult=reu.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];if(ult){const dias=Math.floor((now-new Date(ult.dataISO))/86400000);if(dias>=diasMin)alertas.push({tipo:'sem_contato',empresa:c.empresa,dias})}if(c.healthScore<hsMin)alertas.push({tipo:'hs_baixo',empresa:c.empresa,hs:c.healthScore})}if(!alertas.length){toast('Nenhum alerta ativo no momento.');return}try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sistema:'CS Manager v3 — Creare Sistemas',gerado_em:new Date().toISOString(),total_alertas:alertas.length,alertas})});toast(`Webhook disparado — ${alertas.length} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 </script>
 <script>
