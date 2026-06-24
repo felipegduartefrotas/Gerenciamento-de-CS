@@ -1203,6 +1203,10 @@ tr:hover td{background:#fafafa}
           <option value="AC">AC — Acre</option><option value="AL">AL — Alagoas</option><option value="AM">AM — Amazonas</option><option value="AP">AP — Amapá</option><option value="BA">BA — Bahia</option><option value="CE">CE — Ceará</option><option value="DF">DF — Distrito Federal</option><option value="ES">ES — Espírito Santo</option><option value="GO">GO — Goiás</option><option value="MA">MA — Maranhão</option><option value="MG">MG — Minas Gerais</option><option value="MS">MS — Mato Grosso do Sul</option><option value="MT">MT — Mato Grosso</option><option value="PA">PA — Pará</option><option value="PB">PB — Paraíba</option><option value="PE">PE — Pernambuco</option><option value="PI">PI — Piauí</option><option value="PR">PR — Paraná</option><option value="RJ">RJ — Rio de Janeiro</option><option value="RN">RN — Rio Grande do Norte</option><option value="RO">RO — Rondônia</option><option value="RR">RR — Roraima</option><option value="RS">RS — Rio Grande do Sul</option><option value="SC">SC — Santa Catarina</option><option value="SE">SE — Sergipe</option><option value="SP">SP — São Paulo</option><option value="TO">TO — Tocantins</option>
         </select>
       </div>
+      <div class="fg"><label>Cidade de atuação <span style="font-weight:400;color:var(--gray3)">— exibe feriados municipais na Agenda</span></label>
+        <input type="text" id="cfgCidade" placeholder="Ex: Porto Alegre" list="cfgCidadeList" autocomplete="off">
+        <datalist id="cfgCidadeList"><option>Porto Alegre</option><option>São Paulo</option><option>Rio de Janeiro</option><option>Belo Horizonte</option><option>Salvador</option><option>Fortaleza</option><option>Manaus</option><option>Curitiba</option><option>Recife</option><option>Belém</option><option>Goiânia</option><option>Florianópolis</option><option>Maceió</option><option>Teresina</option><option>Campo Grande</option><option>Cuiabá</option><option>Macapá</option><option>Porto Velho</option><option>Boa Vista</option><option>Palmas</option><option>Aracaju</option><option>Vitória</option><option>São Luís</option><option>João Pessoa</option></datalist>
+      </div>
     </div>
   </div>
   <div class="card" style="margin-bottom:12px">
@@ -2818,17 +2822,20 @@ function _wxFetch(lat,lon,city){
 }
 function renderWeather(){
   if(_wxCache&&Date.now()-_wxTs<1800000){_wxApply(_wxCache);return;}
-  function _fallback(){_wxFetch(-23.5505,-46.6333,'São Paulo, SP');}
-  if(!navigator.geolocation){_fallback();return;}
+  var _sv=null;try{_sv=JSON.parse(localStorage.getItem('_wxLastPos'));}catch(e){}
+  if(_sv)_wxFetch(_sv.lat,_sv.lon,_sv.city);
+  if(!navigator.geolocation){if(!_sv)_wxFetch(-23.5505,-46.6333,'São Paulo, SP');return;}
   navigator.geolocation.getCurrentPosition(function(pos){
     var lat=pos.coords.latitude.toFixed(4),lon=pos.coords.longitude.toFixed(4);
     fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon+'&accept-language=pt-BR')
       .then(function(r){return r.json();}).then(function(g){
         var a=g.address||{};
         var city=(a.city||a.town||a.village||a.county||'')+(a.state_code?', '+a.state_code:'');
-        _wxFetch(lat,lon,city||'Sua localização');
-      }).catch(function(){_wxFetch(lat,lon,'Sua localização');});
-  },function(){_fallback();},{timeout:6000});
+        var c=city||'Sua localização';
+        try{localStorage.setItem('_wxLastPos',JSON.stringify({lat:lat,lon:lon,city:c}));}catch(e){}
+        _wxFetch(lat,lon,c);
+      }).catch(function(){if(!_sv)_wxFetch(lat,lon,'Sua localização');});
+  },function(){if(!_sv)_wxFetch(-23.5505,-46.6333,'São Paulo, SP');},{timeout:6000});
 }
 function renderDashboard(){
   try{renderWeather();}catch(e){}
@@ -3384,31 +3391,55 @@ function _agdBadge(mod){
 }
 var _feriados={};
 var _FERIADOS_ESTADUAIS={
-  'AC':[{m:6,d:15,n:'Aniversário do Acre'},{m:9,d:5,n:'Dia da Amazônia'},{m:11,d:17,n:'Tratado de Petrópolis'}],
-  'AL':[{m:9,d:16,n:'Emancipação Política de Alagoas'}],
-  'AM':[{m:9,d:5,n:'Elevação do Amazonas à Categoria de Província'}],
-  'AP':[{m:3,d:19,n:'Dia de São José (AP)'},{m:7,d:25,n:'Dia de São Tiago'}],
+  'AC':[{m:1,d:20,n:'Dia do Católico'},{m:1,d:25,n:'Dia do Evangélico'},{m:6,d:15,n:'Aniversário do Acre'},{m:9,d:5,n:'Dia da Amazônia'},{m:11,d:17,n:'Tratado de Petrópolis'}],
+  'AL':[{m:6,d:24,n:'São João (AL)'},{m:6,d:29,n:'São Pedro (AL)'},{m:9,d:16,n:'Emancipação Política de Alagoas'}],
+  'AM':[{m:9,d:5,n:'Elevação do Amazonas à Categoria de Província'},{m:12,d:8,n:'Nossa Senhora da Conceição (AM)'}],
+  'AP':[{m:3,d:19,n:'Dia de São José (AP)'},{m:9,d:13,n:'Data Magna do Amapá'}],
   'BA':[{m:7,d:2,n:'Independência da Bahia'}],
-  'CE':[{m:3,d:25,n:'Data Magna do Ceará'}],
-  'DF':[{m:4,d:21,n:'Fundação de Brasília'}],
-  'GO':[{m:10,d:24,n:'Criação do Estado de Goiás'}],
+  'CE':[{m:3,d:19,n:'Dia de São José (CE)'},{m:3,d:25,n:'Data Magna do Ceará'}],
+  'DF':[{m:4,d:21,n:'Fundação de Brasília'},{m:11,d:30,n:'Dia do Evangélico (DF)'}],
+  'GO':[{m:7,d:26,n:'Data Magna de Goiás'}],
   'MA':[{m:7,d:28,n:'Adesão do Maranhão à Independência do Brasil'}],
   'MS':[{m:10,d:11,n:'Criação do Estado de Mato Grosso do Sul'}],
-  'MT':[{m:1,d:8,n:'Combate de Laguna e Dourados'}],
   'PA':[{m:8,d:15,n:'Adesão do Pará à Independência do Brasil'}],
   'PB':[{m:8,d:5,n:'Fundação de João Pessoa'}],
   'PE':[{m:3,d:6,n:'Revolução Pernambucana de 1817'}],
-  'PI':[{m:3,d:13,n:'Data Magna do Piauí'},{m:10,d:19,n:'Batalha do Jenipapo'}],
-  'PR':[{m:12,d:19,n:'Emancipação Política do Paraná'}],
+  'PI':[{m:3,d:13,n:'Batalha do Jenipapo'},{m:10,d:19,n:'Data Magna do Piauí'}],
   'RJ':[{m:4,d:23,n:'Dia de São Jorge'}],
   'RN':[{m:10,d:3,n:'Mártires de Cunhaú e Uruaçu'}],
-  'RO':[{m:1,d:4,n:'Criação do Estado de Rondônia'}],
+  'RO':[{m:1,d:4,n:'Criação do Estado de Rondônia'},{m:6,d:18,n:'Dia do Evangélico (RO)'}],
   'RR':[{m:10,d:5,n:'Criação do Estado de Roraima'}],
-  'RS':[{m:9,d:20,n:'Proclamação da República Riograndense'}],
+  'RS':[{m:9,d:20,n:'Revolução Farroupilha'}],
   'SC':[{m:8,d:11,n:'Criação da Capitania de Santa Catarina'}],
   'SE':[{m:7,d:8,n:'Emancipação Política de Sergipe'}],
   'SP':[{m:7,d:9,n:'Revolução Constitucionalista de 1932'}],
-  'TO':[{m:10,d:5,n:'Criação do Estado do Tocantins'}]
+  'TO':[{m:9,d:8,n:'Nossa Senhora da Natividade'},{m:10,d:5,n:'Criação do Estado do Tocantins'}]
+};
+var _FERIADOS_MUNICIPAIS={
+  'porto alegre':[{m:2,d:2,n:'Iemanjá e Nossa Senhora dos Navegantes'}],
+  'são paulo':[{m:1,d:25,n:'Aniversário de São Paulo'}],
+  'rio de janeiro':[{m:1,d:20,n:'São Sebastião (padroeiro)'}],
+  'belo horizonte':[{m:12,d:12,n:'Aniversário de Belo Horizonte'}],
+  'salvador':[{m:3,d:29,n:'Aniversário de Salvador'}],
+  'fortaleza':[{m:4,d:13,n:'Aniversário de Fortaleza'}],
+  'manaus':[{m:9,d:4,n:'Aniversário de Manaus'}],
+  'curitiba':[{m:3,d:29,n:'Aniversário de Curitiba'}],
+  'recife':[{m:3,d:12,n:'Aniversário do Recife'}],
+  'belém':[{m:1,d:12,n:'Aniversário de Belém'}],
+  'goiânia':[{m:10,d:24,n:'Aniversário de Goiânia'}],
+  'florianópolis':[{m:3,d:23,n:'Aniversário de Florianópolis'}],
+  'maceió':[{m:12,d:5,n:'Aniversário de Maceió'}],
+  'teresina':[{m:8,d:16,n:'Aniversário de Teresina'}],
+  'campo grande':[{m:8,d:26,n:'Aniversário de Campo Grande'}],
+  'cuiabá':[{m:4,d:8,n:'Aniversário de Cuiabá'}],
+  'macapá':[{m:2,d:4,n:'Aniversário de Macapá'}],
+  'porto velho':[{m:10,d:2,n:'Aniversário de Porto Velho'}],
+  'boa vista':[{m:7,d:9,n:'Aniversário de Boa Vista'}],
+  'palmas':[{m:5,d:20,n:'Aniversário de Palmas'}],
+  'aracaju':[{m:3,d:17,n:'Aniversário de Aracaju'}],
+  'vitória':[{m:9,d:8,n:'Aniversário de Vitória'}],
+  'são luís':[{m:9,d:8,n:'Aniversário de São Luís'}],
+  'joão pessoa':[{m:8,d:5,n:'Aniversário de João Pessoa'}]
 };
 async function _carregarFeriados(anos){
   await Promise.all(anos.map(async function(ano){
@@ -3420,14 +3451,18 @@ async function _carregarFeriados(anos){
 function _getFeriado(d){
   var ano=String(d.getFullYear()),m=d.getMonth()+1,day=d.getDate();
   var iso=ano+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-  // Nacional (BrasilAPI)
   var nac=(_feriados[ano]||[]).find(function(f){return f.date===iso;});
   if(nac)return{name:nac.localName||nac.name,tipo:'Nacional'};
-  // Estadual (hardcoded por UF configurada)
-  var uf=((CS_DB.getConfig&&CS_DB.getConfig().uf)||'').toUpperCase();
+  var cfg=(CS_DB.getConfig&&CS_DB.getConfig())||{};
+  var uf=(cfg.uf||'').toUpperCase();
   if(uf){
     var est=(_FERIADOS_ESTADUAIS[uf]||[]).find(function(f){return f.m===m&&f.d===day;});
     if(est)return{name:est.n,tipo:'Estadual'};
+  }
+  var cidade=(cfg.cidade||'').toLowerCase().trim();
+  if(cidade){
+    var mun=(_FERIADOS_MUNICIPAIS[cidade]||[]).find(function(f){return f.m===m&&f.d===day;});
+    if(mun)return{name:mun.n,tipo:'Municipal'};
   }
   return null;
 }
@@ -3468,8 +3503,8 @@ function renderAgenda(){
     ];
     var _fNome=feriado?feriado.name:'';
     var _fTipo=feriado?feriado.tipo:'';
-    var _fClr=_fTipo==='Estadual'?'#b45309':'var(--red)';
-    var _fBgRgb=_fTipo==='Estadual'?'180,87,9':'214,38,38';
+    var _fClr=_fTipo==='Estadual'?'#b45309':_fTipo==='Municipal'?'#7c3aed':'var(--red)';
+    var _fBgRgb=_fTipo==='Estadual'?'180,87,9':_fTipo==='Municipal'?'124,58,237':'214,38,38';
     var _hdrBg=feriado?';background:rgba('+_fBgRgb+',.07)':'';
     var _fTag=feriado?'<span style="font-size:9px;color:'+_fClr+';font-weight:700;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_fNome+' <span style="font-weight:500;opacity:.7">('+_fTipo+')</span></span>':'';
     var _conteudo;
@@ -5912,9 +5947,9 @@ function downloadTemplate(){
 }
 
 // ═══ CONFIG ═══
-function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgUF'))document.getElementById('cfgUF').value=cfg.uf||'';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
+function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgUF'))document.getElementById('cfgUF').value=cfg.uf||'';if(document.getElementById('cfgCidade'))document.getElementById('cfgCidade').value=cfg.cidade||'';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
-function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||''};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
+function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||''};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
 async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}const cfg=CS_DB.getConfig();const hsMin=Number(cfg.alertaHSMinimo)||50;const diasMin=Number(cfg.alertaDiasSemContato)||30;const clientes=CS_DB.getClientes();const reunioes=CS_DB.getReunioesAll?CS_DB.getReunioesAll():[];const now=new Date();const alertas=[];for(const c of clientes){const reu=reunioes.filter(r=>r.clienteId===c.id);const ult=reu.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];if(ult){const dias=Math.floor((now-new Date(ult.dataISO))/86400000);if(dias>=diasMin)alertas.push({tipo:'sem_contato',empresa:c.empresa,dias})}if(c.healthScore<hsMin)alertas.push({tipo:'hs_baixo',empresa:c.empresa,hs:c.healthScore})}if(!alertas.length){toast('Nenhum alerta ativo no momento.');return}try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sistema:'CS Manager v3 — Creare Sistemas',gerado_em:new Date().toISOString(),total_alertas:alertas.length,alertas})});toast(`Webhook disparado — ${alertas.length} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 </script>
 <script>
