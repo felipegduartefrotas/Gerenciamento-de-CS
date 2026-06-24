@@ -3330,6 +3330,19 @@ function _agdBadge(mod){
     ?'<span class="agd-badge-pres"><i class="ti ti-building" style="font-size:9px"></i>Presencial</span>'
     :'<span class="agd-badge-online"><i class="ti ti-video" style="font-size:9px"></i>Online</span>';
 }
+var _feriados={};
+async function _carregarFeriados(anos){
+  await Promise.all(anos.map(async function(ano){
+    if(_feriados[ano])return;
+    try{var r=await fetch('https://brasilapi.com.br/api/feriados/v1/'+ano);if(r.ok)_feriados[ano]=await r.json();}catch(e){}
+    if(!_feriados[ano])_feriados[ano]=[];
+  }));
+}
+function _getFeriado(d){
+  var iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  var lista=_feriados[String(d.getFullYear())]||[];
+  return lista.find(function(f){return f.date===iso;})||null;
+}
 let _agendaSemana=0;
 function renderAgenda(){
   const now=new Date();
@@ -3337,6 +3350,9 @@ function renderAgenda(){
   const dow=dom.getDay();
   dom.setDate(dom.getDate()-(dow===0?6:dow-1)+_agendaSemana*7);
   const dias=[];for(let i=0;i<7;i++){const d=new Date(dom);d.setDate(dom.getDate()+i);dias.push(d);}
+  // Carregar feriados para os anos visíveis; re-renderiza quando chegar
+  const anos=[...new Set(dias.map(function(d){return String(d.getFullYear());}))];
+  if(anos.some(function(a){return !_feriados[a];})){_carregarFeriados(anos).then(function(){renderAgenda();});}
   const reunioes=CS_DB.getAllReunioes();
   const agendadas=(CS_DB.get('acoes')||[]).filter(a=>a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada');
   const semLabel=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
@@ -3347,6 +3363,7 @@ function renderAgenda(){
   <div class="agenda-grid">${dias.map((d,i)=>{
     const dStr=d.toLocaleDateString('pt-BR');
     const ehHoje=dStr===hojeStr;
+    const feriado=_getFeriado(d);
     const rRea=reunioes.filter(r=>r.data===dStr);
     const rAg=agendadas.filter(a=>a.reuniaoData===dStr||a.prazo===dStr);
     const items=[
@@ -3361,12 +3378,24 @@ function renderAgenda(){
         ${_agdBadge(a.modalidade||'online')}
       </div>`)
     ];
+    var _fNome=feriado?feriado.name:'';
+    var _hdrBg=feriado?';background:rgba(214,38,38,.07)':'';
+    var _fTag=feriado?'<span style="font-size:9px;color:var(--red);font-weight:700;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_fNome+'</span>':'';
+    var _conteudo;
+    if(items.length){
+      _conteudo=(feriado?'<div style="font-size:10px;color:var(--red);font-weight:600;margin-bottom:4px"><i class="ti ti-calendar-event" style="font-size:10px"></i> Feriado: '+_fNome+'</div>':'')+items.join('');
+    }else if(feriado){
+      _conteudo='<div class="agenda-vazio" style="color:var(--red);opacity:.65;cursor:default"><i class="ti ti-calendar-event" style="font-size:11px"></i> '+_fNome+'</div>'
+               +'<div class="agenda-vazio" onclick="agendaAbrirModalDia(\''+dStr+'\')" style="cursor:pointer;font-size:10.5px;opacity:.7">+ agendar mesmo assim</div>';
+    }else{
+      _conteudo='<div class="agenda-vazio" onclick="agendaAbrirModalDia(\''+dStr+'\')" title="Agendar reunião" style="cursor:pointer">+ agendar</div>';
+    }
     return`<div class="agenda-day">
-      <div class="agenda-day-hdr ${ehHoje?'hoje':''}" style="display:flex;align-items:center;justify-content:space-between">
-        <span>${semLabel[i]} ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
+      <div class="agenda-day-hdr ${ehHoje?'hoje':''}" style="display:flex;align-items:flex-start;justify-content:space-between${_hdrBg}">
+        <span>${semLabel[i]} ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}${_fTag}</span>
         <span onclick="agendaAbrirModalDia('${dStr}')" title="Agendar reunião neste dia" style="cursor:pointer;opacity:.7;font-size:14px;line-height:1;padding:0 2px">+</span>
       </div>
-      ${items.length?items.join(''):`<div class="agenda-vazio" onclick="agendaAbrirModalDia('${dStr}')" title="Agendar reunião" style="cursor:pointer">+ agendar</div>`}
+      ${_conteudo}
     </div>`;
   }).join('')}</div>`;
   try{renderAgendaMapa();}catch(e){console.error('renderAgendaMapa:',e);}
@@ -3763,6 +3792,10 @@ function _agrSetData(dStr){_setDateDP('agrData','agrDatePicker',dStr);}
 function agendaAbrirModalDia(dStr){
   abrirAgendarReuniao();
   setTimeout(()=>_agrSetData(dStr),50);
+  var pts=dStr.split('/');
+  var _df=new Date(pts[2]+'-'+pts[1]+'-'+pts[0]);
+  var _fer=_getFeriado(_df);
+  if(_fer)setTimeout(function(){toast('Atenção: '+_fer.name+' — confirme a disponibilidade do cliente.','warn');},120);
 }
 
 // ═══ RENOVAÇÃO RÁPIDA ═══
