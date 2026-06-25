@@ -932,6 +932,7 @@ tr:hover td{background:#fafafa}
   <div class="ph"><h2><i class="ti ti-calendar"></i>Reuniões</h2>
     <div style="display:flex;gap:8px">
       <button class="btn-ghost" onclick="abrirAgendarReuniao()"><i class="ti ti-calendar-plus"></i>Agendar Reunião Futura</button>
+      <button class="btn-ghost" onclick="openM('mTranscricao')" title="Importar transcrição do Plaud Note e gerar insights com IA"><i class="ti ti-microphone"></i>Transcrição Plaud</button>
       <button class="btn-primary" onclick="openM('mReuniao')"><i class="ti ti-plus"></i>Registrar Reunião Realizada</button>
     </div>
   </div>
@@ -1288,6 +1289,18 @@ tr:hover td{background:#fafafa}
       <button class="btn-ghost" id="btnTeamsDisconnect" style="display:none;color:var(--red);border-color:var(--red)" onclick="teamsDisconnect()"><i class="ti ti-plug-x"></i>Desconectar</button>
       <button class="btn-ghost" id="btnTeamsSync" style="display:none" onclick="openTeamsPanel()"><i class="ti ti-calendar-event"></i>Ver reuniões</button>
     </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-ttl"><i class="ti ti-robot"></i>Inteligência Artificial <span class="sub">transcrição Plaud Note → insights</span></div>
+    <div class="fg form-full">
+      <label>Chave API Anthropic <span style="font-weight:400;color:var(--gray3)">(Claude — para processar transcrições de reuniões)</span></label>
+      <div class="iw">
+        <input type="password" id="cfgAnthropicKey" placeholder="sk-ant-api03-…" autocomplete="off">
+        <button class="ib-search" onclick="testarAnthropicKey()" title="Testar chave"><i class="ti ti-plug"></i></button>
+      </div>
+      <div style="font-size:11px;color:var(--gray3);margin-top:4px">Obtida em <strong>console.anthropic.com</strong>. Fica salva apenas neste navegador (localStorage). Nunca enviada a terceiros.</div>
+    </div>
+    <div id="cfgAnthropicStatus" style="display:none;font-size:12px;margin-top:8px;padding:7px 11px;border-radius:7px"></div>
   </div>
   <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i>Salvar configurações</button></div>
 </div>
@@ -2223,6 +2236,117 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
 </div>
+<!-- MODAL TRANSCRIÇÃO PLAUD NOTE -->
+<div class="modal-ov" id="mTranscricao">
+  <div class="modal" style="max-width:780px;max-height:92vh;overflow-y:auto">
+    <div class="modal-ttl" style="position:sticky;top:0;background:var(--white);z-index:1;padding-bottom:12px;border-bottom:1px solid var(--gray4);margin-bottom:14px">
+      <span><i class="ti ti-microphone" style="color:var(--blue);margin-right:6px"></i>Importar Transcrição — Plaud Note</span>
+      <button class="modal-close" onclick="closeM('mTranscricao')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <!-- Etapa 1: Entrada -->
+    <div id="txEtapa1">
+      <div class="form-g2" style="margin-bottom:10px">
+        <div class="fg">
+          <label>Cliente <span class="req">*</span></label>
+          <select id="txCliente"></select>
+        </div>
+        <div class="fg">
+          <label>Data da reunião</label>
+          <input type="date" id="txData">
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:10px">
+        <label>Título / Pauta (opcional)</label>
+        <input type="text" id="txTitulo" placeholder="Ex: Reunião mensal de CS · QBR Q2 · Check-in técnico">
+      </div>
+
+      <!-- Tabs: colar / upload -->
+      <div style="display:flex;gap:0;border:1px solid var(--gray4);border-radius:8px 8px 0 0;overflow:hidden;margin-bottom:0">
+        <button id="txTabColar" onclick="txMudarTab('colar')" style="flex:1;padding:9px;font-size:12.5px;font-weight:600;border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-clipboard-text"></i>Colar texto</button>
+        <button id="txTabUpload" onclick="txMudarTab('upload')" style="flex:1;padding:9px;font-size:12.5px;font-weight:600;border:none;background:var(--gray5);color:var(--gray2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-file-upload"></i>Upload de arquivo (.txt)</button>
+      </div>
+
+      <div id="txPanelColar" style="border:1px solid var(--gray4);border-top:none;border-radius:0 0 8px 8px;padding:10px">
+        <textarea id="txTexto" rows="10" style="border:none;outline:none;width:100%;resize:vertical;font-size:12.5px;line-height:1.7;font-family:inherit;background:transparent" placeholder="Cole aqui a transcrição exportada do Plaud Note…&#10;&#10;A IA vai identificar automaticamente: participantes, temas discutidos, decisões, ações e próximos passos."></textarea>
+      </div>
+      <div id="txPanelUpload" style="display:none;border:1px solid var(--gray4);border-top:none;border-radius:0 0 8px 8px;padding:20px;text-align:center">
+        <input type="file" id="txArquivo" accept=".txt,.md" style="display:none" onchange="txLerArquivo(event)">
+        <div onclick="document.getElementById('txArquivo').click()" style="cursor:pointer;border:2px dashed var(--gray4);border-radius:8px;padding:28px;color:var(--gray2);transition:border-color .2s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--gray4)'">
+          <i class="ti ti-file-text" style="font-size:36px;display:block;margin-bottom:8px;color:var(--gray3)"></i>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Clique para selecionar o arquivo</div>
+          <div style="font-size:11.5px;color:var(--gray3)">Formatos aceitos: .txt · .md</div>
+        </div>
+        <div id="txArquivoNome" style="font-size:12px;color:var(--blue);margin-top:8px;font-weight:600"></div>
+      </div>
+
+      <div style="margin-top:10px;font-size:11px;color:var(--gray3);display:flex;align-items:center;gap:5px">
+        <i class="ti ti-lock" style="font-size:12px"></i>
+        <span>Sua transcrição é enviada diretamente à API da Anthropic (Claude) usando sua chave configurada. Não passa por nenhum servidor intermediário.</span>
+      </div>
+
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn-ghost" onclick="closeM('mTranscricao')">Cancelar</button>
+        <button class="btn-primary" id="txBtnProcessar" onclick="txProcessar()"><i class="ti ti-robot"></i>Processar com Claude</button>
+      </div>
+    </div>
+
+    <!-- Etapa 2: Resultado -->
+    <div id="txEtapa2" style="display:none">
+      <!-- Sentimento banner -->
+      <div id="txSentimentoBanner" style="border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <span id="txSentimentoIcon" style="font-size:22px"></span>
+        <div>
+          <div id="txSentimentoLabel" style="font-size:13px;font-weight:700"></div>
+          <div id="txSentimentoDesc" style="font-size:12px;opacity:.85;margin-top:1px"></div>
+        </div>
+      </div>
+
+      <!-- Resumo -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-ttl"><i class="ti ti-notes"></i>Resumo executivo</div>
+        <div id="txResumo" style="font-size:13px;line-height:1.8;color:var(--gray1)"></div>
+      </div>
+
+      <!-- Pontos-chave e Riscos lado a lado -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-ttl"><i class="ti ti-list-check"></i>Pontos-chave</div>
+          <ul id="txPontos" style="margin:0;padding-left:18px;font-size:12.5px;line-height:2;color:var(--gray1)"></ul>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-ttl" style="color:var(--red)"><i class="ti ti-alert-triangle"></i>Riscos / Atenção</div>
+          <ul id="txRiscos" style="margin:0;padding-left:18px;font-size:12.5px;line-height:2;color:var(--gray1)"></ul>
+        </div>
+      </div>
+
+      <!-- Ações detectadas -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-ttl"><i class="ti ti-clipboard-list"></i>Ações detectadas <span id="txAcoesCount" class="sub"></span></div>
+        <div id="txAcoesList"></div>
+      </div>
+
+      <!-- Próximos passos -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-ttl"><i class="ti ti-arrow-right"></i>Próximos passos</div>
+        <div id="txProximos" style="font-size:13px;line-height:1.8;color:var(--gray1)"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="txVoltarEtapa1()"><i class="ti ti-arrow-left"></i>Reprocessar</button>
+        <button class="btn-primary" onclick="txAplicar()"><i class="ti ti-check"></i>Aplicar ao sistema</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="txLoading" style="display:none;text-align:center;padding:48px 24px">
+      <div style="width:44px;height:44px;border:3px solid var(--gray4);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
+      <div style="font-size:14px;font-weight:600;color:var(--gray1);margin-bottom:6px">Processando com Claude…</div>
+      <div style="font-size:12px;color:var(--gray2)">Analisando a transcrição e gerando insights para gestão do cliente</div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL MOTIVO DE CHURN -->
 <div class="modal-ov" id="mMotivoChurn">
   <div class="modal" style="max-width:480px">
@@ -6106,9 +6230,9 @@ function downloadTemplate(){
 }
 
 // ═══ CONFIG ═══
-function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgUF'))document.getElementById('cfgUF').value=cfg.uf||'';if(document.getElementById('cfgCidade'))document.getElementById('cfgCidade').value=cfg.cidade||'';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
+function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgUF'))document.getElementById('cfgUF').value=cfg.uf||'';if(document.getElementById('cfgCidade'))document.getElementById('cfgCidade').value=cfg.cidade||'';if(document.getElementById('cfgAnthropicKey'))document.getElementById('cfgAnthropicKey').value=cfg.anthropicKey||localStorage.getItem('_anthropicKey')||'';if(document.getElementById('cfgAnthropicStatus'))document.getElementById('cfgAnthropicStatus').style.display='none';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
-function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||''};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
+function salvarConfig(){const ak=(document.getElementById('cfgAnthropicKey')?.value||'').trim();if(ak)localStorage.setItem('_anthropicKey',ak);const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||'',anthropicKey:ak};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
 async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}const cfg=CS_DB.getConfig();const hsMin=Number(cfg.alertaHSMinimo)||50;const diasMin=Number(cfg.alertaDiasSemContato)||30;const clientes=CS_DB.getClientes();const reunioes=CS_DB.getReunioesAll?CS_DB.getReunioesAll():[];const now=new Date();const alertas=[];for(const c of clientes){const reu=reunioes.filter(r=>r.clienteId===c.id);const ult=reu.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];if(ult){const dias=Math.floor((now-new Date(ult.dataISO))/86400000);if(dias>=diasMin)alertas.push({tipo:'sem_contato',empresa:c.empresa,dias})}if(c.healthScore<hsMin)alertas.push({tipo:'hs_baixo',empresa:c.empresa,hs:c.healthScore})}if(!alertas.length){toast('Nenhum alerta ativo no momento.');return}try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sistema:'CS Manager v3 — Creare Sistemas',gerado_em:new Date().toISOString(),total_alertas:alertas.length,alertas})});toast(`Webhook disparado — ${alertas.length} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 </script>
 <script>
@@ -9221,6 +9345,264 @@ function teamsDisconnect(){
 </script>
 
 <script>
+// ═══ IA / TRANSCRIÇÃO PLAUD NOTE ═══
+var _txResultado=null;
+
+function _txGetApiKey(){
+  var cfg=CS_DB.getConfig&&CS_DB.getConfig()||{};
+  return cfg.anthropicKey||localStorage.getItem('_anthropicKey')||'';
+}
+
+function txMudarTab(tab){
+  var isColar=tab==='colar';
+  document.getElementById('txPanelColar').style.display=isColar?'block':'none';
+  document.getElementById('txPanelUpload').style.display=isColar?'none':'block';
+  document.getElementById('txTabColar').style.background=isColar?'var(--blue)':'var(--gray5)';
+  document.getElementById('txTabColar').style.color=isColar?'#fff':'var(--gray2)';
+  document.getElementById('txTabUpload').style.background=isColar?'var(--gray5)':'var(--blue)';
+  document.getElementById('txTabUpload').style.color=isColar?'var(--gray2)':'#fff';
+}
+
+function txLerArquivo(ev){
+  var file=ev.target.files[0];
+  if(!file)return;
+  document.getElementById('txArquivoNome').textContent='Arquivo: '+file.name+' ('+Math.round(file.size/1024)+'KB)';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById('txTexto').value=e.target.result;
+    txMudarTab('colar');
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function _txAbrirModal(){
+  var sel=document.getElementById('txCliente');
+  var clientes=(CS_DB.getClientes?CS_DB.getClientes():CS_DB.get('clientes')||[]).sort(function(a,b){return(a.empresa||'').localeCompare(b.empresa||'');});
+  sel.innerHTML='<option value="">— Selecione o cliente —</option>'+clientes.map(function(c){return'<option value="'+c.id+'">'+_escH(c.empresa||'')+'</option>';}).join('');
+  document.getElementById('txData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('txTexto').value='';
+  document.getElementById('txTitulo').value='';
+  document.getElementById('txArquivoNome').textContent='';
+  document.getElementById('txEtapa1').style.display='block';
+  document.getElementById('txEtapa2').style.display='none';
+  document.getElementById('txLoading').style.display='none';
+  txMudarTab('colar');
+  _txResultado=null;
+}
+
+// Sobrescreve openM para inicializar o modal de transcrição
+var _origOpenM=null;
+(function(){
+  if(typeof openM==='function'){
+    _origOpenM=openM;
+    openM=function(id){
+      if(id==='mTranscricao')_txAbrirModal();
+      _origOpenM(id);
+    };
+  }
+})();
+
+function txVoltarEtapa1(){
+  document.getElementById('txEtapa1').style.display='block';
+  document.getElementById('txEtapa2').style.display='none';
+}
+
+async function txProcessar(){
+  var cid=document.getElementById('txCliente').value;
+  var texto=(document.getElementById('txTexto').value||'').trim();
+  if(!cid){toast('Selecione o cliente.','err');return;}
+  if(!texto||texto.length<50){toast('Cole ou carregue a transcrição da reunião.','err');return;}
+  var apiKey=_txGetApiKey();
+  if(!apiKey){
+    toast('Configure a Chave API Anthropic em Configurações → IA / Plaud Note.','err');
+    return;
+  }
+  var cli=CS_DB.getClienteById(cid);
+  var empresa=cli?cli.empresa:'';
+
+  document.getElementById('txEtapa1').style.display='none';
+  document.getElementById('txEtapa2').style.display='none';
+  document.getElementById('txLoading').style.display='block';
+
+  var prompt='Você é um especialista em Customer Success. Analise a transcrição a seguir de uma reunião com o cliente "'+empresa+'" e retorne um JSON com exatamente este formato (sem texto adicional fora do JSON):\n\n{\n  "resumo": "resumo executivo em 2-3 parágrafos",\n  "sentimento": "positivo|neutro|negativo|misto",\n  "sentimento_descricao": "breve explicação do sentimento detectado",\n  "pontos_chave": ["ponto 1", "ponto 2", "ponto 3"],\n  "riscos": ["risco ou ponto de atenção identificado"],\n  "acoes": [\n    {"titulo": "título da ação", "responsavel": "nome ou cargo", "prazo": "prazo mencionado ou vazio", "area": "CS|TI|Comercial|Operações|Técnico"}\n  ],\n  "proximos_passos": "o que deve ser feito como follow-up imediato",\n  "topicos": ["tópico principal 1", "tópico 2"]\n}\n\nSe não houver riscos, retorne riscos como array vazio. Se não houver ações, retorne acoes como array vazio.\n\nTRANSCRIÇÃO:\n'+texto.substring(0,30000);
+
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'content-type':'application/json',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:2048,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    if(!resp.ok){
+      var errTxt=await resp.text();
+      throw new Error('API error '+resp.status+': '+errTxt.substring(0,200));
+    }
+    var data=await resp.json();
+    var raw=(data.content&&data.content[0]&&data.content[0].text)||'';
+    var jsonStr=raw.match(/\{[\s\S]*\}/)?.[0]||raw;
+    var resultado=JSON.parse(jsonStr);
+    _txResultado=resultado;
+    _txMostrarResultado(resultado);
+  }catch(e){
+    document.getElementById('txLoading').style.display='none';
+    document.getElementById('txEtapa1').style.display='block';
+    var msg=e.message||String(e);
+    if(msg.includes('401')||msg.includes('authentication'))msg='Chave API inválida. Verifique em Configurações.';
+    else if(msg.includes('network')||msg.includes('fetch'))msg='Erro de rede. Verifique sua conexão.';
+    toast('Erro ao processar: '+msg,'err');
+    console.error('txProcessar error:',e);
+  }
+}
+
+function _txMostrarResultado(r){
+  document.getElementById('txLoading').style.display='none';
+  // Sentimento
+  var sMap={positivo:{bg:'#dcfce7',color:'#15803d',icon:'😊',label:'Sentimento Positivo'},neutro:{bg:'var(--gray5)',color:'var(--gray1)',icon:'😐',label:'Sentimento Neutro'},negativo:{bg:'#fee2e2',color:'#dc2626',icon:'😟',label:'Sentimento Negativo'},misto:{bg:'#fefce8',color:'#b45309',icon:'🤔',label:'Sentimento Misto'}};
+  var s=sMap[r.sentimento]||sMap.neutro;
+  var banner=document.getElementById('txSentimentoBanner');
+  banner.style.background=s.bg;
+  banner.style.color=s.color;
+  document.getElementById('txSentimentoIcon').textContent=s.icon;
+  document.getElementById('txSentimentoLabel').textContent=s.label;
+  document.getElementById('txSentimentoDesc').textContent=r.sentimento_descricao||'';
+  // Resumo
+  document.getElementById('txResumo').textContent=r.resumo||'';
+  // Pontos-chave
+  var ul=document.getElementById('txPontos');
+  ul.innerHTML=(r.pontos_chave||[]).map(function(p){return'<li>'+_escH(p)+'</li>';}).join('')||'<li style="color:var(--gray3)">Nenhum identificado</li>';
+  // Riscos
+  var ur=document.getElementById('txRiscos');
+  ur.innerHTML=(r.riscos||[]).length?(r.riscos||[]).map(function(p){return'<li>'+_escH(p)+'</li>';}).join(''):'<li style="color:var(--green)">Nenhum risco identificado ✓</li>';
+  // Ações
+  var acoes=r.acoes||[];
+  document.getElementById('txAcoesCount').textContent='— '+acoes.length+' identificada'+(acoes.length!==1?'s':'');
+  var al=document.getElementById('txAcoesList');
+  if(!acoes.length){al.innerHTML='<div style="font-size:12px;color:var(--gray3);padding:8px 0">Nenhuma ação identificada na transcrição.</div>';}
+  else{
+    al.innerHTML=acoes.map(function(a,i){
+      return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray4)">'
+      +'<input type="checkbox" id="txAcao'+i+'" checked style="width:14px;height:14px;flex-shrink:0">'
+      +'<div style="flex:1">'
+      +'<div style="font-size:12.5px;font-weight:600;color:var(--black)">'+_escH(a.titulo||'')+'</div>'
+      +'<div style="font-size:11.5px;color:var(--gray2);margin-top:2px">'
+      +(a.responsavel?'<span style="margin-right:10px"><i class="ti ti-user" style="font-size:11px"></i> '+_escH(a.responsavel)+'</span>':'')
+      +(a.prazo?'<span style="margin-right:10px"><i class="ti ti-calendar" style="font-size:11px"></i> '+_escH(a.prazo)+'</span>':'')
+      +(a.area?'<span style="background:var(--gray4);padding:1px 7px;border-radius:12px;font-size:10.5px">'+_escH(a.area)+'</span>':'')
+      +'</div></div></div>';
+    }).join('');
+  }
+  // Próximos passos
+  document.getElementById('txProximos').textContent=r.proximos_passos||'';
+  document.getElementById('txEtapa2').style.display='block';
+}
+
+function txAplicar(){
+  if(!_txResultado)return;
+  var r=_txResultado;
+  var cid=document.getElementById('txCliente').value;
+  var cli=CS_DB.getClienteById(cid);
+  if(!cli){toast('Cliente não encontrado.','err');return;}
+  var data=document.getElementById('txData').value||new Date().toISOString().split('T')[0];
+  var titulo=(document.getElementById('txTitulo').value||'').trim()||'Reunião com '+cli.empresa;
+  var quem=(CS_DB.getSession&&CS_DB.getSession()&&CS_DB.getSession().nome)||'CS';
+
+  // 1. Registrar na Timeline
+  var tl='📋 '+titulo+'\n\n'+r.resumo;
+  if(r.proximos_passos)tl+='\n\n➡ Próximos passos: '+r.proximos_passos;
+  if(r.sentimento)tl+='\n\n📊 Sentimento: '+(r.sentimento.charAt(0).toUpperCase()+r.sentimento.slice(1))+(r.sentimento_descricao?' — '+r.sentimento_descricao:'');
+  CS_DB._addTimeline(cid,'reuniao','Transcrição de reunião analisada por IA',tl);
+
+  // 2. Registrar a reunião
+  var reuniao={
+    id:'reu_'+Date.now(),
+    clienteId:cid,
+    titulo:titulo,
+    data:data,
+    dataISO:data,
+    tipo:'check-in',
+    participantes:quem,
+    resumo:r.resumo||'',
+    proximosPassos:r.proximos_passos||'',
+    criadoEm:new Date().toISOString()
+  };
+  var reunioes=CS_DB.get('reunioes')||[];
+  reunioes.push(reuniao);
+  CS_DB.set('reunioes',reunioes);
+
+  // 3. Criar ações detectadas (somente as marcadas)
+  var acoes=r.acoes||[];
+  var criadas=0;
+  acoes.forEach(function(a,i){
+    var cb=document.getElementById('txAcao'+i);
+    if(cb&&!cb.checked)return;
+    var novaAcao={
+      id:'acao_'+Date.now()+'_'+i,
+      clienteId:cid,
+      titulo:a.titulo||'Ação da reunião',
+      descricao:'Detectada automaticamente via transcrição: '+titulo,
+      responsavel:a.responsavel||quem,
+      area:a.area||'CS',
+      status:'Pendente',
+      prioridade:'Média',
+      prazo:a.prazo||'',
+      prazoISO:'',
+      categoria:'follow-up',
+      criadoEm:new Date().toISOString()
+    };
+    var listaAcoes=CS_DB.get('acoes')||[];
+    listaAcoes.push(novaAcao);
+    CS_DB.set('acoes',listaAcoes);
+    criadas++;
+  });
+
+  closeM('mTranscricao');
+  var msg='Reunião registrada na Timeline de '+cli.empresa;
+  if(criadas)msg+=' · '+criadas+' ação'+(criadas>1?'ões':'')+ ' criada'+(criadas>1?'s':'')+' nos Planos de Ação';
+  toast(msg);
+  if(typeof renderDashboard==='function')try{renderDashboard();}catch(e){}
+  if(document.getElementById('page-reunioes')&&document.getElementById('page-reunioes').classList.contains('active')){
+    try{renderReunioesLista&&renderReunioesLista();}catch(e){}
+  }
+}
+
+async function testarAnthropicKey(){
+  var key=(document.getElementById('cfgAnthropicKey').value||'').trim();
+  if(!key){toast('Digite a chave antes de testar.','warn');return;}
+  var st=document.getElementById('cfgAnthropicStatus');
+  st.style.display='block';st.style.background='var(--gray5)';st.style.color='var(--gray2)';st.style.border='1px solid var(--gray4)';
+  st.innerHTML='<i class="ti ti-loader" style="animation:spin .8s linear infinite;display:inline-block;margin-right:5px"></i>Testando conexão…';
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:10,messages:[{role:'user',content:'hi'}]})
+    });
+    if(r.ok){
+      st.style.background='#dcfce7';st.style.color='#15803d';st.style.border='1px solid #86efac';
+      st.innerHTML='<i class="ti ti-check" style="margin-right:5px"></i>Chave válida! Claude conectado com sucesso.';
+      var cfg=CS_DB.getConfig&&CS_DB.getConfig()||{};
+      cfg.anthropicKey=key;
+      CS_DB.saveConfig&&CS_DB.saveConfig(cfg);
+      localStorage.setItem('_anthropicKey',key);
+    }else{
+      var t=await r.text();
+      st.style.background='#fee2e2';st.style.color='#dc2626';st.style.border='1px solid #fca5a5';
+      st.innerHTML='<i class="ti ti-x" style="margin-right:5px"></i>Erro '+r.status+': '+(r.status===401?'Chave inválida ou sem permissão.':t.substring(0,120));
+    }
+  }catch(e){
+    st.style.background='#fee2e2';st.style.color='#dc2626';st.style.border='1px solid #fca5a5';
+    st.innerHTML='<i class="ti ti-x" style="margin-right:5px"></i>Falha de rede: '+e.message;
+  }
+}
+
 // ═══ TEMPLATES DE E-MAIL ═══
 var _EMAIL_TEMPLATES_DEFAULT=[
   {id:'tpl_qbr',nome:'QBR Trimestral',categoria:'QBR',
