@@ -721,6 +721,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="pipeline" onclick="nav(this,'pipeline')"><i class="ti ti-arrows-right"></i>Pipeline de Renovação</div>
     <div class="nav-item" data-p="engajamento" onclick="nav(this,'engajamento')"><i class="ti ti-activity"></i>Engajamento</div>
     <div class="nav-item" data-p="voc" onclick="nav(this,'voc')"><i class="ti ti-ear"></i>Voz do Cliente</div>
+    <div class="nav-item" data-p="emails" onclick="nav(this,'emails')"><i class="ti ti-mail"></i>Templates de E-mail</div>
     <div class="nav-item" data-p="relatorios" onclick="nav(this,'relatorios')"><i class="ti ti-file-report"></i>Relatórios</div>
     <div class="nav-sec">Ferramentas</div>
     <div class="nav-item" data-p="importar" onclick="nav(this,'importar')"><i class="ti ti-table-import"></i>Importar Excel</div>
@@ -1515,6 +1516,11 @@ tr:hover td{background:#fafafa}
     <div class="card-ttl"><i class="ti ti-book"></i>Playbook de Retenção por Cenário</div>
     <div id="churnPlaybook"></div>
   </div>
+
+  <div class="card" style="margin-top:14px" id="churnHistoricoCard">
+    <div class="card-ttl"><i class="ti ti-history"></i>Histórico de Cancelamentos <span class="sub">motivos registrados</span></div>
+    <div id="churnHistoricoContent"></div>
+  </div>
 </div>
 
 <!-- ENGAJAMENTO -->
@@ -1627,6 +1633,27 @@ tr:hover td{background:#fafafa}
     <div class="card-ttl"><i class="ti ti-history"></i>Relatórios gerados recentemente</div>
     <div id="relHistorico" style="font-size:12.5px;color:var(--gray2)">Nenhum relatório gerado nesta sessão ainda.</div>
   </div>
+</div>
+
+<!-- TEMPLATES DE E-MAIL -->
+<div class="page" id="page-emails">
+  <div class="ph">
+    <h2><i class="ti ti-mail"></i>Templates de E-mail</h2>
+    <button class="btn-primary" onclick="emailAbrirNovoTemplate()"><i class="ti ti-plus"></i>Novo Template</button>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap" id="emailFltBtns">
+    <button class="btn-ghost" id="emailFltBtn-" onclick="emailFiltrar('')" style="font-size:12px;padding:5px 12px">Todos</button>
+    <button class="btn-ghost" id="emailFltBtn-QBR" onclick="emailFiltrar('QBR')" style="font-size:12px;padding:5px 12px">QBR</button>
+    <button class="btn-ghost" id="emailFltBtn-Check-in" onclick="emailFiltrar('Check-in')" style="font-size:12px;padding:5px 12px">Check-in</button>
+    <button class="btn-ghost" id="emailFltBtn-Renovação" onclick="emailFiltrar('Renovação')" style="font-size:12px;padding:5px 12px">Renovação</button>
+    <button class="btn-ghost" id="emailFltBtn-Follow-up" onclick="emailFiltrar('Follow-up')" style="font-size:12px;padding:5px 12px">Follow-up</button>
+    <button class="btn-ghost" id="emailFltBtn-Personalizado" onclick="emailFiltrar('Personalizado')" style="font-size:12px;padding:5px 12px">Personalizado</button>
+  </div>
+  <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:10px 14px;font-size:11.5px;color:var(--gray2);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+    <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
+    <span>Variáveis disponíveis: <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{empresa}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{contato}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{responsavelCS}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{healthScore}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{nps}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{mrr}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{dataRenovacao}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{cidade}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{cargo}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{email}}</code></span>
+  </div>
+  <div id="emailTemplatesList"></div>
 </div>
 
 <!-- AGENDA -->
@@ -2196,6 +2223,115 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
 </div>
+<!-- MODAL MOTIVO DE CHURN -->
+<div class="modal-ov" id="mMotivoChurn">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-ttl">
+      <span><i class="ti ti-alert-triangle" style="color:var(--red);margin-right:6px"></i>Registrar motivo do cancelamento</span>
+    </div>
+    <input type="hidden" id="mChurnClienteId">
+    <div style="background:var(--redl);border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--red);margin-bottom:14px;line-height:1.5">
+      <strong id="mChurnEmpresaNome"></strong> foi marcado como <strong>Cancelado</strong>. Registre o motivo para análise futura.
+    </div>
+    <div class="form-g2">
+      <div class="fg">
+        <label>Categoria do motivo <span class="req">*</span></label>
+        <select id="mChurnCategoria">
+          <option value="">— Selecione —</option>
+          <option>Produto / Funcionalidade</option>
+          <option>Preço / Custo</option>
+          <option>Concorrência</option>
+          <option>Suporte / Atendimento</option>
+          <option>Falência / Encerramento</option>
+          <option>Fusão / Aquisição</option>
+          <option>Insatisfação Geral</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>MRR perdido</label>
+        <input type="text" id="mChurnMRR" readonly style="background:var(--gray5);cursor:default">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Detalhamento <span style="font-weight:400;color:var(--gray2)">(opcional)</span></label>
+      <textarea id="mChurnMotivo" rows="3" placeholder="Descreva o motivo com mais detalhes..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mMotivoChurn')">Pular</button>
+      <button class="btn-primary" onclick="salvarMotivoChurn()"><i class="ti ti-device-floppy"></i>Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO/EDITAR TEMPLATE DE E-MAIL -->
+<div class="modal-ov" id="mEmailTemplate">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-ttl">
+      <span id="mEmailTemplateTtl">Novo Template</span>
+      <button class="modal-close" onclick="closeM('mEmailTemplate')"><i class="ti ti-x"></i></button>
+    </div>
+    <input type="hidden" id="emailTplId">
+    <div class="form-g2">
+      <div class="fg">
+        <label>Nome do template <span class="req">*</span></label>
+        <input type="text" id="emailTplNome" placeholder="Ex: QBR Trimestral">
+      </div>
+      <div class="fg">
+        <label>Categoria</label>
+        <select id="emailTplCategoria">
+          <option>QBR</option>
+          <option>Check-in</option>
+          <option>Renovação</option>
+          <option>Follow-up</option>
+          <option>Personalizado</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Assunto <span class="req">*</span></label>
+      <input type="text" id="emailTplAssunto" placeholder="Use {{empresa}}, {{contato}}, etc. para personalizar">
+    </div>
+    <div class="fg">
+      <label>Corpo do e-mail <span class="req">*</span></label>
+      <textarea id="emailTplCorpo" rows="11" style="font-family:monospace;font-size:12px;resize:vertical" placeholder="Escreva o corpo do e-mail. Use {{empresa}}, {{contato}}, {{responsavelCS}}, {{healthScore}}, {{nps}}, {{mrr}}, {{dataRenovacao}}, {{cidade}}, {{cargo}}, {{email}} para personalizar automaticamente."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mEmailTemplate')">Cancelar</button>
+      <button class="btn-primary" onclick="emailSalvarTemplate()"><i class="ti ti-device-floppy"></i>Salvar template</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMPOR E-MAIL -->
+<div class="modal-ov" id="mComporEmail">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-ttl">
+      <span><i class="ti ti-send" style="margin-right:6px"></i>Compor — <span id="mComporTplNome" style="color:var(--blue)"></span></span>
+      <button class="modal-close" onclick="closeM('mComporEmail')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="fg" style="margin-bottom:12px">
+      <label>Selecionar cliente</label>
+      <select id="emailComporCliente" onchange="emailAtualizarPreview()">
+        <option value="">— Selecione o cliente para preencher as variáveis —</option>
+      </select>
+    </div>
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Prévia do e-mail</div>
+      <div style="font-size:12px;margin-bottom:8px;display:flex;gap:6px;align-items:baseline">
+        <span style="font-weight:700;color:var(--gray2);width:60px;flex-shrink:0">Assunto:</span>
+        <span id="emailPreviewAssunto" style="color:var(--black);font-weight:500"></span>
+      </div>
+      <div style="border-top:1px solid var(--gray4);padding-top:10px;font-size:12.5px;color:var(--gray1);line-height:1.85;white-space:pre-wrap;max-height:280px;overflow-y:auto" id="emailPreviewCorpo"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="emailCopiarAssunto()" title="Copiar assunto"><i class="ti ti-copy"></i>Assunto</button>
+      <button class="btn-ghost" onclick="emailCopiarTexto()" title="Copiar corpo do e-mail"><i class="ti ti-copy"></i>Corpo</button>
+      <button class="btn-primary" onclick="emailAbrirMailto()"><i class="ti ti-mail"></i>Abrir no cliente de e-mail</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function _part1Loaded(){return true;}
 // ═══ STORAGE ENGINE EMBUTIDO ═══
@@ -2381,8 +2517,8 @@ function hsColor(n){return n>=70?'var(--green)':n>=40?'var(--yellow)':'var(--red
 function tierB(t){return{A:'tier-a',B:'tier-b',C:'tier-c'}[t]||'tier-c'}
 function npsGrupo(n){return n>=9?{g:'Promotor',c:'var(--green)',bg:'var(--gbg)'}:n>=7?{g:'Neutro',c:'var(--yellow)',bg:'var(--ybg)'}:{g:'Detrator',c:'var(--red)',bg:'var(--redl)'}}
 function npsColor(n){return n>=50?'var(--green)':n>=0?'var(--blue)':'var(--red)'}
-const PTITLES={hoje:'Painel do Dia',dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda Semanal',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',pipeline:'Pipeline de Renovação',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios'};
-const PICONS={hoje:'ti-sun',dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',pipeline:'ti-arrows-right',engajamento:'ti-activity',voc:'ti-ear',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report'};
+const PTITLES={hoje:'Painel do Dia',dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda Semanal',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',pipeline:'Pipeline de Renovação',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios',emails:'Templates de E-mail'};
+const PICONS={hoje:'ti-sun',dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',pipeline:'ti-arrows-right',engajamento:'ti-activity',voc:'ti-ear',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report',emails:'ti-mail'};
 
 // ═══ NAV ═══
 // ═══ RECENTES + FIXADOS ═══
@@ -2449,6 +2585,7 @@ function nav(el,p){
   if(p==='churn')renderChurn();
   if(p==='engajamento'){populateEngSelect();renderEngajamento();}
   if(p==='voc')renderVoC();
+  if(p==='emails'){emailFiltrar(_emailFiltroAtivo||'');renderEmailTemplates();}
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='grupos')renderGrupos();
   if(p==='hoje')renderHoje();
@@ -6215,6 +6352,10 @@ function _salvarEdicaoCore(id,cnpjNovo){
 
   closeM('mEditarCliente');
   renderClientes(); renderDashboard(); updateStatusBar();
+
+  if(c.status==='Cancelado'&&antes.status!=='Cancelado'){
+    setTimeout(function(){abrirMotivoChurn(c.id,c.empresa,c.mrr);},350);
+  }
 }
 
 function excluirCliente() {
@@ -7297,6 +7438,8 @@ function renderChurn() {
     <div><div class="play-ttl">${p.ttl}</div><div class="play-desc">${p.desc}</div>
     <div class="play-tags">${p.tags.map(t=>`<span class="pt ${t.c}">${t.l}</span>`).join('')}</div></div>
   </div>`).join('');
+
+  try{renderHistoricoChurn();}catch(e){}
 }
 </script>
 <script>
@@ -9075,6 +9218,303 @@ function teamsDisconnect(){
     }
   }catch(e){console.error('auto-login check error:',e);}
 })();
+</script>
+
+<script>
+// ═══ TEMPLATES DE E-MAIL ═══
+var _EMAIL_TEMPLATES_DEFAULT=[
+  {id:'tpl_qbr',nome:'QBR Trimestral',categoria:'QBR',
+   assunto:'Revisão Trimestral de Resultados — {{empresa}}',
+   corpo:'Prezado(a) {{contato}},\n\nEspero que esteja bem!\n\nGostaria de agendar nossa Revisão Trimestral de Resultados (QBR) para revisarmos juntos os principais indicadores, conquistas e próximos passos da nossa parceria.\n\nAlguns tópicos que abordaremos:\n• Health Score atual: {{healthScore}}\n• Resultados de satisfação (NPS: {{nps}})\n• Evolução dos planos de ação\n• Metas para o próximo trimestre\n\nPoderia me indicar sua disponibilidade para os próximos dias?\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_checkin',nome:'Check-in Mensal',categoria:'Check-in',
+   assunto:'Check-in mensal — {{empresa}}',
+   corpo:'Olá, {{contato}}!\n\nPassando para fazer nosso check-in mensal e garantir que tudo está correndo bem com a {{empresa}}.\n\nComo tem sido a experiência com o sistema? Há algum ponto de atenção, dúvida ou melhoria que podemos trabalhar juntos?\n\nSou todo ouvidos. Pode responder este e-mail ou, se preferir, podemos agendar uma conversa rápida de 15 minutos.\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_renovacao',nome:'Alerta de Renovação',categoria:'Renovação',
+   assunto:'Renovação contratual — {{empresa}}',
+   corpo:'Prezado(a) {{contato}},\n\nEspero que esteja bem!\n\nGostaria de informar que o contrato da {{empresa}} com a Creare Sistemas tem previsão de renovação em {{dataRenovacao}}.\n\nEstamos muito satisfeitos com nossa parceria e gostaríamos de conversar sobre a continuidade e possíveis expansões que possam agregar ainda mais valor ao seu negócio.\n\nPoderia confirmar o interesse em renovar e indicar um momento para conversarmos?\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_followup',nome:'Follow-up Pós-Reunião',categoria:'Follow-up',
+   assunto:'Próximos passos — {{empresa}}',
+   corpo:'Olá, {{contato}}!\n\nObrigado pelo tempo dedicado à nossa reunião de hoje.\n\nConforme conversamos, seguem os próximos passos combinados:\n\n• [INSERIR PONTOS COMBINADOS]\n\nQualquer dúvida, estou à disposição. Nos falamos em breve!\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_nps_detrator',nome:'Follow-up Detrator NPS',categoria:'Follow-up',
+   assunto:'Gostaríamos de ouvir você — {{empresa}}',
+   corpo:'Prezado(a) {{contato}},\n\nObrigado por responder nossa pesquisa de satisfação. Valorizamos muito sua opinião e entendemos que temos pontos a melhorar.\n\nGostaria de entender melhor sua experiência e o que podemos fazer para torná-la mais positiva. Posso agendar uma conversa rápida de 20 minutos?\n\nSua satisfação é nossa prioridade e estamos comprometidos em resolver qualquer ponto de insatisfação.\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'}
+];
+
+var _emailFiltroAtivo='';
+var _emailComporTplId=null;
+
+function _getEmailTemplates(){
+  var custom=CS_DB.get('emailTemplates')||[];
+  var customIds=custom.map(function(t){return t.id;});
+  var defs=_EMAIL_TEMPLATES_DEFAULT.filter(function(t){return customIds.indexOf(t.id)<0;});
+  return defs.concat(custom);
+}
+
+function emailFiltrar(cat){
+  _emailFiltroAtivo=cat;
+  document.querySelectorAll('[id^="emailFltBtn-"]').forEach(function(b){b.classList.remove('active');});
+  var btn=document.getElementById('emailFltBtn-'+cat);
+  if(btn)btn.classList.add('active');
+  renderEmailTemplates();
+}
+
+var _emailCatColors={
+  'QBR':'#2563eb','Check-in':'#059669','Renovação':'#d97706','Follow-up':'#7c3aed','Personalizado':'#64748b'
+};
+
+function renderEmailTemplates(){
+  var el=document.getElementById('emailTemplatesList');
+  if(!el)return;
+  var todos=_getEmailTemplates();
+  var filtrados=_emailFiltroAtivo?todos.filter(function(t){return t.categoria===_emailFiltroAtivo;}):todos;
+  if(!filtrados.length){
+    el.innerHTML='<div style="text-align:center;padding:56px 24px;color:var(--gray3)"><i class="ti ti-mail-off" style="font-size:40px;display:block;margin-bottom:10px;color:var(--gray4)"></i><div style="font-size:14px;font-weight:600;margin-bottom:4px">Nenhum template encontrado</div><div style="font-size:12px">Clique em <strong>Novo Template</strong> para criar.</div></div>';
+    return;
+  }
+  // Group by category
+  var grupos={};
+  filtrados.forEach(function(t){
+    if(!grupos[t.categoria])grupos[t.categoria]=[];
+    grupos[t.categoria].push(t);
+  });
+  var catOrder=['QBR','Check-in','Renovação','Follow-up','Personalizado'];
+  var html='';
+  catOrder.forEach(function(cat){
+    if(!grupos[cat])return;
+    var cor=_emailCatColors[cat]||'var(--blue)';
+    html+='<div style="margin-bottom:20px">';
+    html+='<div style="font-size:11px;font-weight:700;color:'+cor+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+cor+'"></span>'+cat+'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">';
+    grupos[cat].forEach(function(tpl){
+      var isDefault=_EMAIL_TEMPLATES_DEFAULT.some(function(d){return d.id===tpl.id&&!tpl.customizado;});
+      var corpoPreview=(tpl.corpo||'').replace(/\{\{[^}]+\}\}/g,'…').substring(0,120);
+      html+='<div style="background:var(--white);border:1px solid var(--gray4);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;transition:box-shadow .15s" onmouseover="this.style.boxShadow=\'0 3px 12px rgba(0,0,0,.09)\'" onmouseout="this.style.boxShadow=\'none\'">';
+      html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">';
+      html+='<div style="font-size:13.5px;font-weight:700;color:var(--black);line-height:1.3">'+_escH(tpl.nome||'')+'</div>';
+      html+='<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+cor+'18;color:'+cor+';flex-shrink:0">'+_escH(cat)+'</span>';
+      html+='</div>';
+      html+='<div style="font-size:11.5px;font-weight:600;color:var(--gray1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escH(tpl.assunto||'')+'</div>';
+      html+='<div style="font-size:11.5px;color:var(--gray2);line-height:1.6;max-height:50px;overflow:hidden">'+_escH(corpoPreview)+(tpl.corpo&&tpl.corpo.length>120?'…':'')+'</div>';
+      html+='<div style="display:flex;gap:6px;margin-top:2px">';
+      html+='<button class="btn-primary" style="flex:1;justify-content:center;font-size:11.5px;padding:6px 10px" onclick="emailAbrirCompor(\''+tpl.id+'\')"><i class="ti ti-send" style="font-size:12px"></i>Usar</button>';
+      html+='<button class="btn-ghost" style="font-size:11.5px;padding:6px 10px" onclick="emailAbrirEditar(\''+tpl.id+'\')" title="Editar"><i class="ti ti-pencil" style="font-size:12px"></i></button>';
+      if(!isDefault)html+='<button class="btn-ghost" style="font-size:11.5px;padding:6px 10px;color:var(--red);border-color:#fca5a5" onclick="emailExcluirTemplate(\''+tpl.id+'\')" title="Excluir"><i class="ti ti-trash" style="font-size:12px"></i></button>';
+      html+='</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function emailAbrirNovoTemplate(){
+  document.getElementById('emailTplId').value='';
+  document.getElementById('mEmailTemplateTtl').textContent='Novo Template';
+  document.getElementById('emailTplNome').value='';
+  document.getElementById('emailTplCategoria').value='Personalizado';
+  document.getElementById('emailTplAssunto').value='';
+  document.getElementById('emailTplCorpo').value='';
+  openM('mEmailTemplate');
+}
+
+function emailAbrirEditar(id){
+  var tpl=_getEmailTemplates().find(function(t){return t.id===id;});
+  if(!tpl)return;
+  document.getElementById('emailTplId').value=tpl.id;
+  document.getElementById('mEmailTemplateTtl').textContent='Editar Template';
+  document.getElementById('emailTplNome').value=tpl.nome||'';
+  document.getElementById('emailTplCategoria').value=tpl.categoria||'Personalizado';
+  document.getElementById('emailTplAssunto').value=tpl.assunto||'';
+  document.getElementById('emailTplCorpo').value=tpl.corpo||'';
+  openM('mEmailTemplate');
+}
+
+function emailSalvarTemplate(){
+  var nome=(document.getElementById('emailTplNome').value||'').trim();
+  var assunto=(document.getElementById('emailTplAssunto').value||'').trim();
+  var corpo=(document.getElementById('emailTplCorpo').value||'').trim();
+  if(!nome){toast('Informe o nome do template.','err');return;}
+  if(!assunto){toast('Informe o assunto.','err');return;}
+  if(!corpo){toast('Informe o corpo do e-mail.','err');return;}
+  var id=document.getElementById('emailTplId').value||('tpl_'+Date.now());
+  var tpl={id:id,nome:nome,categoria:document.getElementById('emailTplCategoria').value,assunto:assunto,corpo:corpo,customizado:true,criadoEm:new Date().toISOString()};
+  var lista=CS_DB.get('emailTemplates')||[];
+  var idx=lista.findIndex(function(t){return t.id===id;});
+  if(idx>=0)lista[idx]=tpl;else lista.push(tpl);
+  CS_DB.set('emailTemplates',lista);
+  closeM('mEmailTemplate');
+  toast('Template salvo!');
+  renderEmailTemplates();
+}
+
+function emailExcluirTemplate(id){
+  confirmar('Excluir este template?',function(){
+    var lista=(CS_DB.get('emailTemplates')||[]).filter(function(t){return t.id!==id;});
+    CS_DB.set('emailTemplates',lista);
+    toast('Template excluído.','warn');
+    renderEmailTemplates();
+  },'Excluir template','Excluir');
+}
+
+function emailAbrirCompor(tplId){
+  _emailComporTplId=tplId;
+  var tpl=_getEmailTemplates().find(function(t){return t.id===tplId;});
+  if(!tpl)return;
+  document.getElementById('mComporTplNome').textContent=tpl.nome;
+  var sel=document.getElementById('emailComporCliente');
+  var clientes=(CS_DB.getClientes?CS_DB.getClientes():CS_DB.get('clientes')||[]).filter(function(c){return c.status!=='Cancelado';});
+  sel.innerHTML='<option value="">— Selecione o cliente —</option>'+clientes.sort(function(a,b){return(a.empresa||'').localeCompare(b.empresa||'');}).map(function(c){return'<option value="'+c.id+'">'+_escH(c.empresa||'')+'</option>';}).join('');
+  document.getElementById('emailPreviewAssunto').textContent='';
+  document.getElementById('emailPreviewCorpo').textContent='';
+  openM('mComporEmail');
+}
+
+function _preencherTemplateEmail(texto,cli){
+  if(!cli)return texto;
+  var nps='—';
+  try{var npsAll=CS_DB.get('nps')||[];var npsC=npsAll.filter(function(n){return n.clienteId===cli.id;});if(npsC.length)nps=npsC[npsC.length-1].nota;}catch(e){}
+  return texto
+    .replace(/\{\{empresa\}\}/g,cli.empresa||'')
+    .replace(/\{\{nomeFantasia\}\}/g,cli.nomeFantasia||cli.empresa||'')
+    .replace(/\{\{contato\}\}/g,cli.contato||'')
+    .replace(/\{\{cargo\}\}/g,cli.cargo||'')
+    .replace(/\{\{email\}\}/g,cli.email||'')
+    .replace(/\{\{responsavelCS\}\}/g,cli.responsavelCS||'')
+    .replace(/\{\{healthScore\}\}/g,cli.healthScore!=null?String(cli.healthScore):'—')
+    .replace(/\{\{nps\}\}/g,String(nps))
+    .replace(/\{\{mrr\}\}/g,cli.mrr||'—')
+    .replace(/\{\{dataRenovacao\}\}/g,cli.vigencia||cli.dataRenovacao||'—')
+    .replace(/\{\{cidade\}\}/g,cli.cidade||'')
+    .replace(/\{\{uf\}\}/g,cli.uf||'');
+}
+
+function emailAtualizarPreview(){
+  var tpl=_getEmailTemplates().find(function(t){return t.id===_emailComporTplId;});
+  if(!tpl)return;
+  var cid=document.getElementById('emailComporCliente').value;
+  var cli=cid?CS_DB.getClienteById(cid):null;
+  document.getElementById('emailPreviewAssunto').textContent=_preencherTemplateEmail(tpl.assunto,cli||{});
+  document.getElementById('emailPreviewCorpo').textContent=_preencherTemplateEmail(tpl.corpo,cli||{});
+}
+
+function emailCopiarTexto(){
+  var texto=document.getElementById('emailPreviewCorpo').textContent;
+  if(!texto){toast('Selecione um cliente primeiro.','warn');return;}
+  navigator.clipboard.writeText(texto).then(function(){toast('Corpo copiado!');}).catch(function(){toast('Erro ao copiar.','err');});
+}
+
+function emailCopiarAssunto(){
+  var texto=document.getElementById('emailPreviewAssunto').textContent;
+  if(!texto){toast('Selecione um cliente primeiro.','warn');return;}
+  navigator.clipboard.writeText(texto).then(function(){toast('Assunto copiado!');}).catch(function(){toast('Erro ao copiar.','err');});
+}
+
+function emailAbrirMailto(){
+  var assunto=document.getElementById('emailPreviewAssunto').textContent;
+  var corpo=document.getElementById('emailPreviewCorpo').textContent;
+  if(!assunto){toast('Selecione um cliente primeiro.','warn');return;}
+  var cid=document.getElementById('emailComporCliente').value;
+  var cli=cid?CS_DB.getClienteById(cid):null;
+  var para=cli?encodeURIComponent(cli.email||''):'';
+  var url='mailto:'+para+'?subject='+encodeURIComponent(assunto)+'&body='+encodeURIComponent(corpo);
+  window.open(url,'_self');
+}
+
+// ═══ MOTIVO DE CHURN ═══
+function abrirMotivoChurn(clienteId,empresa,mrr){
+  document.getElementById('mChurnClienteId').value=clienteId;
+  document.getElementById('mChurnEmpresaNome').textContent=empresa||'';
+  document.getElementById('mChurnCategoria').value='';
+  document.getElementById('mChurnMotivo').value='';
+  document.getElementById('mChurnMRR').value=mrr||'';
+  openM('mMotivoChurn');
+}
+
+function salvarMotivoChurn(){
+  var clienteId=document.getElementById('mChurnClienteId').value;
+  var categoria=document.getElementById('mChurnCategoria').value;
+  if(!categoria){toast('Selecione a categoria do motivo.','err');return;}
+  var cli=CS_DB.getClienteById(clienteId);
+  var obj={
+    id:'churn_'+Date.now(),
+    clienteId:clienteId,
+    empresa:cli?cli.empresa:(document.getElementById('mChurnEmpresaNome').textContent||''),
+    categoria:categoria,
+    motivo:(document.getElementById('mChurnMotivo').value||'').trim(),
+    mrr:document.getElementById('mChurnMRR').value||'',
+    registradoPor:(CS_DB.getSession&&CS_DB.getSession()&&CS_DB.getSession().nome)||'',
+    registradoEm:new Date().toISOString()
+  };
+  var lista=CS_DB.get('churns')||[];
+  lista=lista.filter(function(c){return c.clienteId!==clienteId;});
+  lista.push(obj);
+  CS_DB.set('churns',lista);
+  closeM('mMotivoChurn');
+  toast('Motivo de cancelamento registrado.');
+  if(document.getElementById('page-churn')&&document.getElementById('page-churn').classList.contains('active')){
+    renderHistoricoChurn();
+  }
+}
+
+function renderHistoricoChurn(){
+  var el=document.getElementById('churnHistoricoContent');
+  if(!el)return;
+  var churns=CS_DB.get('churns')||[];
+  if(!churns.length){
+    el.innerHTML='<div style="text-align:center;padding:28px 24px;color:var(--gray3)"><i class="ti ti-clipboard-x" style="font-size:32px;display:block;margin-bottom:8px;color:var(--gray4)"></i><div style="font-size:13px;font-weight:600;margin-bottom:4px">Nenhum cancelamento registrado ainda</div><div style="font-size:11.5px">Ao marcar um cliente como Cancelado, você poderá registrar o motivo para análise estratégica.</div></div>';
+    return;
+  }
+  var totalMRR=churns.reduce(function(s,c){
+    var v=parseFloat((c.mrr||'').replace(/[^0-9,]/g,'').replace(',','.'))||0;
+    return s+v;
+  },0);
+  var cats={};
+  churns.forEach(function(c){cats[c.categoria]=(cats[c.categoria]||0)+1;});
+  var catEntries=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
+  var maxCat=Math.max.apply(null,Object.values(cats).concat([1]));
+  var catColors={'Produto / Funcionalidade':'#6366f1','Preço / Custo':'#f59e0b','Concorrência':'#ef4444','Suporte / Atendimento':'#f97316','Falência / Encerramento':'#64748b','Fusão / Aquisição':'#8b5cf6','Insatisfação Geral':'#dc2626','Outro':'#9ca3af'};
+  var html='';
+  // KPIs
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
+  html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:12px 14px"><div style="font-size:10px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-users-minus"></i>Cancelamentos</div><div style="font-size:24px;font-weight:700;color:var(--red)">'+churns.length+'</div></div>';
+  html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:12px 14px"><div style="font-size:10px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-currency-dollar"></i>MRR Perdido</div><div style="font-size:24px;font-weight:700;color:var(--red)">R$'+totalMRR.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})+'</div></div>';
+  html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:12px 14px"><div style="font-size:10px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px"><i class="ti ti-flag"></i>Principal Motivo</div><div style="font-size:13px;font-weight:700;color:var(--black);line-height:1.3">'+(catEntries[0]||'—')+'</div></div>';
+  html+='</div>';
+  // Category bars
+  if(catEntries.length){
+    html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">';
+    html+='<div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Por categoria</div>';
+    catEntries.forEach(function(k){
+      var cor=catColors[k]||'var(--blue)';
+      var pct=Math.round(cats[k]/maxCat*100);
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">';
+      html+='<div style="width:190px;font-size:11.5px;color:var(--gray1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+_escH(k)+'</div>';
+      html+='<div style="flex:1;height:7px;background:var(--gray4);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:'+cor+';width:'+pct+'%"></div></div>';
+      html+='<div style="width:22px;text-align:right;font-size:11.5px;font-weight:700;color:var(--gray1)">'+cats[k]+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+  // Table
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">';
+  html+='<thead><tr style="background:var(--gray5)">';
+  ['Empresa','Categoria','MRR Perdido','Detalhamento','Registrado em'].forEach(function(h){
+    html+='<th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid var(--gray4)">'+h+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  churns.slice().sort(function(a,b){return new Date(b.registradoEm)-new Date(a.registradoEm);}).forEach(function(c){
+    var cor=catColors[c.categoria]||'#9ca3af';
+    html+='<tr style="border-bottom:1px solid var(--gray4)">';
+    html+='<td style="padding:9px 12px;font-weight:600;font-size:12.5px">'+_escH(c.empresa||'—')+'</td>';
+    html+='<td style="padding:9px 12px"><span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:'+cor+'18;color:'+cor+'">'+_escH(c.categoria||'—')+'</span></td>';
+    html+='<td style="padding:9px 12px;font-size:12.5px;font-weight:600;color:var(--red)">'+_escH(c.mrr||'—')+'</td>';
+    html+='<td style="padding:9px 12px;font-size:12px;color:var(--gray1);max-width:240px">'+( c.motivo?_escH(c.motivo):'<span style="color:var(--gray3);font-style:italic">Não informado</span>' )+'</td>';
+    html+='<td style="padding:9px 12px;font-size:12px;color:var(--gray2);white-space:nowrap">'+new Date(c.registradoEm).toLocaleDateString('pt-BR')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
 </script>
 </body>
 </html>
