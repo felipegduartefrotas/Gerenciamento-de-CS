@@ -2346,7 +2346,8 @@ tr:hover td{background:#fafafa}
       </div>
 
       <div class="btn-row">
-        <button class="btn-ghost" onclick="txVoltarEtapa1()"><i class="ti ti-arrow-left"></i>Reprocessar</button>
+        <button class="btn-ghost" onclick="txVoltarEtapa1()"><i class="ti ti-arrow-left"></i>Voltar</button>
+        <button class="btn-ghost" id="txBtnMelhorar" style="display:none" onclick="txProcessarComClaude()"><i class="ti ti-robot"></i>Melhorar com Claude</button>
         <button class="btn-primary" onclick="txAplicar()"><i class="ti ti-check"></i>Aplicar ao sistema</button>
       </div>
     </div>
@@ -2354,8 +2355,8 @@ tr:hover td{background:#fafafa}
     <!-- Loading -->
     <div id="txLoading" style="display:none;text-align:center;padding:48px 24px">
       <div style="width:44px;height:44px;border:3px solid var(--gray4);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
-      <div style="font-size:14px;font-weight:600;color:var(--gray1);margin-bottom:6px">Processando com Claude…</div>
-      <div style="font-size:12px;color:var(--gray2)">Analisando a transcrição e gerando insights para gestão do cliente</div>
+      <div id="txLoadingTitulo" style="font-size:14px;font-weight:600;color:var(--gray1);margin-bottom:6px">Analisando ata…</div>
+      <div id="txLoadingDesc" style="font-size:12px;color:var(--gray2)">Extraindo tópicos, ações e próximos passos</div>
     </div>
   </div>
 </div>
@@ -9524,7 +9525,13 @@ function txMudarTipo(tipo){
   document.getElementById('txTipoTransc').style.background=isAta?'var(--gray5)':'var(--blue)';
   document.getElementById('txTipoTransc').style.color=isAta?'var(--gray2)':'#fff';
   var ph=document.getElementById('txTexto');
-  if(ph)ph.placeholder=isAta?'Cole aqui o conteúdo da ata (PDF convertido, texto do Word, e-mail com a ata, etc.)…\n\nO Claude vai extrair: participantes, assuntos, decisões, ações com responsáveis, riscos e próximos passos.':'Cole aqui a transcrição do áudio exportada do Plaud Note…\n\nO Claude vai identificar automaticamente: participantes, temas discutidos, decisões, ações e próximos passos.';
+  if(ph)ph.placeholder=isAta
+    ?'Cole aqui a ata (PDF convertido, texto do Word, e-mail, etc.)…\n\nO sistema extrai automaticamente: participantes, tópicos abordados, ações definidas, riscos e próximos passos — sem precisar de IA externa.'
+    :'Cole aqui a transcrição exportada do Plaud Note…\n\nUsa Claude para identificar: participantes, temas, decisões, ações e próximos passos.';
+  var btn=document.getElementById('txBtnProcessar');
+  if(btn)btn.innerHTML=isAta?'<i class="ti ti-file-search"></i>Analisar Ata':'<i class="ti ti-robot"></i>Processar com Claude';
+  var lock=document.querySelector('#txEtapa1 [style*="ti-lock"]')?.closest('div');
+  if(lock)lock.style.display=isAta?'none':'flex';
 }
 
 async function txLerArquivo(ev){
@@ -9584,66 +9591,170 @@ function txVoltarEtapa1(){
   document.getElementById('txEtapa2').style.display='none';
 }
 
-async function txProcessar(){
+function txProcessar(){
+  var cid=document.getElementById('txCliente').value;
+  var texto=(document.getElementById('txTexto').value||'').trim();
+  var tipoDoc=(document.getElementById('txTipo')&&document.getElementById('txTipo').value)||'ata';
+  if(!cid){toast('Selecione o cliente.','err');return;}
+  if(!texto||texto.length<30){toast('Cole ou carregue o conteúdo da ata.','err');return;}
+
+  // ── MODO ATA: parser local, sem API ──
+  if(tipoDoc==='ata'){
+    document.getElementById('txEtapa1').style.display='none';
+    document.getElementById('txEtapa2').style.display='none';
+    document.getElementById('txLoading').style.display='block';
+    document.getElementById('txLoadingTitulo').textContent='Analisando ata…';
+    document.getElementById('txLoadingDesc').textContent='Extraindo tópicos, participantes, ações e próximos passos';
+    setTimeout(function(){
+      try{
+        var resultado=_parseAtaLocal(texto);
+        _txResultado=resultado;
+        _txMostrarResultado(resultado);
+        // Show "Melhorar com Claude" button only if API key configured
+        var btnM=document.getElementById('txBtnMelhorar');
+        if(btnM)btnM.style.display=_txGetApiKey()?'inline-flex':'none';
+      }catch(e){
+        document.getElementById('txLoading').style.display='none';
+        document.getElementById('txEtapa1').style.display='block';
+        toast('Erro ao analisar ata: '+e.message,'err');
+      }
+    },200);
+    return;
+  }
+
+  // ── MODO TRANSCRIÇÃO: requer Claude API ──
+  txProcessarComClaude();
+}
+
+async function txProcessarComClaude(){
   var cid=document.getElementById('txCliente').value;
   var texto=(document.getElementById('txTexto').value||'').trim();
   if(!cid){toast('Selecione o cliente.','err');return;}
-  if(!texto||texto.length<50){toast('Cole ou carregue a transcrição da reunião.','err');return;}
+  if(!texto||texto.length<50){toast('Cole ou carregue a transcrição.','err');return;}
   var apiKey=_txGetApiKey();
-  if(!apiKey){
-    toast('Configure a Chave API Anthropic em Configurações → IA / Plaud Note.','err');
-    return;
-  }
+  if(!apiKey){toast('Configure a Chave API Anthropic em Configurações → IA.','err');return;}
   var cli=CS_DB.getClienteById(cid);
   var empresa=cli?cli.empresa:'';
+  var tipoDoc=(document.getElementById('txTipo')&&document.getElementById('txTipo').value)||'ata';
+  var isAta=tipoDoc==='ata';
 
   document.getElementById('txEtapa1').style.display='none';
   document.getElementById('txEtapa2').style.display='none';
   document.getElementById('txLoading').style.display='block';
+  document.getElementById('txLoadingTitulo').textContent=isAta?'Melhorando análise com Claude…':'Processando com Claude…';
+  document.getElementById('txLoadingDesc').textContent='Gerando resumo executivo e insights avançados';
 
-  var tipoDoc=(document.getElementById('txTipo')&&document.getElementById('txTipo').value)||'ata';
-  var isAta=tipoDoc==='ata';
   var promptIntro=isAta
-    ?'Você é um especialista em Customer Success. Analise a ATA DE REUNIÃO a seguir com o cliente "'+empresa+'" e retorne um JSON estruturado. A ata pode estar em qualquer formato (Word exportado, PDF convertido, e-mail, etc.). Extraia com precisão todos os dados, especialmente as ações definidas e seus responsáveis.'
-    :'Você é um especialista em Customer Success. Analise a TRANSCRIÇÃO DE ÁUDIO a seguir de uma reunião com o cliente "'+empresa+'". Identifique os participantes, temas, decisões e ações, mesmo que o texto esteja em formato coloquial de fala.';
-  var promptFim=isAta?'ATA DE REUNIÃO:':'TRANSCRIÇÃO DE ÁUDIO:';
-  var prompt=promptIntro+'\n\nRetorne APENAS um JSON válido com exatamente este formato (sem texto fora do JSON):\n\n{\n  "resumo": "resumo executivo em 2-3 parágrafos",\n  "sentimento": "positivo|neutro|negativo|misto",\n  "sentimento_descricao": "breve explicação do sentimento/clima da reunião",\n  "participantes_cliente": ["Nome — Cargo"],\n  "participantes_creare": ["Nome — Cargo"],\n  "pontos_chave": ["ponto discutido ou decidido"],\n  "riscos": ["risco ou problema identificado que precisa de atenção"],\n  "acoes": [\n    {"titulo": "descrição clara da ação", "responsavel": "nome ou equipe responsável", "prazo": "prazo mencionado ou vazio se não especificado", "area": "CS|TI|Comercial|Operações|Técnico"}\n  ],\n  "proximos_passos": "resumo do que deve acontecer como follow-up",\n  "topicos": ["tópico principal abordado"]\n}\n\nRegras: arrays vazios se não houver dados. Ações devem ser extraídas de TODOS os compromisos, pendências e tarefas mencionadas.\n\n'+promptFim+'\n'+texto.substring(0,30000);
+    ?'Você é um especialista em Customer Success. Analise a ATA DE REUNIÃO com o cliente "'+empresa+'". Extraia com precisão todos os dados, especialmente ações com responsáveis.'
+    :'Você é um especialista em Customer Success. Analise a TRANSCRIÇÃO DE ÁUDIO da reunião com "'+empresa+'". Identifique participantes, temas, decisões e ações.';
+  var prompt=promptIntro+'\n\nRetorne APENAS JSON válido:\n{\n  "resumo":"resumo executivo em 2-3 parágrafos",\n  "sentimento":"positivo|neutro|negativo|misto",\n  "sentimento_descricao":"explicação do sentimento",\n  "participantes_cliente":["Nome — Cargo"],\n  "participantes_creare":["Nome — Cargo"],\n  "pontos_chave":["ponto discutido"],\n  "riscos":["risco identificado"],\n  "acoes":[{"titulo":"ação","responsavel":"nome","prazo":"prazo ou vazio","area":"CS|TI|Comercial|Operações|Técnico"}],\n  "proximos_passos":"follow-up imediato",\n  "topicos":["tópico principal"]\n}\n\n'+(isAta?'ATA:':'TRANSCRIÇÃO:')+'\n'+texto.substring(0,30000);
 
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{
-        'x-api-key':apiKey,
-        'anthropic-version':'2023-06-01',
-        'content-type':'application/json',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
-        max_tokens:2048,
-        messages:[{role:'user',content:prompt}]
-      })
+      headers:{'x-api-key':apiKey,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2048,messages:[{role:'user',content:prompt}]})
     });
-    if(!resp.ok){
-      var errTxt=await resp.text();
-      throw new Error('API error '+resp.status+': '+errTxt.substring(0,200));
-    }
+    if(!resp.ok){var et=await resp.text();throw new Error('API '+resp.status+': '+et.substring(0,200));}
     var data=await resp.json();
     var raw=(data.content&&data.content[0]&&data.content[0].text)||'';
-    var jsonStr=raw.match(/\{[\s\S]*\}/)?.[0]||raw;
-    var resultado=JSON.parse(jsonStr);
+    var resultado=JSON.parse((raw.match(/\{[\s\S]*\}/)||[raw])[0]);
     _txResultado=resultado;
+    var btnM=document.getElementById('txBtnMelhorar');
+    if(btnM)btnM.style.display='none';
     _txMostrarResultado(resultado);
   }catch(e){
     document.getElementById('txLoading').style.display='none';
-    document.getElementById('txEtapa1').style.display='block';
+    document.getElementById('txEtapa2').style.display=_txResultado?'block':'none';
+    document.getElementById('txEtapa1').style.display=_txResultado?'none':'block';
     var msg=e.message||String(e);
-    if(msg.includes('401')||msg.includes('authentication'))msg='Chave API inválida. Verifique em Configurações.';
-    else if(msg.includes('network')||msg.includes('fetch'))msg='Erro de rede. Verifique sua conexão.';
-    toast('Erro ao processar: '+msg,'err');
-    console.error('txProcessar error:',e);
+    if(msg.includes('401'))msg='Chave API inválida.';
+    toast('Erro ao processar com Claude: '+msg,'err');
   }
 }
+
+// ─── Parser local de atas (sem API externa) ───
+function _parseAtaLocal(texto){
+  var r={resumo:'',sentimento:'neutro',sentimento_descricao:'',participantes_cliente:[],participantes_creare:[],pontos_chave:[],riscos:[],acoes:[],proximos_passos:'',topicos:[]};
+  var linhas=texto.replace(/\r\n|\r/g,'\n').split('\n').map(function(l){return l.trim();});
+
+  var SEC={
+    part:/^participantes?(\s*:|\s*$)/i,
+    assunto:/^(assuntos?\s+discutidos?(\s+e\s+pontos?\s+de\s+aten[çc][aã]o)?|tópicos?\s+abordados?)/i,
+    riscos:/^(riscos?\s*[\/|]?\s*pontos?\s+de\s+aten[çc][aã]o|pontos?\s+de\s+aten[çc][aã]o|riscos?\s+identificados?)/i,
+    acoes:/^ações?\s+(definidas?|combinadas?|pendentes?)(\s*:|\s*$)/i,
+    proximos:/^próximos?\s+passos?(\s+e\s+expectativas?)?(\s*:|\s*$)/i,
+    sentim:/^sentimento(\s+do\s+cliente)?(\s*:|\s*$)/i
+  };
+
+  var secao=null,subPart=null,topico=null,emAssunto=false;
+
+  linhas.forEach(function(l){
+    if(!l)return;
+    // Section header?
+    for(var k in SEC){if(SEC[k].test(l)&&l.length<80){secao=k;subPart=null;topico=null;emAssunto=(k==='assunto');return;}}
+    // Numbered topic "1. Título"
+    var mN=l.match(/^(\d+)[.\)]\s+(.+)/);
+    if(mN&&(emAssunto||!secao)){topico=mN[2].trim();r.topicos.push(topico);r.pontos_chave.push('📌 '+topico);return;}
+    // Participant sub-section
+    if(secao==='part'){
+      if(/^(rochalog|cliente|empresa)\s*:/i.test(l)){subPart='cli';return;}
+      if(/^(creare|fornecedor|equipe\s+creare|cs\s+creare)\s*:/i.test(l)){subPart='cre';return;}
+      var nome=l.replace(/^[•\-*◦•]\s*/,'').trim();
+      if(nome&&nome.length>2){if(subPart==='cli')r.participantes_cliente.push(nome);else if(subPart==='cre')r.participantes_creare.push(nome);}
+      return;
+    }
+    var bullet=l.replace(/^[•\-*◦•]\s*/,'').trim();
+    if(!bullet)return;
+    if(secao==='assunto'||emAssunto){
+      r.pontos_chave.push(topico?'  → '+bullet:bullet);
+      if(_txIsAcao(bullet)&&!_txAcaoExiste(r.acoes,bullet))r.acoes.push({titulo:bullet,responsavel:'',prazo:'',area:_txArea(bullet)});
+      return;
+    }
+    if(secao==='riscos'){r.riscos.push(bullet);return;}
+    if(secao==='acoes'){
+      var mR=bullet.match(/responsável?[:\s]+([^|]+)/i);
+      var mP=bullet.match(/prazo[:\s]+([^|]+)/i);
+      var mA=bullet.match(/área?[:\s]+([^|]+)/i);
+      var tit=bullet.split('|')[0].trim();
+      if(tit)r.acoes.push({titulo:tit,responsavel:mR?mR[1].trim():'',prazo:mP?mP[1].trim():'',area:mA?mA[1].trim().replace(/\W+$/,''):_txArea(tit)});
+      return;
+    }
+    if(secao==='proximos'){
+      r.proximos_passos+=(r.proximos_passos?'\n':'')+bullet;
+      if(_txIsAcao(bullet)&&!_txAcaoExiste(r.acoes,bullet))r.acoes.push({titulo:bullet,responsavel:'',prazo:'',area:_txArea(bullet)});
+      return;
+    }
+    if(secao==='sentim'){
+      if(/positivo/i.test(bullet))r.sentimento='positivo';
+      else if(/negativo/i.test(bullet))r.sentimento='negativo';
+      else if(/misto/i.test(bullet))r.sentimento='misto';
+      r.sentimento_descricao=(r.sentimento_descricao?r.sentimento_descricao+' ':'')+bullet.replace(/^(positivo|negativo|neutro|misto)[,.]?\s*/i,'');
+    }
+  });
+
+  // Auto-resumo
+  var pts=[];
+  if(r.topicos.length)pts.push('Reunião abordou '+r.topicos.length+' tópico'+(r.topicos.length!==1?'s':'')+': '+r.topicos.join(', ')+'.');
+  if(r.participantes_cliente.length)pts.push('Participantes do cliente: '+r.participantes_cliente.join(', ')+'.');
+  if(r.acoes.length)pts.push(r.acoes.length+' ação'+(r.acoes.length!==1?'ões':'')+(r.acoes.length!==1?' identificadas':' identificada')+'.');
+  if(r.riscos.length)pts.push('Pontos de atenção: '+r.riscos.slice(0,2).join('; ')+(r.riscos.length>2?' e outros.':'.'));
+  if(r.proximos_passos)pts.push('Próximos passos: '+r.proximos_passos.split('\n')[0]+(r.proximos_passos.includes('\n')?' (e mais)':'')+'.');
+  r.resumo=pts.join(' ')||'Ata processada — '+r.topicos.length+' tópicos e '+r.acoes.length+' ações extraídas.';
+  return r;
+}
+
+function _txIsAcao(t){
+  return /\b(verificar|agendar|liberar|demonstrar|estudar|integrar|trabalhar|consultar|cadastrar|enviar|validar|criar|realizar|controlar|melhorar|avisar|disponibilizar|desabilitar|silenciar|configurar|testar|implementar|apresentar|solicitar|treinamento|credenciar|habilitar)\b/i.test(t)
+    ||/necessidade de|pendente[^s]|a ser (feito|realizado|validado|verificado|confirmado)|ficou de|será realiz/i.test(t);
+}
+function _txArea(t){
+  if(/\b(TI|técnic|sistem|API|integra|software|hardware|firmware|tablet|rastreador|BI|acesso|login|credencial|firmware)\b/i.test(t))return 'TI';
+  if(/\b(comercial|contrato|proposta|renovação|venda|negocio)\b/i.test(t))return 'Comercial';
+  if(/\b(operaç|pátio|veículo|máquina|logística|abastecimento|manutenção|frota)\b/i.test(t))return 'Operações';
+  return 'CS';
+}
+function _txAcaoExiste(acoes,titulo){return acoes.some(function(a){return a.titulo.toLowerCase()===titulo.toLowerCase();});}
 
 function _txMostrarResultado(r){
   document.getElementById('txLoading').style.display='none';
@@ -9656,6 +9767,18 @@ function _txMostrarResultado(r){
   document.getElementById('txSentimentoIcon').textContent=s.icon;
   document.getElementById('txSentimentoLabel').textContent=s.label;
   document.getElementById('txSentimentoDesc').textContent=r.sentimento_descricao||'';
+  // Participantes (se extraídos)
+  var partDiv=document.getElementById('txResumo').parentElement;
+  var partOld=document.getElementById('txParticipantes');
+  if(partOld)partOld.remove();
+  if((r.participantes_cliente&&r.participantes_cliente.length)||(r.participantes_creare&&r.participantes_creare.length)){
+    var partEl=document.createElement('div');
+    partEl.id='txParticipantes';
+    partEl.style.cssText='font-size:12px;color:var(--gray1);margin-bottom:8px;display:flex;gap:16px;flex-wrap:wrap';
+    if(r.participantes_cliente&&r.participantes_cliente.length)partEl.innerHTML+='<div><strong style="color:var(--gray2);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px">Cliente:</strong> '+r.participantes_cliente.map(_escH).join(' · ')+'</div>';
+    if(r.participantes_creare&&r.participantes_creare.length)partEl.innerHTML+='<div><strong style="color:var(--gray2);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px">Creare:</strong> '+r.participantes_creare.map(_escH).join(' · ')+'</div>';
+    partDiv.insertBefore(partEl,partDiv.querySelector('#txResumo'));
+  }
   // Resumo
   document.getElementById('txResumo').textContent=r.resumo||'';
   // Pontos-chave
