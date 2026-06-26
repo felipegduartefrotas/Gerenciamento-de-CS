@@ -930,10 +930,12 @@ tr:hover td{background:#fafafa}
 <!-- REUNIÕES -->
 <div class="page" id="page-reunioes">
   <div class="ph"><h2><i class="ti ti-calendar"></i>Reuniões</h2>
-    <div style="display:flex;gap:8px">
-      <button class="btn-ghost" onclick="abrirAgendarReuniao()"><i class="ti ti-calendar-plus"></i>Agendar Reunião Futura</button>
-      <button class="btn-ghost" onclick="openM('mTranscricao')" title="Importar transcrição do Plaud Note e gerar insights com IA"><i class="ti ti-microphone"></i>Transcrição Plaud</button>
-      <button class="btn-primary" onclick="openM('mReuniao')"><i class="ti ti-plus"></i>Registrar Reunião Realizada</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-ghost" onclick="baixarTemplateAta()" title="Baixar modelo de ata (.txt)"><i class="ti ti-download"></i>Template de Ata</button>
+      <button class="btn-ghost" onclick="openM('mNovaAta')" title="Preencher ata estruturada diretamente no sistema"><i class="ti ti-notes"></i>Nova Ata</button>
+      <button class="btn-ghost" onclick="openM('mTranscricao')" title="Importar PDF, DOCX ou transcrição e gerar insights com IA"><i class="ti ti-file-import"></i>Importar Ata / Transcrição</button>
+      <button class="btn-ghost" onclick="abrirAgendarReuniao()"><i class="ti ti-calendar-plus"></i>Agendar</button>
+      <button class="btn-primary" onclick="openM('mReuniao')"><i class="ti ti-plus"></i>Registrar Reunião</button>
     </div>
   </div>
   <div id="reunioesAgendadasWrap" style="display:none;margin-bottom:14px" class="card">
@@ -2240,12 +2242,19 @@ tr:hover td{background:#fafafa}
 <div class="modal-ov" id="mTranscricao">
   <div class="modal" style="max-width:780px;max-height:92vh;overflow-y:auto">
     <div class="modal-ttl" style="position:sticky;top:0;background:var(--white);z-index:1;padding-bottom:12px;border-bottom:1px solid var(--gray4);margin-bottom:14px">
-      <span><i class="ti ti-microphone" style="color:var(--blue);margin-right:6px"></i>Importar Transcrição — Plaud Note</span>
+      <span><i class="ti ti-file-import" style="color:var(--blue);margin-right:6px"></i>Importar Ata / Transcrição</span>
       <button class="modal-close" onclick="closeM('mTranscricao')"><i class="ti ti-x"></i></button>
     </div>
 
     <!-- Etapa 1: Entrada -->
     <div id="txEtapa1">
+      <!-- Tipo -->
+      <div style="display:flex;gap:0;border:1px solid var(--gray4);border-radius:8px;overflow:hidden;margin-bottom:12px">
+        <button id="txTipoAta" onclick="txMudarTipo('ata')" style="flex:1;padding:10px;font-size:12.5px;font-weight:600;border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-notes"></i>Ata de Reunião</button>
+        <button id="txTipoTransc" onclick="txMudarTipo('transcricao')" style="flex:1;padding:10px;font-size:12.5px;font-weight:600;border:none;background:var(--gray5);color:var(--gray2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-microphone"></i>Transcrição de Áudio (Plaud)</button>
+      </div>
+      <input type="hidden" id="txTipo" value="ata">
+
       <div class="form-g2" style="margin-bottom:10px">
         <div class="fg">
           <label>Cliente <span class="req">*</span></label>
@@ -2256,33 +2265,37 @@ tr:hover td{background:#fafafa}
           <input type="date" id="txData">
         </div>
       </div>
-      <div class="fg" style="margin-bottom:10px">
-        <label>Título / Pauta (opcional)</label>
-        <input type="text" id="txTitulo" placeholder="Ex: Reunião mensal de CS · QBR Q2 · Check-in técnico">
+      <div class="fg" style="margin-bottom:12px">
+        <label>Título / Pauta <span style="font-weight:400;color:var(--gray3)">(opcional)</span></label>
+        <input type="text" id="txTitulo" placeholder="Ex: Check-in mensal · QBR Q2 · Alinhamento de implantação">
       </div>
 
       <!-- Tabs: colar / upload -->
       <div style="display:flex;gap:0;border:1px solid var(--gray4);border-radius:8px 8px 0 0;overflow:hidden;margin-bottom:0">
-        <button id="txTabColar" onclick="txMudarTab('colar')" style="flex:1;padding:9px;font-size:12.5px;font-weight:600;border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-clipboard-text"></i>Colar texto</button>
-        <button id="txTabUpload" onclick="txMudarTab('upload')" style="flex:1;padding:9px;font-size:12.5px;font-weight:600;border:none;background:var(--gray5);color:var(--gray2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-file-upload"></i>Upload de arquivo (.txt)</button>
+        <button id="txTabColar" onclick="txMudarTab('colar')" style="flex:1;padding:9px;font-size:12px;font-weight:600;border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px"><i class="ti ti-clipboard-text"></i>Colar texto</button>
+        <button id="txTabUpload" onclick="txMudarTab('upload')" style="flex:1;padding:9px;font-size:12px;font-weight:600;border:none;background:var(--gray5);color:var(--gray2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px"><i class="ti ti-file-upload"></i>Upload de arquivo</button>
       </div>
 
       <div id="txPanelColar" style="border:1px solid var(--gray4);border-top:none;border-radius:0 0 8px 8px;padding:10px">
-        <textarea id="txTexto" rows="10" style="border:none;outline:none;width:100%;resize:vertical;font-size:12.5px;line-height:1.7;font-family:inherit;background:transparent" placeholder="Cole aqui a transcrição exportada do Plaud Note…&#10;&#10;A IA vai identificar automaticamente: participantes, temas discutidos, decisões, ações e próximos passos."></textarea>
+        <textarea id="txTexto" rows="10" style="border:none;outline:none;width:100%;resize:vertical;font-size:12.5px;line-height:1.7;font-family:inherit;background:transparent" placeholder="Cole aqui o conteúdo da ata ou da transcrição…&#10;&#10;O Claude vai extrair automaticamente: participantes, assuntos, decisões, ações com responsáveis e próximos passos."></textarea>
       </div>
       <div id="txPanelUpload" style="display:none;border:1px solid var(--gray4);border-top:none;border-radius:0 0 8px 8px;padding:20px;text-align:center">
-        <input type="file" id="txArquivo" accept=".txt,.md" style="display:none" onchange="txLerArquivo(event)">
+        <input type="file" id="txArquivo" accept=".pdf,.txt,.md" style="display:none" onchange="txLerArquivo(event)">
         <div onclick="document.getElementById('txArquivo').click()" style="cursor:pointer;border:2px dashed var(--gray4);border-radius:8px;padding:28px;color:var(--gray2);transition:border-color .2s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--gray4)'">
-          <i class="ti ti-file-text" style="font-size:36px;display:block;margin-bottom:8px;color:var(--gray3)"></i>
-          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Clique para selecionar o arquivo</div>
-          <div style="font-size:11.5px;color:var(--gray3)">Formatos aceitos: .txt · .md</div>
+          <i class="ti ti-files" style="font-size:36px;display:block;margin-bottom:8px;color:var(--gray3)"></i>
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">Clique para selecionar o arquivo</div>
+          <div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
+            <span style="background:#fee2e2;color:#dc2626;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700">.PDF</span>
+            <span style="background:#dbeafe;color:#1d4ed8;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700">.TXT</span>
+            <span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700">.MD</span>
+          </div>
         </div>
-        <div id="txArquivoNome" style="font-size:12px;color:var(--blue);margin-top:8px;font-weight:600"></div>
+        <div id="txArquivoNome" style="font-size:12px;color:var(--blue);margin-top:8px;font-weight:600;min-height:18px"></div>
       </div>
 
       <div style="margin-top:10px;font-size:11px;color:var(--gray3);display:flex;align-items:center;gap:5px">
         <i class="ti ti-lock" style="font-size:12px"></i>
-        <span>Sua transcrição é enviada diretamente à API da Anthropic (Claude) usando sua chave configurada. Não passa por nenhum servidor intermediário.</span>
+        <span>O conteúdo é enviado diretamente à API da Anthropic (Claude) com sua chave. Nenhum servidor intermediário. Precisa configurar a chave em <strong>Configurações → IA</strong>.</span>
       </div>
 
       <div class="btn-row" style="margin-top:14px">
@@ -2343,6 +2356,113 @@ tr:hover td{background:#fafafa}
       <div style="width:44px;height:44px;border:3px solid var(--gray4);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
       <div style="font-size:14px;font-weight:600;color:var(--gray1);margin-bottom:6px">Processando com Claude…</div>
       <div style="font-size:12px;color:var(--gray2)">Analisando a transcrição e gerando insights para gestão do cliente</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVA ATA ESTRUTURADA -->
+<div class="modal-ov" id="mNovaAta">
+  <div class="modal" style="max-width:740px;max-height:92vh;overflow-y:auto">
+    <div class="modal-ttl" style="position:sticky;top:0;background:var(--white);z-index:1;padding-bottom:12px;border-bottom:1px solid var(--gray4);margin-bottom:14px">
+      <span><i class="ti ti-notes" style="color:var(--blue);margin-right:6px"></i>Nova Ata de Reunião</span>
+      <button class="modal-close" onclick="closeM('mNovaAta')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <!-- Cabeçalho -->
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Identificação</div>
+      <div class="form-g2" style="margin-bottom:8px">
+        <div class="fg" style="margin:0">
+          <label>Cliente <span class="req">*</span></label>
+          <select id="ataCliente"></select>
+        </div>
+        <div class="fg" style="margin:0">
+          <label>Data da reunião <span class="req">*</span></label>
+          <input type="date" id="ataData">
+        </div>
+      </div>
+      <div class="form-g2">
+        <div class="fg" style="margin:0">
+          <label>Tipo de reunião</label>
+          <select id="ataTipo">
+            <option>Check-in Mensal</option>
+            <option>QBR Trimestral</option>
+            <option>Onboarding</option>
+            <option>Alinhamento Técnico</option>
+            <option>Reunião Comercial</option>
+            <option>Treinamento</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div class="fg" style="margin:0">
+          <label>Duração (minutos)</label>
+          <input type="number" id="ataDuracao" placeholder="Ex: 60" min="5" max="480">
+        </div>
+      </div>
+    </div>
+
+    <!-- Participantes -->
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Participantes</div>
+      <div class="form-g2">
+        <div class="fg" style="margin:0">
+          <label>Do cliente</label>
+          <textarea id="ataPartCliente" rows="2" placeholder="João Vieira — Coordenador&#10;Anderson Ira — Responsável TI" style="font-size:12px;resize:vertical"></textarea>
+        </div>
+        <div class="fg" style="margin:0">
+          <label>Da Creare</label>
+          <textarea id="ataPartCreare" rows="2" placeholder="Núbia Schlemer — Diretora CS&#10;Felipe Duarte — CS" style="font-size:12px;resize:vertical"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assuntos discutidos -->
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Assuntos discutidos</div>
+      <div id="ataAssuntosLista"></div>
+      <button class="btn-ghost" onclick="ataAdicionarAssunto()" style="margin-top:6px;font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i>Adicionar assunto</button>
+    </div>
+
+    <!-- Riscos / Pontos de atenção -->
+    <div class="fg" style="margin-bottom:14px">
+      <label>Riscos / Pontos de atenção <span style="font-weight:400;color:var(--gray3)">(um por linha)</span></label>
+      <textarea id="ataRiscos" rows="3" placeholder="Problema na unidade de São Francisco do Sul com documentação técnica&#10;Tablets com alarme de identificação pendente"></textarea>
+    </div>
+
+    <!-- Ações definidas -->
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Ações definidas</div>
+      <div id="ataAcoesLista"></div>
+      <button class="btn-ghost" onclick="ataAdicionarAcao()" style="margin-top:6px;font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i>Adicionar ação</button>
+    </div>
+
+    <!-- Próximos passos -->
+    <div class="fg" style="margin-bottom:14px">
+      <label>Próximos passos <span style="font-weight:400;color:var(--gray3)">(um por linha)</span></label>
+      <textarea id="ataProximos" rows="3" placeholder="Agendar treinamento presencial com coordenadores&#10;Verificar disponibilidade de data com João (Rochalog)"></textarea>
+    </div>
+
+    <!-- Sentimento -->
+    <div class="form-g2" style="margin-bottom:16px">
+      <div class="fg" style="margin:0">
+        <label>Sentimento do cliente</label>
+        <select id="ataSentimento">
+          <option value="positivo">😊 Positivo</option>
+          <option value="neutro" selected>😐 Neutro</option>
+          <option value="misto">🤔 Misto</option>
+          <option value="negativo">😟 Negativo</option>
+        </select>
+      </div>
+      <div class="fg" style="margin:0">
+        <label>Observação sobre o cliente</label>
+        <input type="text" id="ataSentimentoObs" placeholder="Ex: Alta expectativa da diretoria, CEO acompanha o projeto">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mNovaAta')">Cancelar</button>
+      <button class="btn-ghost" onclick="ataSalvar(false)"><i class="ti ti-device-floppy"></i>Salvar rascunho</button>
+      <button class="btn-primary" onclick="ataSalvar(true)"><i class="ti ti-check"></i>Salvar e aplicar ao sistema</button>
     </div>
   </div>
 </div>
@@ -9345,8 +9465,41 @@ function teamsDisconnect(){
 </script>
 
 <script>
-// ═══ IA / TRANSCRIÇÃO PLAUD NOTE ═══
+// ═══ IA / TRANSCRIÇÃO PLAUD NOTE + ATA ═══
 var _txResultado=null;
+var _ataAssuntoIdx=0;
+var _ataAcaoIdx=0;
+
+// ─── PDF.js loader ───
+async function _loadPdfJs(){
+  if(window.pdfjsLib)return window.pdfjsLib;
+  return new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=function(){
+      var lib=window['pdfjs-dist/build/pdf']||window.pdfjsLib;
+      if(lib){lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';window.pdfjsLib=lib;}
+      resolve(lib);
+    };
+    s.onerror=function(){reject(new Error('Não foi possível carregar PDF.js. Verifique sua conexão.'));};
+    document.head.appendChild(s);
+  });
+}
+
+async function _extractPdfText(file){
+  var pdfjsLib=await _loadPdfJs();
+  var ab=await file.arrayBuffer();
+  var pdf=await pdfjsLib.getDocument({data:ab}).promise;
+  var fullText='';
+  for(var i=1;i<=pdf.numPages;i++){
+    var page=await pdf.getPage(i);
+    var content=await page.getTextContent();
+    var pageText='';
+    content.items.forEach(function(item){pageText+=item.str+(item.hasEOL?'\n':' ');});
+    fullText+=pageText+'\n\n';
+  }
+  return fullText;
+}
 
 function _txGetApiKey(){
   var cfg=CS_DB.getConfig&&CS_DB.getConfig()||{};
@@ -9363,16 +9516,38 @@ function txMudarTab(tab){
   document.getElementById('txTabUpload').style.color=isColar?'var(--gray2)':'#fff';
 }
 
-function txLerArquivo(ev){
+function txMudarTipo(tipo){
+  document.getElementById('txTipo').value=tipo;
+  var isAta=tipo==='ata';
+  document.getElementById('txTipoAta').style.background=isAta?'var(--blue)':'var(--gray5)';
+  document.getElementById('txTipoAta').style.color=isAta?'#fff':'var(--gray2)';
+  document.getElementById('txTipoTransc').style.background=isAta?'var(--gray5)':'var(--blue)';
+  document.getElementById('txTipoTransc').style.color=isAta?'var(--gray2)':'#fff';
+  var ph=document.getElementById('txTexto');
+  if(ph)ph.placeholder=isAta?'Cole aqui o conteúdo da ata (PDF convertido, texto do Word, e-mail com a ata, etc.)…\n\nO Claude vai extrair: participantes, assuntos, decisões, ações com responsáveis, riscos e próximos passos.':'Cole aqui a transcrição do áudio exportada do Plaud Note…\n\nO Claude vai identificar automaticamente: participantes, temas discutidos, decisões, ações e próximos passos.';
+}
+
+async function txLerArquivo(ev){
   var file=ev.target.files[0];
   if(!file)return;
-  document.getElementById('txArquivoNome').textContent='Arquivo: '+file.name+' ('+Math.round(file.size/1024)+'KB)';
-  var reader=new FileReader();
-  reader.onload=function(e){
-    document.getElementById('txTexto').value=e.target.result;
+  var nome=document.getElementById('txArquivoNome');
+  nome.textContent='Lendo '+file.name+'…';
+  try{
+    var text;
+    if(file.name.toLowerCase().endsWith('.pdf')){
+      nome.textContent='Extraindo texto do PDF… (pode levar alguns segundos)';
+      text=await _extractPdfText(file);
+    }else{
+      text=await new Promise(function(res,rej){
+        var r=new FileReader();r.onload=function(e){res(e.target.result);};r.onerror=rej;r.readAsText(file,'UTF-8');
+      });
+    }
+    document.getElementById('txTexto').value=text;
+    nome.innerHTML='<i class="ti ti-check" style="color:var(--green)"></i> '+file.name+' — '+Math.round(file.size/1024)+'KB · '+text.split('\n').filter(function(l){return l.trim();}).length+' linhas extraídas';
     txMudarTab('colar');
-  };
-  reader.readAsText(file,'UTF-8');
+  }catch(e){
+    nome.innerHTML='<i class="ti ti-x" style="color:var(--red)"></i> Erro: '+e.message;
+  }
 }
 
 function _txAbrirModal(){
@@ -9387,16 +9562,18 @@ function _txAbrirModal(){
   document.getElementById('txEtapa2').style.display='none';
   document.getElementById('txLoading').style.display='none';
   txMudarTab('colar');
+  txMudarTipo('ata');
   _txResultado=null;
 }
 
-// Sobrescreve openM para inicializar o modal de transcrição
+// Sobrescreve openM para inicializar modais com estado dinâmico
 var _origOpenM=null;
 (function(){
   if(typeof openM==='function'){
     _origOpenM=openM;
     openM=function(id){
       if(id==='mTranscricao')_txAbrirModal();
+      if(id==='mNovaAta')_ataAbrirModal();
       _origOpenM(id);
     };
   }
@@ -9424,7 +9601,13 @@ async function txProcessar(){
   document.getElementById('txEtapa2').style.display='none';
   document.getElementById('txLoading').style.display='block';
 
-  var prompt='Você é um especialista em Customer Success. Analise a transcrição a seguir de uma reunião com o cliente "'+empresa+'" e retorne um JSON com exatamente este formato (sem texto adicional fora do JSON):\n\n{\n  "resumo": "resumo executivo em 2-3 parágrafos",\n  "sentimento": "positivo|neutro|negativo|misto",\n  "sentimento_descricao": "breve explicação do sentimento detectado",\n  "pontos_chave": ["ponto 1", "ponto 2", "ponto 3"],\n  "riscos": ["risco ou ponto de atenção identificado"],\n  "acoes": [\n    {"titulo": "título da ação", "responsavel": "nome ou cargo", "prazo": "prazo mencionado ou vazio", "area": "CS|TI|Comercial|Operações|Técnico"}\n  ],\n  "proximos_passos": "o que deve ser feito como follow-up imediato",\n  "topicos": ["tópico principal 1", "tópico 2"]\n}\n\nSe não houver riscos, retorne riscos como array vazio. Se não houver ações, retorne acoes como array vazio.\n\nTRANSCRIÇÃO:\n'+texto.substring(0,30000);
+  var tipoDoc=(document.getElementById('txTipo')&&document.getElementById('txTipo').value)||'ata';
+  var isAta=tipoDoc==='ata';
+  var promptIntro=isAta
+    ?'Você é um especialista em Customer Success. Analise a ATA DE REUNIÃO a seguir com o cliente "'+empresa+'" e retorne um JSON estruturado. A ata pode estar em qualquer formato (Word exportado, PDF convertido, e-mail, etc.). Extraia com precisão todos os dados, especialmente as ações definidas e seus responsáveis.'
+    :'Você é um especialista em Customer Success. Analise a TRANSCRIÇÃO DE ÁUDIO a seguir de uma reunião com o cliente "'+empresa+'". Identifique os participantes, temas, decisões e ações, mesmo que o texto esteja em formato coloquial de fala.';
+  var promptFim=isAta?'ATA DE REUNIÃO:':'TRANSCRIÇÃO DE ÁUDIO:';
+  var prompt=promptIntro+'\n\nRetorne APENAS um JSON válido com exatamente este formato (sem texto fora do JSON):\n\n{\n  "resumo": "resumo executivo em 2-3 parágrafos",\n  "sentimento": "positivo|neutro|negativo|misto",\n  "sentimento_descricao": "breve explicação do sentimento/clima da reunião",\n  "participantes_cliente": ["Nome — Cargo"],\n  "participantes_creare": ["Nome — Cargo"],\n  "pontos_chave": ["ponto discutido ou decidido"],\n  "riscos": ["risco ou problema identificado que precisa de atenção"],\n  "acoes": [\n    {"titulo": "descrição clara da ação", "responsavel": "nome ou equipe responsável", "prazo": "prazo mencionado ou vazio se não especificado", "area": "CS|TI|Comercial|Operações|Técnico"}\n  ],\n  "proximos_passos": "resumo do que deve acontecer como follow-up",\n  "topicos": ["tópico principal abordado"]\n}\n\nRegras: arrays vazios se não houver dados. Ações devem ser extraídas de TODOS os compromisos, pendências e tarefas mencionadas.\n\n'+promptFim+'\n'+texto.substring(0,30000);
 
   try{
     var resp=await fetch('https://api.anthropic.com/v1/messages',{
@@ -9601,6 +9784,190 @@ async function testarAnthropicKey(){
     st.style.background='#fee2e2';st.style.color='#dc2626';st.style.border='1px solid #fca5a5';
     st.innerHTML='<i class="ti ti-x" style="margin-right:5px"></i>Falha de rede: '+e.message;
   }
+}
+
+// ─── Nova Ata (formulário estruturado) ───
+function _ataAbrirModal(){
+  var sel=document.getElementById('ataCliente');
+  var clientes=(CS_DB.getClientes?CS_DB.getClientes():CS_DB.get('clientes')||[]).sort(function(a,b){return(a.empresa||'').localeCompare(b.empresa||'');});
+  sel.innerHTML='<option value="">— Selecione o cliente —</option>'+clientes.map(function(c){return'<option value="'+c.id+'">'+_escH(c.empresa||'')+'</option>';}).join('');
+  document.getElementById('ataData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ataTipo').value='Check-in Mensal';
+  document.getElementById('ataDuracao').value='';
+  document.getElementById('ataPartCliente').value='';
+  document.getElementById('ataPartCreare').value='';
+  document.getElementById('ataRiscos').value='';
+  document.getElementById('ataProximos').value='';
+  document.getElementById('ataSentimento').value='neutro';
+  document.getElementById('ataSentimentoObs').value='';
+  _ataAssuntoIdx=0;_ataAcaoIdx=0;
+  var al=document.getElementById('ataAssuntosLista');
+  var acl=document.getElementById('ataAcoesLista');
+  if(al)al.innerHTML='';if(acl)acl.innerHTML='';
+  ataAdicionarAssunto();
+  ataAdicionarAcao();
+}
+
+
+function ataAdicionarAssunto(){
+  var el=document.getElementById('ataAssuntosLista');
+  if(!el)return;
+  var idx=_ataAssuntoIdx++;
+  var div=document.createElement('div');
+  div.id='ataAssunto'+idx;
+  div.style.cssText='display:flex;gap:6px;margin-bottom:6px;align-items:flex-start';
+  div.innerHTML='<div style="width:20px;height:20px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:10px">'+(idx+1)+'</div>'
+    +'<div style="flex:1"><input type="text" placeholder="Título do assunto (ex: Dificuldades na implantação)" style="width:100%;margin-bottom:4px;font-size:12.5px" id="ataAssuntoTit'+idx+'">'
+    +'<textarea rows="2" placeholder="Pontos discutidos, decisões, observações…" style="width:100%;font-size:12px;resize:vertical" id="ataAssuntoDesc'+idx+'"></textarea></div>'
+    +'<button onclick="document.getElementById(\'ataAssunto'+idx+'\').remove()" style="background:none;border:none;cursor:pointer;color:var(--gray3);padding:8px 4px;font-size:16px;flex-shrink:0" title="Remover"><i class="ti ti-x"></i></button>';
+  el.appendChild(div);
+}
+
+function ataAdicionarAcao(){
+  var el=document.getElementById('ataAcoesLista');
+  if(!el)return;
+  var idx=_ataAcaoIdx++;
+  var div=document.createElement('div');
+  div.id='ataAcao'+idx;
+  div.style.cssText='background:var(--white);border:1px solid var(--gray4);border-radius:7px;padding:10px;margin-bottom:6px;display:grid;grid-template-columns:1fr 150px 120px 110px auto;gap:6px;align-items:center';
+  div.innerHTML='<input type="text" placeholder="Descrição da ação" id="ataAcaoTit'+idx+'" style="font-size:12px">'
+    +'<input type="text" placeholder="Responsável" id="ataAcaoResp'+idx+'" style="font-size:12px">'
+    +'<input type="text" placeholder="Prazo" id="ataAcaoPrazo'+idx+'" style="font-size:12px">'
+    +'<select id="ataAcaoArea'+idx+'" style="font-size:12px"><option>CS</option><option>TI</option><option>Comercial</option><option>Operações</option><option>Técnico</option><option>Dados</option></select>'
+    +'<button onclick="document.getElementById(\'ataAcao'+idx+'\').remove()" style="background:none;border:none;cursor:pointer;color:var(--gray3);padding:4px" title="Remover"><i class="ti ti-x"></i></button>';
+  el.appendChild(div);
+}
+
+function ataSalvar(aplicar){
+  var cid=document.getElementById('ataCliente').value;
+  var data=document.getElementById('ataData').value;
+  if(!cid){toast('Selecione o cliente.','err');return;}
+  if(!data){toast('Informe a data da reunião.','err');return;}
+  var cli=CS_DB.getClienteById(cid);
+  var tipo=document.getElementById('ataTipo').value;
+  var duracao=document.getElementById('ataDuracao').value;
+  var partCliente=document.getElementById('ataPartCliente').value.trim();
+  var partCreare=document.getElementById('ataPartCreare').value.trim();
+  var riscos=document.getElementById('ataRiscos').value.trim().split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  var proximos=document.getElementById('ataProximos').value.trim().split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  var sentimento=document.getElementById('ataSentimento').value;
+  var sentObs=document.getElementById('ataSentimentoObs').value.trim();
+  var quem=(CS_DB.getSession&&CS_DB.getSession()&&CS_DB.getSession().nome)||'CS';
+
+  // Coletar assuntos
+  var assuntos=[];
+  document.querySelectorAll('[id^="ataAssunto"]').forEach(function(div){
+    var m=div.id.match(/ataAssunto(\d+)$/);if(!m)return;
+    var i=m[1];
+    var tit=(document.getElementById('ataAssuntoTit'+i)&&document.getElementById('ataAssuntoTit'+i).value||'').trim();
+    var desc=(document.getElementById('ataAssuntoDesc'+i)&&document.getElementById('ataAssuntoDesc'+i).value||'').trim();
+    if(tit||desc)assuntos.push({titulo:tit,descricao:desc});
+  });
+
+  // Coletar ações
+  var acoes=[];
+  document.querySelectorAll('[id^="ataAcao"]').forEach(function(div){
+    var m=div.id.match(/ataAcao(\d+)$/);if(!m)return;
+    var i=m[1];
+    var tit=(document.getElementById('ataAcaoTit'+i)&&document.getElementById('ataAcaoTit'+i).value||'').trim();
+    if(!tit)return;
+    acoes.push({titulo:tit,responsavel:(document.getElementById('ataAcaoResp'+i)&&document.getElementById('ataAcaoResp'+i).value||'').trim(),prazo:(document.getElementById('ataAcaoPrazo'+i)&&document.getElementById('ataAcaoPrazo'+i).value||'').trim(),area:(document.getElementById('ataAcaoArea'+i)&&document.getElementById('ataAcaoArea'+i).value||'CS')});
+  });
+
+  // Montar objeto de ata
+  var ataObj={
+    id:'ata_'+Date.now(),clienteId:cid,empresa:cli?cli.empresa:'',tipo:tipo,data:data,
+    duracao:duracao,participantesCliente:partCliente,participantesCreare:partCreare,
+    assuntos:assuntos,riscos:riscos,acoes:acoes,proximosPassos:proximos,
+    sentimento:sentimento,sentimentoObs:sentObs,criadoPor:quem,criadoEm:new Date().toISOString()
+  };
+
+  var atas=CS_DB.get('atas')||[];
+  atas.push(ataObj);
+  CS_DB.set('atas',atas);
+
+  if(aplicar){
+    // Registrar reunião
+    var reu={id:'reu_'+Date.now(),clienteId:cid,titulo:tipo+' — '+cli.empresa,data:data,dataISO:data,tipo:'check-in',participantes:partCliente+' / '+partCreare,resumo:assuntos.map(function(a){return a.titulo+(a.descricao?': '+a.descricao:'');}).join(' | '),proximosPassos:proximos.join('; '),criadoEm:new Date().toISOString()};
+    var reunioes=CS_DB.get('reunioes')||[];reunioes.push(reu);CS_DB.set('reunioes',reunioes);
+
+    // Timeline
+    var tl=tipo+' — '+cli.empresa+'\n';
+    if(partCliente)tl+='\nParticipantes cliente: '+partCliente;
+    if(partCreare)tl+='\nParticipantes Creare: '+partCreare;
+    assuntos.forEach(function(a,i){tl+='\n\n'+(i+1)+'. '+a.titulo+(a.descricao?'\n   '+a.descricao:'');});
+    if(riscos.length)tl+='\n\nRiscos: '+riscos.join(' | ');
+    if(proximos.length)tl+='\n\nPróximos passos: '+proximos.join(' | ');
+    if(sentObs)tl+='\n\nCliente: '+sentObs;
+    CS_DB._addTimeline(cid,'reuniao','Ata de reunião registrada',tl);
+
+    // Criar ações
+    var criadas=0;
+    acoes.forEach(function(a,i){
+      var nova={id:'acao_'+Date.now()+'_'+i,clienteId:cid,titulo:a.titulo,descricao:'Ata: '+tipo+' — '+data,responsavel:a.responsavel||quem,area:a.area||'CS',status:'Pendente',prioridade:'Média',prazo:a.prazo||'',prazoISO:'',categoria:'follow-up',criadoEm:new Date().toISOString()};
+      var la=CS_DB.get('acoes')||[];la.push(nova);CS_DB.set('acoes',la);criadas++;
+    });
+
+    closeM('mNovaAta');
+    var msg='Ata de '+cli.empresa+' registrada na Timeline';
+    if(criadas)msg+=' · '+criadas+' ação'+(criadas>1?'ões':'')+(criadas>1?'s':'')+' criada'+(criadas>1?'s':'');
+    toast(msg);
+    try{renderDashboard();}catch(e){}
+  }else{
+    closeM('mNovaAta');
+    toast('Rascunho salvo.');
+  }
+}
+
+// ─── Download do Template Padrão de Ata ───
+function baixarTemplateAta(){
+  var template='ATA DE REUNIÃO\n'
+    +'═══════════════════════════════════════════════════\n'
+    +'Cliente: \n'
+    +'Data: DD/MM/AAAA\n'
+    +'Tipo: [Check-in Mensal | QBR Trimestral | Onboarding | Alinhamento Técnico | Treinamento | Outro]\n'
+    +'Duração: XX minutos\n\n'
+    +'PARTICIPANTES\n'
+    +'─────────────\n'
+    +'Cliente:\n'
+    +'  • [Nome] — [Cargo]\n'
+    +'  • [Nome] — [Cargo]\n\n'
+    +'Creare:\n'
+    +'  • [Nome] — [Cargo]\n'
+    +'  • [Nome] — [Cargo]\n\n'
+    +'ASSUNTOS DISCUTIDOS\n'
+    +'───────────────────\n'
+    +'1. [Título do assunto]\n'
+    +'   • [Ponto discutido ou decisão tomada]\n'
+    +'   • [Ponto discutido ou decisão tomada]\n\n'
+    +'2. [Título do assunto]\n'
+    +'   • [Ponto discutido ou decisão tomada]\n\n'
+    +'RISCOS / PONTOS DE ATENÇÃO\n'
+    +'──────────────────────────\n'
+    +'  • [Problema ou risco identificado]\n'
+    +'  • [Problema ou risco identificado]\n\n'
+    +'AÇÕES DEFINIDAS\n'
+    +'───────────────\n'
+    +'  • [Ação] | Responsável: [nome/equipe] | Prazo: [data ou período] | Área: CS/TI/Comercial/Técnico\n'
+    +'  • [Ação] | Responsável: [nome/equipe] | Prazo: [data ou período] | Área: CS/TI/Comercial/Técnico\n\n'
+    +'PRÓXIMOS PASSOS\n'
+    +'───────────────\n'
+    +'  • [Próximo passo]\n'
+    +'  • [Próximo passo]\n\n'
+    +'SENTIMENTO DO CLIENTE\n'
+    +'─────────────────────\n'
+    +'[Positivo | Neutro | Misto | Negativo]\n'
+    +'[Observação sobre satisfação, engajamento e expectativas do cliente]\n'
+    +'═══════════════════════════════════════════════════\n'
+    +'Registrado por: [seu nome]\n';
+
+  var blob=new Blob([template],{type:'text/plain;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='template_ata_reuniao_creare.txt';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('Template de ata baixado!');
 }
 
 // ═══ TEMPLATES DE E-MAIL ═══
