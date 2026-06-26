@@ -9674,87 +9674,233 @@ async function txProcessarComClaude(){
 }
 
 // ─── Parser local de atas (sem API externa) ───
-function _parseAtaLocal(texto){
-  var r={resumo:'',sentimento:'neutro',sentimento_descricao:'',participantes_cliente:[],participantes_creare:[],pontos_chave:[],riscos:[],acoes:[],proximos_passos:'',topicos:[]};
-  var linhas=texto.replace(/\r\n|\r/g,'\n').split('\n').map(function(l){return l.trim();});
+// ═══════════════════════════════════════════════
+// PARSER UNIVERSAL DE ATAS  (sem dependência de IA)
+// Funciona com qualquer formato: modelo Creare, Rochalog,
+// Google Docs, e-mail, tabela Word exportada como texto, etc.
+// ═══════════════════════════════════════════════
 
-  var SEC={
-    part:/^participantes?(\s*:|\s*$)/i,
-    assunto:/^(assuntos?\s+discutidos?(\s+e\s+pontos?\s+de\s+aten[çc][aã]o)?|tópicos?\s+abordados?)/i,
-    riscos:/^(riscos?\s*[\/|]?\s*pontos?\s+de\s+aten[çc][aã]o|pontos?\s+de\s+aten[çc][aã]o|riscos?\s+identificados?)/i,
-    acoes:/^ações?\s+(definidas?|combinadas?|pendentes?)(\s*:|\s*$)/i,
-    proximos:/^próximos?\s+passos?(\s+e\s+expectativas?)?(\s*:|\s*$)/i,
-    sentim:/^sentimento(\s+do\s+cliente)?(\s*:|\s*$)/i
+function _parseAtaLocal(texto){
+  var r={resumo:'',sentimento:'neutro',sentimento_descricao:'',
+         participantes_cliente:[],participantes_creare:[],
+         pontos_chave:[],riscos:[],acoes:[],proximos_passos:'',topicos:[]};
+
+  // 1. Normalizar: remover artefatos de PDF, unificar quebras
+  var norm=texto
+    .replace(/\r\n|\r/g,'\n')
+    .replace(/[ \t]{2,}/g,' ')           // múltiplos espaços → um
+    .replace(/([A-Z])\s([A-Z])\s([A-Z])/g,'$1$2$3'); // "P A R T I C I P A N T E S" → "PARTICIPANTES"
+  var linhas=norm.split('\n').map(function(l){return l.trim();});
+
+  // 2. Mapear limites de cada seção
+  // Padrões para cabeçalhos de seção (case-insensitive, qualquer formato)
+  var HEADERS={
+    part:   /^(participantes?|attendees?|presentes?)(\s*:|$)/i,
+    assunto:/^(assuntos?\s*(discutidos?|abordados?|tratados?|da\s+reuni[aã]o)|tópicos?(\s+abordados?)?|pauta|agenda)(\s+e\s+\w+)?(\s*:|$)/i,
+    riscos: /^(riscos?|pontos?\s+de\s+aten[çc][aã]o|alertas?|pendências?\s+cr[ií]ticas?|issues?)(\s*[\/\-]?\s*.{0,40})?$/i,
+    acoes:  /^(ações?\s*(definidas?|acordadas?|combinadas?|pendentes?|a\s+serem?\s+tomadas?)|action\s+items?|tarefas?\s+definidas?|compromisos?)(\s*:|$)/i,
+    proximos:/^(próximos?\s+passos?(\s+e\s+\w+)?|next\s+steps?|follow[\s\-]?up|encaminhamentos?)(\s*:|$)/i,
+    sentim: /^(sentimento(\s+do\s+cliente)?|clima\s+da\s+reuni[aã]o|satisfa[çc][aã]o)(\s*:|$)/i
   };
 
-  var secao=null,subPart=null,topico=null,emAssunto=false;
+  // Construir índice: {secao: [idxInicio, idxFim]}
+  var secMap=[];
+  linhas.forEach(function(l,i){
+    if(!l||l.length>90)return;
+    for(var k in HEADERS){
+      if(HEADERS[k].test(l)){secMap.push({sec:k,ini:i});break;}
+    }
+  });
+  // Associar fim de cada seção
+  for(var s=0;s<secMap.length;s++){
+    secMap[s].fim=secMap[s+1]?secMap[s+1].ini:linhas.length;
+  }
 
-  linhas.forEach(function(l){
-    if(!l)return;
-    // Section header?
-    for(var k in SEC){if(SEC[k].test(l)&&l.length<80){secao=k;subPart=null;topico=null;emAssunto=(k==='assunto');return;}}
-    // Numbered topic "1. Título"
-    var mN=l.match(/^(\d+)[.\)]\s+(.+)/);
-    if(mN&&(emAssunto||!secao)){topico=mN[2].trim();r.topicos.push(topico);r.pontos_chave.push('📌 '+topico);return;}
-    // Participant sub-section
-    if(secao==='part'){
-      if(/^(rochalog|cliente|empresa)\s*:/i.test(l)){subPart='cli';return;}
-      if(/^(creare|fornecedor|equipe\s+creare|cs\s+creare)\s*:/i.test(l)){subPart='cre';return;}
-      var nome=l.replace(/^[•\-*◦•]\s*/,'').trim();
-      if(nome&&nome.length>2){if(subPart==='cli')r.participantes_cliente.push(nome);else if(subPart==='cre')r.participantes_creare.push(nome);}
-      return;
-    }
-    var bullet=l.replace(/^[•\-*◦•]\s*/,'').trim();
-    if(!bullet)return;
-    if(secao==='assunto'||emAssunto){
-      r.pontos_chave.push(topico?'  → '+bullet:bullet);
-      if(_txIsAcao(bullet)&&!_txAcaoExiste(r.acoes,bullet))r.acoes.push({titulo:bullet,responsavel:'',prazo:'',area:_txArea(bullet)});
-      return;
-    }
-    if(secao==='riscos'){r.riscos.push(bullet);return;}
-    if(secao==='acoes'){
-      var mR=bullet.match(/responsável?[:\s]+([^|]+)/i);
-      var mP=bullet.match(/prazo[:\s]+([^|]+)/i);
-      var mA=bullet.match(/área?[:\s]+([^|]+)/i);
-      var tit=bullet.split('|')[0].trim();
-      if(tit)r.acoes.push({titulo:tit,responsavel:mR?mR[1].trim():'',prazo:mP?mP[1].trim():'',area:mA?mA[1].trim().replace(/\W+$/,''):_txArea(tit)});
-      return;
-    }
-    if(secao==='proximos'){
-      r.proximos_passos+=(r.proximos_passos?'\n':'')+bullet;
-      if(_txIsAcao(bullet)&&!_txAcaoExiste(r.acoes,bullet))r.acoes.push({titulo:bullet,responsavel:'',prazo:'',area:_txArea(bullet)});
-      return;
-    }
-    if(secao==='sentim'){
-      if(/positivo/i.test(bullet))r.sentimento='positivo';
-      else if(/negativo/i.test(bullet))r.sentimento='negativo';
-      else if(/misto/i.test(bullet))r.sentimento='misto';
-      r.sentimento_descricao=(r.sentimento_descricao?r.sentimento_descricao+' ':'')+bullet.replace(/^(positivo|negativo|neutro|misto)[,.]?\s*/i,'');
+  // Helper: obter linhas de uma seção
+  function secLinhas(k){
+    var entry=secMap.find(function(x){return x.sec===k;});
+    if(!entry)return [];
+    return linhas.slice(entry.ini+1,entry.fim).filter(function(l){return l.trim();});
+  }
+
+  // 3. Participantes
+  var partLinhas=secLinhas('part');
+  var subP=null;
+  partLinhas.forEach(function(l){
+    // Sub-cabeçalho: nome da empresa/Creare
+    if(/^(cliente|empresa|rochalog|customer|contratante)\s*:/i.test(l)){subP='cli';return;}
+    if(/^(creare|fornecedor|equipe\s+creare|prestador|vendor)\s*:/i.test(l)){subP='cre';return;}
+    // Linha no formato "Nome - Cargo" ou "• Nome — Cargo"
+    var nome=l.replace(/^[•\-\*•▸●▸→]\s*/,'').trim();
+    if(!nome||nome.length<3)return;
+    if(subP==='cli')r.participantes_cliente.push(nome);
+    else if(subP==='cre')r.participantes_creare.push(nome);
+    else{
+      // Sem sub-cabeçalho: tenta inferir pelo conteúdo
+      if(/creare|cs\s+creare|customer\s+success/i.test(nome))r.participantes_creare.push(nome);
+      else r.participantes_cliente.push(nome);
     }
   });
 
-  // Auto-resumo
+  // 4. Assuntos discutidos
+  var assLinhas=secLinhas('assunto');
+  var topicoAtual=null;
+  assLinhas.forEach(function(l){
+    var mNum=l.match(/^(\d+)[.\)]\s+(.+)/);
+    if(mNum){
+      topicoAtual=mNum[2].trim();
+      r.topicos.push(topicoAtual);
+      r.pontos_chave.push('📌 '+topicoAtual);
+      return;
+    }
+    // Letra (a. b. c.)
+    var mAlpha=l.match(/^[a-z][.\)]\s+(.+)/i);
+    if(mAlpha&&!topicoAtual){
+      topicoAtual=mAlpha[1].trim();
+      r.topicos.push(topicoAtual);
+      r.pontos_chave.push('📌 '+topicoAtual);
+      return;
+    }
+    var bullet=l.replace(/^[•\-\*•▸▸→◦]\s*/,'').trim();
+    if(bullet){
+      r.pontos_chave.push(topicoAtual?'  → '+bullet:bullet);
+      if(_txIsAcao(bullet)&&!_txAcaoExiste(r.acoes,bullet))
+        r.acoes.push({titulo:bullet,responsavel:'',prazo:'',area:_txArea(bullet)});
+    }
+  });
+
+  // 5. Riscos
+  secLinhas('riscos').forEach(function(l){
+    var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();
+    if(b&&b.length>2)r.riscos.push(b);
+  });
+
+  // 6. Ações definidas (suporta bullets com pipe E linhas de tabela)
+  secLinhas('acoes').forEach(function(l){
+    // Linha de tabela (separadores | ou tabulação)
+    if(/\|/.test(l)){
+      var cols=l.split('|').map(function(c){return c.trim();}).filter(Boolean);
+      // Ignorar linha de cabeçalho de tabela
+      if(/ação|tarefa|action|responsável|prazo|área/i.test(cols[0]))return;
+      var tit=cols[0];
+      if(tit&&tit.length>2&&!_txAcaoExiste(r.acoes,tit))
+        r.acoes.push({titulo:tit,responsavel:cols[1]||'',prazo:cols[2]||'',area:cols[3]?cols[3].replace(/\W+$/,''):_txArea(tit)});
+      return;
+    }
+    var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();
+    if(!b)return;
+    var mR=b.match(/responsável?[:\s]+([^|]+)/i);
+    var mP=b.match(/prazo[:\s]+([^|]+)/i);
+    var mA=b.match(/área?[:\s]+([^|]+)/i);
+    var tit=b.split('|')[0].trim();
+    if(tit&&!_txAcaoExiste(r.acoes,tit))
+      r.acoes.push({titulo:tit,responsavel:mR?mR[1].trim():'',prazo:mP?mP[1].trim():'',area:mA?mA[1].trim().replace(/\W+$/,''):_txArea(tit)});
+  });
+
+  // 7. Próximos passos
+  secLinhas('proximos').forEach(function(l){
+    var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();
+    if(!b)return;
+    r.proximos_passos+=(r.proximos_passos?'\n':'')+b;
+    if(_txIsAcao(b)&&!_txAcaoExiste(r.acoes,b))
+      r.acoes.push({titulo:b,responsavel:'',prazo:'',area:_txArea(b)});
+  });
+
+  // 8. Sentimento
+  secLinhas('sentim').forEach(function(l){
+    var ll=l.toLowerCase();
+    if(/positivo/.test(ll))r.sentimento='positivo';
+    else if(/negativo/.test(ll))r.sentimento='negativo';
+    else if(/misto/.test(ll))r.sentimento='misto';
+    r.sentimento_descricao=(r.sentimento_descricao?r.sentimento_descricao+' ':'')
+      +l.replace(/^(positivo|negativo|neutro|misto)[,.]?\s*/i,'').trim();
+  });
+
+  // ── FALLBACKS: detectar o que faltou fazendo varredura global ──
+
+  // Fallback participantes: "Nome - Cargo" em qualquer lugar do texto
+  if(!r.participantes_cliente.length&&!r.participantes_creare.length){
+    var emPart=false,subG=null;
+    linhas.forEach(function(l){
+      if(HEADERS.part.test(l)){emPart=true;subG=null;return;}
+      if(emPart){
+        if(/^(cliente|empresa)\s*:/i.test(l)){subG='cli';return;}
+        if(/^(creare)\s*:/i.test(l)){subG='cre';return;}
+        var n=l.replace(/^[•\-\*•]\s*/,'').trim();
+        if(n&&n.length>3&&/[\-—]/.test(n)){
+          if(subG==='cli')r.participantes_cliente.push(n);
+          else if(subG==='cre')r.participantes_creare.push(n);
+          else r.participantes_cliente.push(n);
+        }
+        if(!n)emPart=false;
+      }
+    });
+  }
+
+  // Fallback tópicos: números na raiz do documento se nada foi detectado
+  if(!r.topicos.length){
+    linhas.forEach(function(l){
+      var mN=l.match(/^(\d+)[.\)]\s+([A-ZÁÉÍÓÚÀÂÊÎÔÛÃÕÇ][^.]{4,60})/);
+      if(mN&&!_txAcaoExiste(r.acoes,mN[2])){
+        r.topicos.push(mN[2].trim());
+        r.pontos_chave.push('📌 '+mN[2].trim());
+      }
+    });
+  }
+
+  // Fallback ações: varredura global por verbos de ação em qualquer lugar
+  if(!r.acoes.length){
+    var emProx=false;
+    linhas.forEach(function(l){
+      if(HEADERS.proximos.test(l)){emProx=true;return;}
+      if(HEADERS.part.test(l)||HEADERS.assunto.test(l)||HEADERS.riscos.test(l)){emProx=false;}
+      var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();
+      if(b.length<8||b.length>200)return;
+      if(_txIsAcao(b)&&!_txAcaoExiste(r.acoes,b))
+        r.acoes.push({titulo:b,responsavel:'',prazo:'',area:_txArea(b)});
+    });
+  }
+
+  // Fallback próximos passos: se seção não foi detectada, pegar final do texto
+  if(!r.proximos_passos){
+    var idxFim=linhas.length-1;
+    var inicioProx=-1;
+    for(var i=0;i<linhas.length;i++){
+      if(HEADERS.proximos.test(linhas[i])){inicioProx=i+1;break;}
+    }
+    if(inicioProx>0){
+      linhas.slice(inicioProx).forEach(function(l){
+        var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();
+        if(b)r.proximos_passos+=(r.proximos_passos?'\n':'')+b;
+      });
+    }
+  }
+
+  // ── Construir resumo automático ──
   var pts=[];
-  if(r.topicos.length)pts.push('Reunião abordou '+r.topicos.length+' tópico'+(r.topicos.length!==1?'s':'')+': '+r.topicos.join(', ')+'.');
-  if(r.participantes_cliente.length)pts.push('Participantes do cliente: '+r.participantes_cliente.join(', ')+'.');
-  if(r.acoes.length)pts.push(r.acoes.length+' ação'+(r.acoes.length!==1?'ões':'')+(r.acoes.length!==1?' identificadas':' identificada')+'.');
-  if(r.riscos.length)pts.push('Pontos de atenção: '+r.riscos.slice(0,2).join('; ')+(r.riscos.length>2?' e outros.':'.'));
-  if(r.proximos_passos)pts.push('Próximos passos: '+r.proximos_passos.split('\n')[0]+(r.proximos_passos.includes('\n')?' (e mais)':'')+'.');
-  r.resumo=pts.join(' ')||'Ata processada — '+r.topicos.length+' tópicos e '+r.acoes.length+' ações extraídas.';
+  if(r.topicos.length)pts.push('Reunião abordou '+r.topicos.length+' tópico'+(r.topicos.length!==1?'s':'')+': '+r.topicos.slice(0,3).join(', ')+(r.topicos.length>3?' e outros.':'.'));
+  var todos=[].concat(r.participantes_cliente,r.participantes_creare);
+  if(todos.length)pts.push('Participantes: '+todos.slice(0,4).join(', ')+(todos.length>4?' e outros.':'.'));
+  if(r.acoes.length)pts.push(r.acoes.length+' ação'+(r.acoes.length!==1?'ões identificadas':'  identificada')+'.');
+  if(r.riscos.length)pts.push('Ponto'+(r.riscos.length>1?'s':'')+' de atenção: '+r.riscos.slice(0,2).join('; ')+(r.riscos.length>2?' e outros.':'.'));
+  if(r.proximos_passos)pts.push('Próximos passos: '+r.proximos_passos.split('\n')[0]+(r.proximos_passos.includes('\n')?'…':'.')  );
+  r.resumo=pts.join(' ')||'Ata processada. Verifique os dados extraídos abaixo.';
   return r;
 }
 
 function _txIsAcao(t){
-  return /\b(verificar|agendar|liberar|demonstrar|estudar|integrar|trabalhar|consultar|cadastrar|enviar|validar|criar|realizar|controlar|melhorar|avisar|disponibilizar|desabilitar|silenciar|configurar|testar|implementar|apresentar|solicitar|treinamento|credenciar|habilitar)\b/i.test(t)
-    ||/necessidade de|pendente[^s]|a ser (feito|realizado|validado|verificado|confirmado)|ficou de|será realiz/i.test(t);
+  return /\b(verificar|agendar|liberar|demonstrar|estudar|integrar|trabalhar|consultar|cadastrar|enviar|validar|criar|realizar|controlar|melhorar|avisar|disponibilizar|desabilitar|silenciar|configurar|testar|implementar|apresentar|solicitar|credenciar|habilitar|treinar|mapear|levantar|ajustar|corrigir|definir|revisar|acompanhar|monitorar|confirmar|contatar|alinha)\b/i.test(t)
+    ||/necessidade de|pendente[^s]|a ser (feito|realizado|validado|verificado|confirmado)|ficou de|será realiz|deverá|precisa (ser|verificar)|solicitar|combinou/i.test(t);
 }
 function _txArea(t){
-  if(/\b(TI|técnic|sistem|API|integra|software|hardware|firmware|tablet|rastreador|BI|acesso|login|credencial|firmware)\b/i.test(t))return 'TI';
-  if(/\b(comercial|contrato|proposta|renovação|venda|negocio)\b/i.test(t))return 'Comercial';
-  if(/\b(operaç|pátio|veículo|máquina|logística|abastecimento|manutenção|frota)\b/i.test(t))return 'Operações';
+  if(/\b(TI|técnic|sistem|API|integra[çc]|software|hardware|firmware|tablet|rastreador|BI|acesso|login|credencial|banco\s+de\s+dados|servidor|rede|wi.fi|dados)\b/i.test(t))return 'TI';
+  if(/\b(comercial|contrato|proposta|renovação|venda|negóci|expansão|precific)\b/i.test(t))return 'Comercial';
+  if(/\b(operaç|pátio|veículo|máquina|logística|abastecimento|manutenção|frota|condutor|motorista|near miss)\b/i.test(t))return 'Operações';
   return 'CS';
 }
-function _txAcaoExiste(acoes,titulo){return acoes.some(function(a){return a.titulo.toLowerCase()===titulo.toLowerCase();});}
+function _txAcaoExiste(acoes,titulo){
+  return acoes.some(function(a){return a.titulo.toLowerCase().trim()===titulo.toLowerCase().trim();});
+}
 
 function _txMostrarResultado(r){
   document.getElementById('txLoading').style.display='none';
@@ -10044,53 +10190,113 @@ function ataSalvar(aplicar){
 
 // ─── Download do Template Padrão de Ata ───
 function baixarTemplateAta(){
-  var template='ATA DE REUNIÃO\n'
-    +'═══════════════════════════════════════════════════\n'
-    +'Cliente: \n'
-    +'Data: DD/MM/AAAA\n'
-    +'Tipo: [Check-in Mensal | QBR Trimestral | Onboarding | Alinhamento Técnico | Treinamento | Outro]\n'
-    +'Duração: XX minutos\n\n'
-    +'PARTICIPANTES\n'
-    +'─────────────\n'
-    +'Cliente:\n'
-    +'  • [Nome] — [Cargo]\n'
-    +'  • [Nome] — [Cargo]\n\n'
-    +'Creare:\n'
-    +'  • [Nome] — [Cargo]\n'
-    +'  • [Nome] — [Cargo]\n\n'
-    +'ASSUNTOS DISCUTIDOS\n'
-    +'───────────────────\n'
-    +'1. [Título do assunto]\n'
-    +'   • [Ponto discutido ou decisão tomada]\n'
-    +'   • [Ponto discutido ou decisão tomada]\n\n'
-    +'2. [Título do assunto]\n'
-    +'   • [Ponto discutido ou decisão tomada]\n\n'
-    +'RISCOS / PONTOS DE ATENÇÃO\n'
-    +'──────────────────────────\n'
-    +'  • [Problema ou risco identificado]\n'
-    +'  • [Problema ou risco identificado]\n\n'
-    +'AÇÕES DEFINIDAS\n'
-    +'───────────────\n'
-    +'  • [Ação] | Responsável: [nome/equipe] | Prazo: [data ou período] | Área: CS/TI/Comercial/Técnico\n'
-    +'  • [Ação] | Responsável: [nome/equipe] | Prazo: [data ou período] | Área: CS/TI/Comercial/Técnico\n\n'
-    +'PRÓXIMOS PASSOS\n'
-    +'───────────────\n'
-    +'  • [Próximo passo]\n'
-    +'  • [Próximo passo]\n\n'
-    +'SENTIMENTO DO CLIENTE\n'
-    +'─────────────────────\n'
-    +'[Positivo | Neutro | Misto | Negativo]\n'
-    +'[Observação sobre satisfação, engajamento e expectativas do cliente]\n'
-    +'═══════════════════════════════════════════════════\n'
-    +'Registrado por: [seu nome]\n';
+  var hoje=new Date();
+  var dd=String(hoje.getDate()).padStart(2,'0');
+  var mm=String(hoje.getMonth()+1).padStart(2,'0');
+  var aaaa=hoje.getFullYear();
 
-  var blob=new Blob([template],{type:'text/plain;charset=utf-8'});
+  // Constrói o HTML em partes para evitar template strings aninhados
+  var estilos='body{font-family:Calibri,Arial,sans-serif;font-size:11pt;margin:2cm 2.5cm;color:#1a1a1a;line-height:1.5}'
+    +'.cab{background:#1e3a5f;color:#fff;padding:18pt 22pt;margin-bottom:20pt}'
+    +'.cab h1{font-size:22pt;font-weight:700;letter-spacing:1pt;margin:0 0 12pt 0;border-bottom:1pt solid rgba(255,255,255,.3);padding-bottom:10pt;color:#fff}'
+    +'.cab-row{display:table;width:100%;margin-top:8pt}'
+    +'.cab-cell{display:table-cell;width:50%;vertical-align:top}'
+    +'.lbl{font-size:9pt;text-transform:uppercase;letter-spacing:.8pt;opacity:.7;display:block}'
+    +'.campo{border-bottom:1pt solid rgba(255,255,255,.5);min-width:160pt;display:inline-block;padding-bottom:2pt;font-size:11pt}'
+    +'h2{font-size:11.5pt;font-weight:700;color:#fff;background:#1e3a5f;padding:6pt 12pt;margin:18pt 0 8pt 0}'
+    +'h2.v{background:#15803d}h2.l{background:#b45309}h2.r{background:#dc2626}h2.x{background:#7c3aed}'
+    +'.sec{border:1pt solid #d1d9f0;border-radius:4pt;padding:10pt 14pt;margin-bottom:10pt;background:#fafbff}'
+    +'.sec.r{border-left:4pt solid #dc2626}.sec.v{border-left:4pt solid #15803d}'
+    +'.g2{display:table;width:100%;border-spacing:10pt}'
+    +'.c2{display:table-cell;width:50%;vertical-align:top}'
+    +'.lbl2{font-size:10pt;font-weight:700;color:#1e3a5f;margin-bottom:6pt;display:block}'
+    +'ul{margin:0;padding:0;list-style:none}'
+    +'li{padding:4pt 0;border-bottom:1pt dotted #e0e4ef;font-size:11pt;min-height:18pt}'
+    +'li:before{content:"• ";color:#1e3a5f;font-weight:700}'
+    +'li:last-child{border-bottom:none}'
+    +'table{width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:6pt}'
+    +'th{background:#1e3a5f;color:#fff;padding:7pt 9pt;text-align:left;font-size:9.5pt}'
+    +'td{border:1pt solid #c7d2ea;padding:7pt 9pt;min-height:20pt}'
+    +'tr:nth-child(even) td{background:#f0f4ff}'
+    +'.sbox{display:table;width:100%}'
+    +'.sopt{display:table-cell;text-align:center;padding:10pt;border-radius:4pt;border:2pt solid transparent}'
+    +'.sp{background:#dcfce7;color:#15803d;border-color:#86efac}'
+    +'.sn{background:#f1f5f9;color:#475569;border-color:#cbd5e1}'
+    +'.sm{background:#fefce8;color:#b45309;border-color:#fde68a}'
+    +'.sr{background:#fee2e2;color:#dc2626;border-color:#fca5a5}'
+    +'.em{font-size:22pt;display:block;margin-bottom:4pt}'
+    +'.hint{font-size:9pt;color:#888;font-style:italic;margin:0 0 8pt 0}'
+    +'.rod{margin-top:22pt;border-top:1pt solid #d1d9f0;padding-top:10pt;font-size:9pt;color:#666;display:table;width:100%}'
+    +'.rc{display:table-cell;width:33%}';
+
+  function linha(n){var l='';for(var i=0;i<n;i++)l+='<li>&nbsp;</li>';return l;}
+  function tr5(){ return '<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>Pendente</td></tr>';}
+
+  var corpo=''
+    +'<div class="cab"><h1>ATA DE REUNIÃO</h1>'
+    +'<div class="cab-row"><div class="cab-cell"><span class="lbl">Cliente</span>'
+    +'<span class="campo">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div>'
+    +'<div class="cab-cell"><span class="lbl">Data</span>'
+    +'<span class="campo">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div></div>'
+    +'<div class="cab-row" style="margin-top:10pt"><div class="cab-cell"><span class="lbl">Tipo de Reunião</span>'
+    +'<span style="font-size:10pt">○ Check-in &nbsp; ○ QBR &nbsp; ○ Onboarding &nbsp; ○ Técnica &nbsp; ○ Outro</span></div>'
+    +'<div class="cab-cell"><span class="lbl">Duração</span>'
+    +'<span class="campo">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div></div></div>'
+
+    +'<h2>PARTICIPANTES</h2>'
+    +'<div class="g2"><div class="c2"><div class="sec"><span class="lbl2">Cliente:</span><ul>'+linha(3)+'</ul></div></div>'
+    +'<div class="c2"><div class="sec"><span class="lbl2">Creare:</span><ul>'+linha(3)+'</ul></div></div></div>'
+
+    +'<h2>ASSUNTOS DISCUTIDOS</h2>'
+    +'<p class="hint">Numere cada tópico. O sistema usa os números para importar os assuntos automaticamente.</p>'
+    +'<div class="sec">'
+    +'<p><strong>1.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong></p><ul>'+linha(2)+'</ul>'
+    +'<p style="margin-top:12pt"><strong>2.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong></p><ul>'+linha(2)+'</ul>'
+    +'<p style="margin-top:12pt"><strong>3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong></p><ul>'+linha(2)+'</ul>'
+    +'<p style="margin-top:12pt"><strong>4.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong></p><ul>'+linha(2)+'</ul>'
+    +'</div>'
+
+    +'<h2 class="r">RISCOS / PONTOS DE ATENÇÃO</h2>'
+    +'<div class="sec r"><ul>'+linha(3)+'</ul></div>'
+
+    +'<h2 class="x">AÇÕES DEFINIDAS</h2>'
+    +'<p class="hint">Preencha a tabela. O sistema importa cada linha como uma tarefa no Plano de Ação do cliente.</p>'
+    +'<table><tr><th style="width:40%">Ação / Tarefa</th><th style="width:20%">Responsável</th>'
+    +'<th style="width:14%">Prazo</th><th style="width:14%">Área</th><th style="width:12%">Status</th></tr>'
+    +tr5()+tr5()+tr5()+tr5()+tr5()+tr5()+'</table>'
+
+    +'<h2 class="v">PRÓXIMOS PASSOS</h2>'
+    +'<div class="sec v"><ul>'+linha(3)+'</ul></div>'
+
+    +'<h2>SENTIMENTO DO CLIENTE</h2>'
+    +'<div class="sbox">'
+    +'<div class="sopt sp"><span class="em">😊</span>Positivo</div>'
+    +'<div class="sopt sn"><span class="em">😐</span>Neutro</div>'
+    +'<div class="sopt sm"><span class="em">🤔</span>Misto</div>'
+    +'<div class="sopt sr"><span class="em">😟</span>Negativo</div>'
+    +'</div>'
+    +'<div class="sec" style="margin-top:8pt"><span class="lbl2">Observações sobre satisfação e expectativas:</span>'
+    +'<div style="min-height:36pt;border-bottom:1pt solid #d1d9f0">&nbsp;</div></div>'
+
+    +'<div class="rod">'
+    +'<div class="rc"><strong>Registrado por:</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>'
+    +'<div class="rc" style="text-align:center"><strong>Aprovado por:</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>'
+    +'<div class="rc" style="text-align:right">Creare Sistemas | CS Manager</div>'
+    +'</div>';
+
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    +'<head><meta charset="utf-8"><title>Ata de Reuniao Creare</title>'
+    +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->'
+    +'<style>'+estilos+'</style></head><body>'+corpo+'</body></html>';
+
+  var blob=new Blob(['﻿'+html],{type:'application/msword;charset=utf-8'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
-  a.href=url;a.download='template_ata_reuniao_creare.txt';
+  a.href=url;
+  a.download='Ata_Reuniao_Creare_'+dd+mm+aaaa+'.doc';
   document.body.appendChild(a);a.click();
   document.body.removeChild(a);URL.revokeObjectURL(url);
-  toast('Template de ata baixado!');
+  toast('Template Word baixado! Abra o .doc no Word ou LibreOffice.','ok');
 }
 
 // ═══ TEMPLATES DE E-MAIL ═══
