@@ -678,22 +678,19 @@ tr:hover td{background:#fafafa}
       <div class="lb-sub">sistemas</div>
       <div class="lb-cs"><i class="ti ti-users"></i> Customer Success Manager</div>
     </div>
-    <div class="lb-field"><label>E-mail</label><input type="text" id="lEmail" value="felipe@creare.com.br"></div>
-    <div class="lb-field"><label>Senha</label><input type="password" value="12345678"></div>
-    <div class="lb-field"><label>Perfil de acesso</label>
-      <select id="lPerfil">
-        <option value="cs">Customer Success</option>
-        <option value="admin">Administrador</option>
-        <option value="dir">Diretoria</option>
-        <option value="ops">Operações</option>
-        <option value="com">Comercial</option>
-      </select>
-    </div>
+    <div class="lb-field"><label>E-mail</label><input type="email" id="lEmail" placeholder="seu@email.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('lSenha').focus()"></div>
+    <div class="lb-field"><label>Senha</label><input type="password" id="lSenha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div id="lErro" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;padding:9px 12px;font-size:12px;color:#dc2626;text-align:center;margin-bottom:4px"></div>
     <button class="lb-btn" onclick="doLogin()"><i class="ti ti-login"></i> Entrar no sistema</button>
+    <div id="lHintLegado" style="display:none;font-size:11px;color:#888;text-align:center;margin-top:4px">Modo inicial — cadastre usuários em Configurações para ativar o login individual.</div>
     <div class="lb-hint">CS Manager v3.0 — Creare Sistemas</div>
     <div class="lb-version">Dados persistidos via localStorage · Engine v2.0</div>
   </div>
 </div>
+<script>
+// Mostra dica de modo legado se não houver usuários cadastrados
+(function(){try{const u=JSON.parse(localStorage.getItem('csm_usuarios_v3')||'[]');if(!u.length){const h=document.getElementById('lHintLegado');if(h)h.style.display='block';}}catch(e){}})();
+</script>
 
 <!-- ═══ APP ═══ -->
 <div class="sb-overlay" id="sbOverlay" onclick="toggleSidebar()"></div>
@@ -4426,17 +4423,28 @@ function trocarSenhaV3(){
   const atual=document.getElementById('cfgSenhaAtual')?.value;
   const nova=document.getElementById('cfgNovaSenha')?.value;
   const conf=document.getElementById('cfgConfirmarSenha')?.value;
-  if(!atual||!nova||!conf){toast('Preencha todos os campos.','err');return}
-  if(nova.length<8){toast('A nova senha deve ter ao menos 8 caracteres.','err');return}
-  if(nova!==conf){toast('As senhas não coincidem.','err');return}
-  // v3 is localStorage-only — just save as a config field (no server-side auth)
-  const cfg=CS_DB.getConfig();
-  cfg.senhaLocal=nova;
-  CS_DB.saveConfig(cfg);
+  if(!atual||!nova||!conf){toast('Preencha todos os campos.','err');return;}
+  if(nova.length<8){toast('A nova senha deve ter ao menos 8 caracteres.','err');return;}
+  if(nova!==conf){toast('As senhas não coincidem.','err');return;}
+  try{
+    const sessao=JSON.parse(sessionStorage.getItem('csm_sessao_v3')||'{}');
+    const email=(sessao.email||'').toLowerCase();
+    const users=_getUsuariosV3();
+    const idx=users.findIndex(u=>(u.email||'').toLowerCase()===email);
+    if(idx>=0){
+      if(users[idx].senhaHash&&users[idx].senhaHash!==_hashSenha(atual)){toast('Senha atual incorreta.','err');return;}
+      users[idx].senhaHash=_hashSenha(nova);
+      _saveUsuariosV3(users);
+    } else {
+      // Fallback modo legado
+      if(atual!==(localStorage.getItem('_senhaGlobal')||'12345678')){toast('Senha atual incorreta.','err');return;}
+      localStorage.setItem('_senhaGlobal',nova);
+    }
+  }catch(e){toast('Erro ao trocar senha.','err');return;}
   document.getElementById('cfgSenhaAtual').value='';
   document.getElementById('cfgNovaSenha').value='';
   document.getElementById('cfgConfirmarSenha').value='';
-  toast('Senha local atualizada!');
+  toast('Senha atualizada com sucesso!');
 }
 
 function calcularMRRCadastro(){
@@ -6489,7 +6497,12 @@ function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cf
   renderUsuariosV3();_aplicarRestricoesPapel();}
 function salvarConfig(){const ak=(document.getElementById('cfgAnthropicKey')?.value||'').trim();if(ak)localStorage.setItem('_anthropicKey',ak);const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||'',anthropicKey:ak};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar();_updateTbClock();}
 
-function fazerLogoutV3(){if(!confirm('Deseja encerrar a sessão?\n\nOs dados salvos não serão apagados.'))return;sessionStorage.removeItem('csm_sessao_v3');location.reload();}
+function fazerLogoutV3(){
+  if(!confirm('Deseja encerrar a sessão?\n\nOs dados salvos não serão apagados.'))return;
+  sessionStorage.removeItem('csm_sessao_v3');
+  CS_DB.clearSession();
+  location.reload();
+}
 
 // ═══ CONTROLE DE ACESSO ═══
 // Papéis: admin > gerencial > consultor
@@ -6591,7 +6604,8 @@ function salvarUsuarioV3(){
   const users=_getUsuariosV3();
   const idx=document.getElementById('v3uId').value;
   const existente=idx!==''?users[parseInt(idx)]:{};
-  const obj={nome,email,papel,ativo:existente.ativo!==false};
+  const senha=document.getElementById('v3uSenha').value;
+  const obj={nome,email,papel,ativo:existente.ativo!==false,senhaHash:senha?_hashSenha(senha):(existente.senhaHash||'')};
   if(idx!==''){users[parseInt(idx)]=obj;}else{users.push(obj);}
   _saveUsuariosV3(users);closeM('mV3Usuario');renderUsuariosV3();_aplicarRestricoesPapel();toast('Usuário salvo!');
 }
@@ -6611,24 +6625,52 @@ async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')
 <script>
 function _part2Loaded(){return true;}
 // ═══ LOGIN ═══
+function _hashSenha(s){return btoa(unescape(encodeURIComponent('csm:'+s)));}
+function _papelLabel(p){return{admin:'Administrador',gerencial:'Gerencial',consultor:'Consultor CS'}[p]||p;}
+
 function doLogin(){
   try{
-    const p=document.getElementById('lPerfil').value;
-    const e=document.getElementById('lEmail').value;
-    const nomes={cs:'Felipe Duarte',admin:'Administrador',dir:'Diretoria',ops:'Operações',com:'Comercial'};
-    const nome=nomes[p]||'Usuário';
-    const iniciais=nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    CS_DB.saveSession({perfil:p,nome,email:e});
-    const ulbl=document.getElementById('userLbl');
-    if(ulbl){const sp=ulbl.querySelector('span');if(sp)sp.textContent=`${nome} · ${p.toUpperCase()}`;}
-    const av=document.getElementById('av');if(av)av.textContent=iniciais;
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('app').style.display='flex';
-    try{initApp();}catch(ie){console.error('initApp error:',ie);_showErrOverlay(ie);}
+    const email=(document.getElementById('lEmail').value||'').trim().toLowerCase();
+    const senha=document.getElementById('lSenha').value||'';
+    const erroEl=document.getElementById('lErro');
+    const mostrarErro=msg=>{if(erroEl){erroEl.textContent=msg;erroEl.style.display='block';}};
+    if(erroEl)erroEl.style.display='none';
+    if(!email||!senha){mostrarErro('Informe e-mail e senha.');return;}
+
+    const users=_getUsuariosV3();
+    let sessao=null;
+
+    if(users.length){
+      const u=users.find(u=>(u.email||'').toLowerCase()===email);
+      if(!u){mostrarErro('E-mail não encontrado.');return;}
+      if(u.ativo===false){mostrarErro('Usuário bloqueado. Contate o administrador.');return;}
+      if(!u.senhaHash){mostrarErro('Senha não definida para este usuário. Contate o administrador.');return;}
+      if(u.senhaHash!==_hashSenha(senha)){mostrarErro('Senha incorreta.');return;}
+      sessao={perfil:u.papel,nome:u.nome,email:u.email,papel:u.papel};
+    } else {
+      // Modo legado — sem usuários cadastrados, senha global
+      const senhaGlobal=localStorage.getItem('_senhaGlobal')||'12345678';
+      if(senha!==senhaGlobal){mostrarErro('Senha incorreta.');return;}
+      sessao={perfil:'admin',nome:'Administrador',email,papel:'admin'};
+    }
+
+    _setPapelAtual(sessao.papel,sessao.nome);
+    CS_DB.saveSession(sessao);
+    _entrarApp(sessao);
   }catch(le){
     console.error('doLogin error:',le);
     alert('Erro ao entrar no sistema: '+le.message+'\n\nAbra o console (F12) para mais detalhes.');
   }
+}
+
+function _entrarApp(sessao){
+  const iniciais=(sessao.nome||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const ulbl=document.getElementById('userLbl');
+  if(ulbl){const sp=ulbl.querySelector('span');if(sp)sp.textContent=`${sessao.nome} · ${_papelLabel(sessao.papel)}`;}
+  const av=document.getElementById('av');if(av)av.textContent=iniciais;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  try{initApp();}catch(ie){console.error('initApp error:',ie);_showErrOverlay(ie);}
 }
 function _showErrOverlay(err){
   const d=document.createElement('div');
@@ -9755,13 +9797,10 @@ function teamsDisconnect(){
     // Auto-login se sessão válida existir
     const session=CS_DB.getSession();
     if(session&&session.perfil&&session.nome){
-      const iniciais=session.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      const ulbl=document.getElementById('userLbl');
-      if(ulbl){const sp=ulbl.querySelector('span');if(sp)sp.textContent=`${session.nome} · ${session.perfil.toUpperCase()}`;}
-      const av=document.getElementById('av');if(av)av.textContent=iniciais;
-      document.getElementById('loginScreen').style.display='none';
-      document.getElementById('app').style.display='flex';
-      try{initApp();}catch(ie){console.error('auto-login initApp error:',ie);}
+      // Restaura papel na sessionStorage (persiste enquanto aba aberta)
+      const papel=session.papel||session.perfil||'admin';
+      _setPapelAtual(papel,session.nome);
+      _entrarApp({...session,papel});
     }
   }catch(e){console.error('auto-login check error:',e);}
 })();
