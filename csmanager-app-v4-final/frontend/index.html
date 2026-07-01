@@ -476,6 +476,7 @@ tr:hover td{background:#fafafa}
     <div class="sb-logo"><div class="sb-mark"><div class="sb-rect"></div><div><div class="sb-brand">creare</div><div class="sb-sub">sistemas</div></div></div><div class="sb-dev">develop by FFKD</div></div>
     <div class="nav-sec">Principal</div>
     <div class="nav-item active" data-p="dashboard" onclick="nav(this,'dashboard')"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
+    <div class="nav-item" data-p="hoje" onclick="nav(this,'hoje')"><i class="ti ti-sun"></i>Painel do Dia</div>
     <div class="nav-item" data-p="clientes" onclick="nav(this,'clientes')"><i class="ti ti-building"></i>Clientes<span class="nav-badge" id="nbClientes">0</span></div>
     <div class="nav-item" data-p="novo-cliente" onclick="nav(this,'novo-cliente')"><i class="ti ti-building-plus"></i>Novo Cliente</div>
     <div class="nav-item" data-p="reunioes" onclick="nav(this,'reunioes')"><i class="ti ti-calendar"></i>Reuniões</div>
@@ -491,9 +492,12 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="grupos" onclick="nav(this,'grupos')"><i class="ti ti-building-community"></i>Grupos Econômicos</div>
     <div class="nav-item" data-p="onboarding" onclick="nav(this,'onboarding')"><i class="ti ti-rocket"></i>Onboarding</div>
     <div class="nav-item" data-p="churn" onclick="nav(this,'churn')"><i class="ti ti-trending-down"></i>Controle de Churn</div>
+    <div class="nav-item" data-p="pipeline" onclick="nav(this,'pipeline')"><i class="ti ti-arrows-right"></i>Pipeline Renovação</div>
+    <div class="nav-item" data-p="voc" onclick="nav(this,'voc')"><i class="ti ti-ear"></i>Voz do Cliente</div>
     <div class="nav-item" data-p="engajamento" onclick="nav(this,'engajamento')"><i class="ti ti-activity"></i>Engajamento</div>
     <div class="nav-item" data-p="relatorios" onclick="nav(this,'relatorios')"><i class="ti ti-file-report"></i>Relatórios</div>
     <div class="nav-sec">Ferramentas</div>
+    <div class="nav-item" data-p="emails" onclick="nav(this,'emails')"><i class="ti ti-mail"></i>Templates E-mail</div>
     <div class="nav-item" data-p="importar" onclick="nav(this,'importar')"><i class="ti ti-table-import"></i>Importar Excel</div>
     <div class="nav-item" id="navUsuarios" data-p="usuarios" onclick="nav(this,'usuarios')" style="display:none"><i class="ti ti-users"></i>Usuários</div>
     <div class="nav-item" data-p="config" onclick="nav(this,'config')"><i class="ti ti-settings"></i>Configurações</div>
@@ -502,6 +506,7 @@ tr:hover td{background:#fafafa}
       <div class="sb-foot-row" onclick="abrirWhatsAppColega()"><i class="ti ti-brand-whatsapp"></i><span>WhatsApp rápido</span></div>
       <div class="sb-foot-row" onclick="CS_DB.exportarTudo();registrarBackup()"><i class="ti ti-download"></i><span>Exportar backup</span></div>
       <div class="sb-foot-row" id="userLbl"><i class="ti ti-user-circle"></i><span>Felipe Duarte · CS</span></div>
+      <div class="sb-foot-row" onclick="fazerLogout()" style="color:var(--red)"><i class="ti ti-logout"></i><span>Sair</span></div>
     </div>
   </div>
 
@@ -509,6 +514,13 @@ tr:hover td{background:#fafafa}
     <div class="topbar">
       <div class="tb-title" id="tbTitle"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
       <div class="tb-right">
+        <div id="tbClockChip" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid var(--gray4);font-size:11.5px;color:var(--gray2);background:var(--gray6);white-space:nowrap;user-select:none;flex-shrink:0">
+          <i class="ti ti-map-pin" style="font-size:12px;color:var(--red)"></i>
+          <span id="tbCity">—</span>
+          <span style="color:var(--gray4)">·</span>
+          <span id="tbDia" style="font-size:10.5px"></span>
+          <span id="tbHora" style="font-weight:600;color:var(--black);font-size:12px;font-variant-numeric:tabular-nums"></span>
+        </div>
         <div style="position:relative">
           <input class="tb-search" id="globalSearchInput" placeholder="Buscar… (Ctrl+K)" oninput="globalSearch(this.value)" onfocus="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off">
           <div id="searchDropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;min-width:320px;background:var(--white);border:1px solid var(--gray4);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:2000;overflow:hidden;max-height:360px;overflow-y:auto"></div>
@@ -516,10 +528,17 @@ tr:hover td{background:#fafafa}
         <div class="ib" onclick="nav(document.querySelector('[data-p=alertas]'),'alertas')"><i class="ti ti-bell"></i><div class="ndot" id="ndot"></div></div>
         <div class="ib" onclick="nav(document.querySelector('[data-p=config]'),'config')"><i class="ti ti-settings"></i></div>
         <div class="av" id="av">FD</div>
+        <button onclick="fazerLogout()" title="Sair" style="display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--gray4);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--gray2);cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.background='var(--redl)';this.style.color='var(--red)';this.style.borderColor='var(--red)'" onmouseout="this.style.background='transparent';this.style.color='var(--gray2)';this.style.borderColor='var(--gray4)'"><i class="ti ti-logout" style="font-size:14px"></i>Sair</button>
       </div>
     </div>
 
     <div class="content">
+<!-- PAINEL DO DIA -->
+<div class="page" id="page-hoje">
+  <div class="ph"><h2><i class="ti ti-sun"></i>Painel do Dia</h2><span id="hojeData" style="font-size:12.5px;color:var(--gray2)"></span></div>
+  <div class="kpi-grid" id="hojeKPIs"></div>
+  <div id="hojeContent" style="margin-top:14px"></div>
+</div>
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="kpi-grid" id="dashKPIs"></div>
@@ -829,16 +848,16 @@ tr:hover td{background:#fafafa}
 <!-- EXECUTIVO -->
 <div class="page" id="page-exec">
   <div class="ph"><h2><i class="ti ti-chart-bar"></i>Dashboard Executivo</h2>
-    <select class="flt-sel"><option>Junho 2026</option><option>Q2 2026</option><option>2026</option></select>
+    <select class="flt-sel" id="execPeriodoSel" onchange="initExec()"></select>
   </div>
   <div class="kpi-grid" id="execKPIs"></div>
   <div class="exec-grid">
     <div class="card"><div class="card-ttl"><i class="ti ti-chart-donut"></i>Distribuição MRR <span class="sub">por status</span></div><div class="chart-wrap"><canvas id="mrrPie"></canvas></div></div>
-    <div class="card"><div class="card-ttl"><i class="ti ti-chart-bar"></i>Evolução MRR <span class="sub">6 meses</span></div><div class="chart-wrap"><canvas id="mrrBar"></canvas></div></div>
-    <div class="card"><div class="card-ttl"><i class="ti ti-alert-triangle"></i>Contas em risco</div><div id="riscoList"></div></div>
-    <div class="card"><div class="card-ttl"><i class="ti ti-chart-bar-off"></i>Problemas recorrentes <span class="sub">tri.</span></div><div class="chart-wrap" style="height:130px"><canvas id="probBar"></canvas></div></div>
-    <div class="card"><div class="card-ttl"><i class="ti ti-progress"></i>Evolução do Projeto <span class="sub">clientes por fase de implantação</span></div><div class="chart-wrap"><canvas id="projetoEvolChart"></canvas></div></div>
-    <div class="card"><div class="card-ttl"><i class="ti ti-calendar-stats"></i>Reuniões Realizadas <span class="sub">ao longo do ano</span></div><div class="chart-wrap"><canvas id="reunioesAnoChart"></canvas></div></div>
+    <div class="card"><div class="card-ttl"><i class="ti ti-chart-bar"></i>Evolução MRR <span class="sub" id="execMrrSub"></span></div><div class="chart-wrap"><canvas id="mrrBar"></canvas></div></div>
+    <div class="card"><div class="card-ttl"><i class="ti ti-alert-triangle"></i>Contas em risco <span class="sub" id="execRiscoSub"></span></div><div id="riscoList"></div></div>
+    <div class="card"><div class="card-ttl"><i class="ti ti-chart-bar-off"></i>VoC — Problemas <span class="sub" id="execVocSub"></span></div><div class="chart-wrap" style="height:130px"><canvas id="probBar"></canvas></div></div>
+    <div class="card"><div class="card-ttl"><i class="ti ti-progress"></i>Carteira por fase <span class="sub">snapshot atual</span></div><div class="chart-wrap"><canvas id="projetoEvolChart"></canvas></div></div>
+    <div class="card"><div class="card-ttl"><i class="ti ti-calendar-stats"></i>Reuniões realizadas <span class="sub" id="execReuSub"></span></div><div class="chart-wrap"><canvas id="reunioesAnoChart"></canvas></div></div>
   </div>
 </div>
 
@@ -855,6 +874,32 @@ tr:hover td{background:#fafafa}
     <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="reuniao_hoje,reuniao_atrasada" onclick="filtrarAlertas('reuniao_hoje,reuniao_atrasada')"><i class="ti ti-calendar-event"></i> Reuniões</button>
   </div>
   <div id="alertasList"></div>
+</div>
+
+<!-- TEMPLATES DE E-MAIL -->
+<div class="page" id="page-emails">
+  <div class="ph">
+    <h2><i class="ti ti-mail"></i>Templates de E-mail</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="baixarTemplateAta()"><i class="ti ti-file-download"></i>Template Ata Word</button>
+      <button class="btn-ghost" onclick="openM('mNovaAta')"><i class="ti ti-notes"></i>Nova Ata</button>
+      <button class="btn-ghost" onclick="openM('mTranscricao')"><i class="ti ti-file-import"></i>Importar Ata</button>
+      <button class="btn-primary" onclick="emailAbrirNovoTemplate()"><i class="ti ti-plus"></i>Novo Template</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap" id="emailFltBtns">
+    <button class="btn-ghost" id="emailFltBtn-" onclick="emailFiltrar('')" style="font-size:12px;padding:5px 12px">Todos</button>
+    <button class="btn-ghost" id="emailFltBtn-QBR" onclick="emailFiltrar('QBR')" style="font-size:12px;padding:5px 12px">QBR</button>
+    <button class="btn-ghost" id="emailFltBtn-Check-in" onclick="emailFiltrar('Check-in')" style="font-size:12px;padding:5px 12px">Check-in</button>
+    <button class="btn-ghost" id="emailFltBtn-Renovação" onclick="emailFiltrar('Renovação')" style="font-size:12px;padding:5px 12px">Renovação</button>
+    <button class="btn-ghost" id="emailFltBtn-Follow-up" onclick="emailFiltrar('Follow-up')" style="font-size:12px;padding:5px 12px">Follow-up</button>
+    <button class="btn-ghost" id="emailFltBtn-Personalizado" onclick="emailFiltrar('Personalizado')" style="font-size:12px;padding:5px 12px">Personalizado</button>
+  </div>
+  <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:10px 14px;font-size:11.5px;color:var(--gray2);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+    <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0"></i>
+    <span>Variáveis: <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{empresa}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{contato}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{responsavelCS}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{healthScore}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{nps}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{mrr}}</code> <code style="background:var(--gray4);padding:1px 5px;border-radius:3px;font-size:11px">{{dataRenovacao}}</code></span>
+  </div>
+  <div id="emailTemplatesList"></div>
 </div>
 
 <!-- IMPORTAR -->
@@ -898,7 +943,24 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>E-mail</label><input type="text" id="cfgEmail" value="felipe@creare.com.br"></div>
       <div class="fg"><label>Perfil</label><select id="cfgPerfil"><option>Customer Success</option><option>Administrador</option><option>Diretoria</option></select></div>
       <div class="fg"><label>Cargo</label><input type="text" id="cfgCargo" value="Gerente de Customer Success"></div>
+      <div class="fg"><label>Cidade sede</label><input type="text" id="cfgCidade" placeholder="Ex: Porto Alegre"></div>
     </div>
+  </div>
+
+  <!-- Card Equipe — só admin vê -->
+  <div class="card" style="margin-bottom:12px;display:none" id="configEquipeCard">
+    <div class="card-ttl"><i class="ti ti-users"></i>Equipe &amp; Acessos
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn-ghost" style="font-size:12px;padding:5px 10px" onclick="openM('mNovoUsuario')"><i class="ti ti-plus"></i>Novo usuário</button>
+        <button class="btn-ghost" style="font-size:12px;padding:5px 10px" onclick="nav(document.querySelector('[data-p=usuarios]'),'usuarios')"><i class="ti ti-arrow-right"></i>Gerenciar equipe</button>
+      </div>
+    </div>
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--gray2);line-height:1.7">
+      <strong style="color:var(--gray1)">Níveis de acesso disponíveis:</strong><br>
+      <span style="color:var(--red);font-weight:600">Administrador</span> — acesso total: gerencia usuários, vê todos os clientes, configura o sistema, acessa relatórios financeiros.<br>
+      <span style="color:var(--green);font-weight:600">Consultor CS</span> — acesso à própria carteira: vê apenas os clientes onde é responsável, registra reuniões e ações, sem acesso a usuários ou dados financeiros de outras contas.
+    </div>
+    <div id="configEquipeLista" style="display:flex;flex-direction:column;gap:6px"></div>
   </div>
   <div class="card" style="margin-bottom:12px">
     <div class="card-ttl"><i class="ti ti-bell"></i>Regras de alerta</div>
@@ -1069,6 +1131,41 @@ tr:hover td{background:#fafafa}
     <div class="card-ttl"><i class="ti ti-book"></i>Playbook de Retenção por Cenário</div>
     <div id="churnPlaybook"></div>
   </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-ttl"><i class="ti ti-clipboard-x"></i>Histórico de Cancelamentos</div>
+    <div id="churnHistoricoContent"></div>
+  </div>
+</div>
+
+<!-- PIPELINE DE RENOVAÇÃO -->
+<div class="page" id="page-pipeline">
+  <div class="ph"><h2><i class="ti ti-arrows-right"></i>Pipeline de Renovação</h2>
+    <button class="btn-ghost" onclick="renderPipeline()"><i class="ti ti-refresh"></i>Atualizar</button>
+  </div>
+  <div class="kpi-grid" id="pipelineKPIs"></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px" id="pipelineColunas"></div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-ttl"><i class="ti ti-table"></i>Todos os contratos com renovação prevista</div>
+    <table><thead><tr><th>Empresa</th><th>Tier</th><th>MRR</th><th>HS</th><th>Vencimento</th><th>Dias restantes</th><th>Probabilidade</th><th>Responsável</th><th>Ação</th></tr></thead>
+    <tbody id="pipelineTbody"></tbody></table>
+  </div>
+</div>
+
+<!-- VOZ DO CLIENTE -->
+<div class="page" id="page-voc">
+  <div class="ph">
+    <h2><i class="ti ti-ear"></i>Voz do Cliente</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="importarVoC()"><i class="ti ti-download"></i>Importar das Reuniões</button>
+      <button class="btn-primary" onclick="openM('mNovoVoC')"><i class="ti ti-plus"></i>Novo Feedback</button>
+    </div>
+  </div>
+  <div class="kpi-grid" id="vocKPIs"></div>
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+    <select class="flt-sel" id="vocFltCliente" onchange="renderVoC()"><option value="">Todos os clientes</option></select>
+    <select class="flt-sel" id="vocFltCategoria" onchange="renderVoC()"><option value="">Todas as categorias</option><option>Integração</option><option>Performance</option><option>UX/Interface</option><option>Funcionalidade</option><option>Suporte</option><option>Outro</option></select>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px" id="vocKanban"></div>
 </div>
 
 <!-- ENGAJAMENTO -->
@@ -1132,6 +1229,7 @@ tr:hover td{background:#fafafa}
   <div class="ph"><h2><i class="ti ti-users"></i>Gestão de Usuários</h2>
     <button class="btn-primary" onclick="openM('mNovoUsuario')"><i class="ti ti-plus"></i>Novo Usuário</button>
   </div>
+  <div class="kpi-grid" id="usuariosKpi" style="margin-bottom:16px"></div>
   <div id="usuariosList"></div>
 </div>
 
@@ -1205,11 +1303,28 @@ tr:hover td{background:#fafafa}
       <div class="fg form-full"><label>Nome <span class="req">*</span></label><input type="text" id="uNome" placeholder="Nome completo"></div>
       <div class="fg form-full"><label>E-mail <span class="req">*</span></label><input type="email" id="uEmail" placeholder="nome@creare.com.br"></div>
       <div class="fg"><label>Senha <span class="req">*</span></label><input type="password" id="uSenha" placeholder="mín. 8 caracteres"></div>
-      <div class="fg"><label>Perfil</label><select id="uPapel"><option value="consultor">Consultor</option><option value="admin">Admin</option></select></div>
+      <div class="fg"><label>Nível de acesso</label><select id="uPapel"><option value="consultor">Consultor CS — carteira própria</option><option value="admin">Administrador — acesso total</option></select></div>
     </div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="closeM('mNovoUsuario')">Cancelar</button>
       <button class="btn-primary" onclick="criarUsuario()"><i class="ti ti-user-plus"></i>Criar usuário</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR USUÁRIO -->
+<div class="modal-ov" id="mEditarUsuario">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-ttl"><span><i class="ti ti-user-edit"></i>Editar Usuário</span><span class="modal-close" onclick="closeM('mEditarUsuario')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="euId">
+    <div class="form-g2">
+      <div class="fg form-full"><label>Nome <span class="req">*</span></label><input type="text" id="euNome" placeholder="Nome completo"></div>
+      <div class="fg"><label>Nível de acesso</label><select id="euPapel"><option value="consultor">Consultor CS — carteira própria</option><option value="admin">Administrador — acesso total</option></select></div>
+      <div class="fg"><label>Nova senha <span style="font-size:11px;color:var(--gray3)">(deixe em branco para manter)</span></label><input type="password" id="euSenha" placeholder="mín. 8 caracteres"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mEditarUsuario')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarEdicaoUsuario()"><i class="ti ti-device-floppy"></i>Salvar</button>
     </div>
   </div>
 </div>
@@ -1472,6 +1587,241 @@ tr:hover td{background:#fafafa}
     </div>
   </div>
 </div>
+<!-- MODAL VER ATA -->
+<div class="modal-ov" id="mVerAta">
+  <div class="modal" style="max-width:680px;max-height:93vh;overflow-y:auto">
+    <div class="modal-ttl" style="position:sticky;top:0;background:var(--white);z-index:2;padding-bottom:12px;border-bottom:1px solid var(--gray4);margin-bottom:14px">
+      <span><i class="ti ti-notes"></i>Ata de Reunião</span>
+      <span class="modal-close" onclick="closeM('mVerAta')"><i class="ti ti-x"></i></span>
+    </div>
+    <div id="verAtaConteudo"></div>
+    <div class="btn-row" style="position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--gray4);padding-top:12px;margin-top:8px">
+      <button class="btn-ghost" onclick="closeM('mVerAta')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DEVOLUTIVA -->
+<div class="modal-ov" id="mDevolutiva">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-ttl"><span id="mDevTtl"><i class="ti ti-send"></i>Solicitar Devolutiva</span><span class="modal-close" onclick="closeM('mDevolutiva')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="devAcaoId">
+    <input type="hidden" id="devTipo">
+    <div id="devFormSol">
+      <div class="fg" style="margin-bottom:8px"><label>Área responsável</label><select id="devArea"><option>CS</option><option>Operações</option><option>TI</option><option>Comercial</option><option>Infra</option><option>Dados</option><option>Técnico</option></select></div>
+      <div class="fg"><label>Mensagem / Contexto</label><textarea id="devMensagem" placeholder="Descreva o problema e o que precisa da área responsável resolver..." style="min-height:100px"></textarea></div>
+    </div>
+    <div id="devFormResp" style="display:none">
+      <div class="fg"><label>Devolutiva / Resposta recebida</label><textarea id="devResposta" placeholder="Registre a resposta ou feedback recebido..." style="min-height:100px"></textarea></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mDevolutiva')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarDevolutiva()"><i class="ti ti-device-floppy"></i>Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR ATA / TRANSCRIÇÃO -->
+<div class="modal-ov" id="mTranscricao">
+  <div class="modal" style="max-width:780px;max-height:92vh;overflow-y:auto">
+    <div class="modal-ttl" style="position:sticky;top:0;background:var(--white);z-index:1;padding-bottom:12px;border-bottom:1px solid var(--gray4);margin-bottom:14px">
+      <span><i class="ti ti-file-import" style="color:var(--blue);margin-right:6px"></i>Importar Ata / Transcrição</span>
+      <button class="modal-close" onclick="closeM('mTranscricao')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="txEtapa1">
+      <div style="display:flex;gap:0;border:1px solid var(--gray4);border-radius:8px;overflow:hidden;margin-bottom:12px">
+        <button id="txTipoAta" onclick="txMudarTipo('ata')" style="flex:1;padding:10px;font-size:12.5px;font-weight:600;border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-notes"></i>Ata de Reunião</button>
+        <button id="txTipoTransc" onclick="txMudarTipo('transcricao')" style="flex:1;padding:10px;font-size:12.5px;font-weight:600;border:none;background:var(--gray5);color:var(--gray2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-microphone"></i>Transcrição de Áudio</button>
+      </div>
+      <input type="hidden" id="txTipo" value="ata">
+      <div class="form-g2" style="margin-bottom:10px">
+        <div class="fg"><label>Cliente <span class="req">*</span></label><select id="txCliente"></select></div>
+        <div class="fg"><label>Data da reunião</label><input type="date" id="txData"></div>
+      </div>
+      <div class="fg" style="margin-bottom:12px">
+        <label>Título / Pauta <span style="font-weight:400;color:var(--gray3)">(opcional)</span></label>
+        <input type="text" id="txTitulo" placeholder="Ex: Check-in mensal · QBR Q2 · Alinhamento de implantação">
+      </div>
+      <div style="display:flex;gap:0;border:1px solid var(--gray4);border-radius:8px 8px 0 0;overflow:hidden">
+        <button id="txTabColar" onclick="txMudarTab('colar')" style="flex:1;padding:9px;font-size:12px;font-weight:600;border:none;background:var(--blue);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px"><i class="ti ti-clipboard-text"></i>Colar texto</button>
+        <button id="txTabUpload" onclick="txMudarTab('upload')" style="flex:1;padding:9px;font-size:12px;font-weight:600;border:none;background:var(--gray5);color:var(--gray2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px"><i class="ti ti-file-upload"></i>Upload de arquivo</button>
+      </div>
+      <div id="txPanelColar" style="border:1px solid var(--gray4);border-top:none;border-radius:0 0 8px 8px;padding:10px">
+        <textarea id="txTexto" rows="10" style="border:none;outline:none;width:100%;resize:vertical;font-size:12.5px;line-height:1.7;font-family:inherit;background:transparent" placeholder="Cole aqui o conteúdo da ata…&#10;&#10;O sistema extrai automaticamente: participantes, tópicos, ações, riscos e próximos passos — sem IA externa."></textarea>
+      </div>
+      <div id="txPanelUpload" style="display:none;border:1px solid var(--gray4);border-top:none;border-radius:0 0 8px 8px;padding:20px;text-align:center">
+        <input type="file" id="txArquivo" accept=".pdf,.txt,.md" style="display:none" onchange="txLerArquivo(event)">
+        <div onclick="document.getElementById('txArquivo').click()" style="cursor:pointer;border:2px dashed var(--gray4);border-radius:8px;padding:28px;color:var(--gray2)" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--gray4)'">
+          <i class="ti ti-files" style="font-size:36px;display:block;margin-bottom:8px;color:var(--gray3)"></i>
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">Clique para selecionar</div>
+          <div style="display:flex;justify-content:center;gap:6px">
+            <span style="background:#fee2e2;color:#dc2626;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700">.PDF</span>
+            <span style="background:#dbeafe;color:#1d4ed8;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700">.TXT</span>
+            <span style="background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700">.MD</span>
+          </div>
+        </div>
+        <div id="txArquivoNome" style="font-size:12px;color:var(--blue);margin-top:8px;font-weight:600;min-height:18px"></div>
+      </div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn-ghost" onclick="closeM('mTranscricao')">Cancelar</button>
+        <button class="btn-primary" id="txBtnProcessar" onclick="txProcessar()"><i class="ti ti-file-search"></i>Analisar Ata</button>
+      </div>
+    </div>
+    <div id="txEtapa2" style="display:none">
+      <div id="txSentimentoBanner" style="border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <span id="txSentimentoIcon" style="font-size:22px"></span>
+        <div><div id="txSentimentoLabel" style="font-size:13px;font-weight:700"></div><div id="txSentimentoDesc" style="font-size:12px;opacity:.85;margin-top:1px"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-ttl"><i class="ti ti-notes"></i>Resumo executivo</div>
+        <div id="txResumo" style="font-size:13px;line-height:1.8;color:var(--gray1)"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="card" style="margin-bottom:0"><div class="card-ttl"><i class="ti ti-list-check"></i>Pontos-chave</div><ul id="txPontos" style="margin:0;padding-left:18px;font-size:12.5px;line-height:2;color:var(--gray1)"></ul></div>
+        <div class="card" style="margin-bottom:0"><div class="card-ttl" style="color:var(--red)"><i class="ti ti-alert-triangle"></i>Riscos / Atenção</div><ul id="txRiscos" style="margin:0;padding-left:18px;font-size:12.5px;line-height:2;color:var(--gray1)"></ul></div>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-ttl"><i class="ti ti-layout-kanban"></i>Cards de Ação a criar <span id="txAcoesCount" class="sub"></span></div>
+        <div style="font-size:11px;color:var(--gray2);margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-info-circle"></i>Marque as ações para criar cards no Kanban vinculados a esta ata.</div>
+        <div id="txAcoesList"></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-ttl"><i class="ti ti-arrow-right"></i>Próximos passos</div>
+        <div id="txProximos" style="font-size:13px;line-height:1.8;color:var(--gray1)"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-ghost" onclick="txVoltarEtapa1()"><i class="ti ti-arrow-left"></i>Voltar</button>
+        <button class="btn-ghost" id="txBtnMelhorar" style="display:none" onclick="txProcessarComClaude()"><i class="ti ti-robot"></i>Melhorar com Claude</button>
+        <button class="btn-primary" onclick="txAplicar()"><i class="ti ti-check"></i>Aplicar ao sistema</button>
+      </div>
+    </div>
+    <div id="txLoading" style="display:none;text-align:center;padding:48px 24px">
+      <div style="width:44px;height:44px;border:3px solid var(--gray4);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
+      <div id="txLoadingTitulo" style="font-size:14px;font-weight:600;color:var(--gray1);margin-bottom:6px">Analisando ata…</div>
+      <div id="txLoadingDesc" style="font-size:12px;color:var(--gray2)">Extraindo tópicos, ações e próximos passos</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVA ATA ESTRUTURADA -->
+<div class="modal-ov" id="mNovaAta">
+  <div class="modal" style="max-width:740px;max-height:92vh;overflow-y:auto">
+    <div class="modal-ttl" style="position:sticky;top:0;background:var(--white);z-index:1;padding-bottom:12px;border-bottom:1px solid var(--gray4);margin-bottom:14px">
+      <span><i class="ti ti-notes" style="color:var(--blue);margin-right:6px"></i>Nova Ata de Reunião</span>
+      <button class="modal-close" onclick="closeM('mNovaAta')"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Identificação</div>
+      <div class="form-g2" style="margin-bottom:8px">
+        <div class="fg" style="margin:0"><label>Cliente <span class="req">*</span></label><select id="ataCliente"></select></div>
+        <div class="fg" style="margin:0"><label>Data da reunião <span class="req">*</span></label><input type="date" id="ataData"></div>
+      </div>
+      <div class="form-g2">
+        <div class="fg" style="margin:0"><label>Tipo de reunião</label><select id="ataTipo"><option>Check-in Mensal</option><option>QBR Trimestral</option><option>Onboarding</option><option>Alinhamento Técnico</option><option>Reunião Comercial</option><option>Treinamento</option><option>Outro</option></select></div>
+        <div class="fg" style="margin:0"><label>Duração (minutos)</label><input type="number" id="ataDuracao" placeholder="Ex: 60" min="5" max="480"></div>
+      </div>
+    </div>
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Participantes</div>
+      <div class="form-g2">
+        <div class="fg" style="margin:0"><label>Do cliente</label><textarea id="ataPartCliente" rows="2" placeholder="João Vieira — Coordenador&#10;Anderson Ira — Responsável TI" style="font-size:12px;resize:vertical"></textarea></div>
+        <div class="fg" style="margin:0"><label>Da Creare</label><textarea id="ataPartCreare" rows="2" placeholder="Núbia Schlemer — Diretora CS&#10;Felipe Duarte — CS" style="font-size:12px;resize:vertical"></textarea></div>
+      </div>
+    </div>
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Assuntos discutidos</div>
+      <div id="ataAssuntosLista"></div>
+      <button class="btn-ghost" onclick="ataAdicionarAssunto()" style="margin-top:6px;font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i>Adicionar assunto</button>
+    </div>
+    <div class="fg" style="margin-bottom:14px"><label>Riscos / Pontos de atenção <span style="font-weight:400;color:var(--gray3)">(um por linha)</span></label><textarea id="ataRiscos" rows="3" placeholder="Problema na unidade de São Francisco com documentação técnica"></textarea></div>
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Ações definidas</div>
+      <div id="ataAcoesLista"></div>
+      <button class="btn-ghost" onclick="ataAdicionarAcao()" style="margin-top:6px;font-size:12px;padding:6px 12px"><i class="ti ti-plus"></i>Adicionar ação</button>
+    </div>
+    <div class="fg" style="margin-bottom:14px"><label>Próximos passos <span style="font-weight:400;color:var(--gray3)">(um por linha)</span></label><textarea id="ataProximos" rows="3" placeholder="Agendar treinamento presencial&#10;Verificar disponibilidade com João"></textarea></div>
+    <div class="form-g2" style="margin-bottom:16px">
+      <div class="fg" style="margin:0"><label>Sentimento do cliente</label><select id="ataSentimento"><option value="positivo">Positivo</option><option value="neutro" selected>Neutro</option><option value="misto">Misto</option><option value="negativo">Negativo</option></select></div>
+      <div class="fg" style="margin:0"><label>Observação</label><input type="text" id="ataSentimentoObs" placeholder="Ex: Alta expectativa da diretoria"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mNovaAta')">Cancelar</button>
+      <button class="btn-ghost" onclick="ataSalvar(false)"><i class="ti ti-device-floppy"></i>Salvar rascunho</button>
+      <button class="btn-primary" onclick="ataSalvar(true)"><i class="ti ti-check"></i>Salvar e aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MOTIVO DE CHURN -->
+<div class="modal-ov" id="mMotivoChurn">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-ttl"><span><i class="ti ti-alert-triangle" style="color:var(--red);margin-right:6px"></i>Registrar motivo do cancelamento</span></div>
+    <input type="hidden" id="mChurnClienteId">
+    <div style="background:var(--redl);border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--red);margin-bottom:14px;line-height:1.5"><strong id="mChurnEmpresaNome"></strong> foi marcado como <strong>Cancelado</strong>. Registre o motivo para análise futura.</div>
+    <div class="form-g2">
+      <div class="fg"><label>Categoria do motivo <span class="req">*</span></label><select id="mChurnCategoria"><option value="">— Selecione —</option><option>Produto / Funcionalidade</option><option>Preço / Custo</option><option>Concorrência</option><option>Suporte / Atendimento</option><option>Falência / Encerramento</option><option>Fusão / Aquisição</option><option>Insatisfação Geral</option><option>Outro</option></select></div>
+      <div class="fg"><label>MRR perdido</label><input type="text" id="mChurnMRR" readonly style="background:var(--gray5);cursor:default"></div>
+    </div>
+    <div class="fg"><label>Detalhamento <span style="font-weight:400;color:var(--gray2)">(opcional)</span></label><textarea id="mChurnMotivo" rows="3" placeholder="Descreva o motivo com mais detalhes..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mMotivoChurn')">Pular</button>
+      <button class="btn-primary" onclick="salvarMotivoChurn()"><i class="ti ti-device-floppy"></i>Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO/EDITAR TEMPLATE DE E-MAIL -->
+<div class="modal-ov" id="mEmailTemplate">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-ttl"><span id="mEmailTemplateTtl">Novo Template</span><button class="modal-close" onclick="closeM('mEmailTemplate')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="emailTplId">
+    <div class="form-g2">
+      <div class="fg"><label>Nome do template <span class="req">*</span></label><input type="text" id="emailTplNome" placeholder="Ex: QBR Trimestral"></div>
+      <div class="fg"><label>Categoria</label><select id="emailTplCategoria"><option>QBR</option><option>Check-in</option><option>Renovação</option><option>Follow-up</option><option>Personalizado</option></select></div>
+    </div>
+    <div class="fg"><label>Assunto <span class="req">*</span></label><input type="text" id="emailTplAssunto" placeholder="Use {{empresa}}, {{contato}}, etc."></div>
+    <div class="fg"><label>Corpo do e-mail <span class="req">*</span></label><textarea id="emailTplCorpo" rows="11" style="font-family:monospace;font-size:12px;resize:vertical" placeholder="Escreva o corpo. Use {{empresa}}, {{contato}}, {{responsavelCS}}, {{healthScore}}, {{nps}}, {{mrr}}, {{dataRenovacao}} para personalizar."></textarea></div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mEmailTemplate')">Cancelar</button>
+      <button class="btn-primary" onclick="emailSalvarTemplate()"><i class="ti ti-device-floppy"></i>Salvar template</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMPOR E-MAIL -->
+<div class="modal-ov" id="mComporEmail">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-ttl"><span><i class="ti ti-send" style="margin-right:6px"></i>Compor — <span id="mComporTplNome" style="color:var(--blue)"></span></span><button class="modal-close" onclick="closeM('mComporEmail')"><i class="ti ti-x"></i></button></div>
+    <div class="fg" style="margin-bottom:12px"><label>Selecionar cliente</label><select id="emailComporCliente" onchange="emailAtualizarPreview()"><option value="">— Selecione o cliente —</option></select></div>
+    <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Prévia do e-mail</div>
+      <div style="font-size:12px;margin-bottom:8px;display:flex;gap:6px;align-items:baseline"><span style="font-weight:700;color:var(--gray2);width:60px;flex-shrink:0">Assunto:</span><span id="emailPreviewAssunto" style="color:var(--black);font-weight:500"></span></div>
+      <div style="border-top:1px solid var(--gray4);padding-top:10px;font-size:12.5px;color:var(--gray1);line-height:1.85;white-space:pre-wrap;max-height:280px;overflow-y:auto" id="emailPreviewCorpo"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="emailCopiarAssunto()"><i class="ti ti-copy"></i>Assunto</button>
+      <button class="btn-ghost" onclick="emailCopiarTexto()"><i class="ti ti-copy"></i>Corpo</button>
+      <button class="btn-primary" onclick="emailAbrirMailto()"><i class="ti ti-mail"></i>Abrir no e-mail</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO VoC -->
+<div class="modal-ov" id="mNovoVoC">
+  <div class="modal">
+    <div class="modal-ttl"><span><i class="ti ti-ear"></i>Registrar Feedback</span><span class="modal-close" onclick="closeM('mNovoVoC')"><i class="ti ti-x"></i></span></div>
+    <div class="form-g2">
+      <div class="fg"><label>Cliente *</label><select id="vocCliente"></select></div>
+      <div class="fg"><label>Data</label><input type="date" id="vocData"></div>
+      <div class="fg"><label>Categoria</label><select id="vocCategoria"><option>Integração</option><option>Performance</option><option>UX/Interface</option><option>Funcionalidade</option><option>Suporte</option><option>Outro</option></select></div>
+      <div class="fg"><label>Prioridade</label><select id="vocPrioridade"><option value="alta">Alta</option><option value="media" selected>Média</option><option value="baixa">Baixa</option></select></div>
+      <div class="fg form-full"><label>Feedback / Solicitação *</label><textarea id="vocTexto" rows="3" placeholder="Descreva a melhoria ou solicitação identificada na conversa com o cliente..."></textarea></div>
+      <div class="fg form-full"><label>Notas internas</label><textarea id="vocNotas" rows="2" placeholder="Contexto, urgência, frequência desta solicitação..."></textarea></div>
+    </div>
+    <div class="btn-row"><button class="btn-ghost" onclick="closeM('mNovoVoC')">Cancelar</button><button class="btn-primary" onclick="salvarVoC()"><i class="ti ti-check"></i>Salvar</button></div>
+  </div>
+</div>
+
 <script src="api.js"></script>
 <script>
 // ═══ CS_DB agora vem de api.js (fala com o backend real) ═══
@@ -1487,8 +1837,8 @@ function hsColor(n){return n>=70?'var(--green)':n>=40?'var(--yellow)':'var(--red
 function tierB(t){return{A:'tier-a',B:'tier-b',C:'tier-c'}[t]||'tier-c'}
 function npsGrupo(n){return n>=9?{g:'Promotor',c:'var(--green)',bg:'var(--gbg)'}:n>=7?{g:'Neutro',c:'var(--yellow)',bg:'var(--ybg)'}:{g:'Detrator',c:'var(--red)',bg:'var(--redl)'}}
 function npsColor(n){return n>=50?'var(--green)':n>=0?'var(--blue)':'var(--red)'}
-const PTITLES={dashboard:'Dashboard',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',engajamento:'Métricas de Engajamento',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios',usuarios:'Gestão de Usuários'};
-const PICONS={dashboard:'ti-layout-dashboard',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',engajamento:'ti-activity',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report',usuarios:'ti-users'};
+const PTITLES={dashboard:'Dashboard',hoje:'Painel do Dia',clientes:'Gestão de Clientes','novo-cliente':'Novo Cliente',reunioes:'Reuniões',planos:'Planos de Ação',agenda:'Agenda',timeline:'Timeline',nps:'NPS / Satisfação',exec:'Dashboard Executivo',alertas:'Central de Alertas',importar:'Importar Excel',config:'Configurações',onboarding:'Onboarding',churn:'Controle de Churn',pipeline:'Pipeline de Renovação',voc:'Voz do Cliente',engajamento:'Métricas de Engajamento',emails:'Templates de E-mail',cliente360:'Dashboard do Cliente',grupos:'Grupos Econômicos',relatorios:'Relatórios',usuarios:'Gestão de Usuários'};
+const PICONS={dashboard:'ti-layout-dashboard',hoje:'ti-sun',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',pipeline:'ti-arrows-right',voc:'ti-ear',engajamento:'ti-activity',emails:'ti-mail',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report',usuarios:'ti-users'};
 
 // ═══ NAV ═══
 function nav(el,p){
@@ -1497,16 +1847,20 @@ function nav(el,p){
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('tbTitle').innerHTML=`<i class="ti ${PICONS[p]}"></i>${PTITLES[p]}`;
-  if(p==='exec')setTimeout(initExec,80);
+  if(p==='exec'){_populateExecSelect();setTimeout(initExec,80);}
   if(p==='nps'){renderNPSPage();populateNPSClienteSelect();}
   if(p==='alertas')renderAlertas();
   if(p==='timeline')populateTlSelect();
   if(p==='planos')renderKanban();
   if(p==='reunioes'){renderReunioes();renderReunioesAgendadas();}
   if(p==='clientes')renderClientes();
-  if(p==='config')loadConfig();
+  if(p==='config'){loadConfig();populateCSSelects();}
   if(p==='onboarding'){populateObSelect();renderOnboarding();}
-  if(p==='churn')renderChurn();
+  if(p==='hoje')renderHoje();
+  if(p==='churn'){renderChurn();renderHistoricoChurn();}
+  if(p==='pipeline')renderPipeline();
+  if(p==='voc'){populateVoCSelect();renderVoC();}
+  if(p==='emails')renderEmailTemplates();
   if(p==='engajamento'){populateEngSelect();renderEngajamento();}
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='grupos')renderGrupos();
@@ -1518,6 +1872,9 @@ function openM(id){
   if(id==='mReuniao')populateReuniaoSelect();
   if(id==='mNPS')populateNPSSelect();
   if(id==='mAcao')populateAcaoSelect();
+  if(id==='mTranscricao')_txAbrirModal();
+  if(id==='mNovaAta')_ataAbrirModal();
+  if(id==='mNovoVoC')populateVoCSelect();
   document.getElementById(id).classList.add('open');
 }
 function closeM(id){document.getElementById(id).classList.remove('open')}
@@ -1781,6 +2138,7 @@ let kanbanMode=true;
 function toggleKanban(){kanbanMode=!kanbanMode;document.getElementById('kanbanView').style.display=kanbanMode?'flex':'none';document.getElementById('listaView').style.display=kanbanMode?'none':'block';document.getElementById('kanbanLbl').textContent=kanbanMode?'Lista':'Kanban';if(!kanbanMode)renderAcoesList()}
 function renderKanban(){
   const ac=CS_DB.getAllAcoes();const cols=['Pendente','Em Andamento','Em Revisão','Concluído'];const heads=['Pendente','Em Andamento','Em Revisão','Concluído'];const headCls=['rh','gh','dh','xh'];
+  const hoje=new Date();hoje.setHours(0,0,0,0);
   document.getElementById('kanbanView').innerHTML=cols.map((col,ci)=>{
     const items=ac.filter(a=>a.status===col);
     return`<div class="k-col" ondragover="event.preventDefault();this.classList.add('k-col-over')" ondragleave="this.classList.remove('k-col-over')" ondrop="dropAcaoNaColuna(event,'${col}',this)"><div class="k-col-h ${headCls[ci]}">${heads[ci]}<span class="k-cnt">${items.length}</span></div><div class="k-body">${items.map(a=>{
@@ -1789,7 +2147,17 @@ function renderKanban(){
       const pf=a.status==='Concluído'?'done':'';
       const av=(a.responsavel||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       const clickHandler=isReuniao?`abrirTratarReuniaoAgendada('${a.id}')`:`abrirDetalhesAcao('${a.id}')`;
-      return`<div class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${isReuniao?'border-left:3px solid var(--blue)':''}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;font-size:10px;color:${new Date(a.prazoISO)<new Date()&&a.status!=='Concluído'?'var(--red)':'var(--gray2)'}">${a.prazo||''}</span></div></div>`}).join('')}</div></div>`;
+      // Prazo visual
+      let prazoTag='',cardBorder='';
+      if(a.prazoISO&&a.status!=='Concluído'){
+        const pd=new Date(a.prazoISO);pd.setHours(0,0,0,0);
+        const diff=Math.round((pd-hoje)/86400000);
+        if(diff<0){prazoTag=`<span style="background:var(--redl);color:var(--red);font-size:9.5px;padding:1px 5px;border-radius:4px;font-weight:700;white-space:nowrap"><i class="ti ti-alert-triangle"></i> ${Math.abs(diff)}d atrasado</span>`;cardBorder='border-left:3px solid var(--red)';}
+        else if(diff===0){prazoTag=`<span style="background:var(--ybg);color:var(--ytxt);font-size:9.5px;padding:1px 5px;border-radius:4px;font-weight:700;white-space:nowrap"><i class="ti ti-clock"></i> Vence hoje</span>`;cardBorder='border-left:3px solid var(--yellow)';}
+        else if(diff<=3){prazoTag=`<span style="background:var(--ybg);color:var(--ytxt);font-size:9.5px;padding:1px 5px;border-radius:4px;white-space:nowrap"><i class="ti ti-clock"></i> ${diff}d</span>`;cardBorder='border-left:3px solid var(--yellow)';}
+        else{prazoTag=`<span style="font-size:10px;color:var(--gray2)">${a.prazo||''}</span>`;}
+      }else if(a.prazo&&a.status!=='Concluído'){prazoTag=`<span style="font-size:10px;color:var(--gray2)">${a.prazo}</span>`;}
+      return`<div class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${isReuniao?'border-left:3px solid var(--blue)':cardBorder}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto">${prazoTag}</span></div></div>`}).join('')}</div></div>`;
   }).join('');
 }
 let acaoArrastandoId=null;
@@ -2558,59 +2926,166 @@ async function dispensarAlerta(){
 }
 
 // ═══ EXECUTIVO ═══
-let execDone=false;
+// ─── Dashboard Executivo ────────────────────────
+let _execCharts={};
+function _destroyExecCharts(){Object.values(_execCharts).forEach(c=>{try{c.destroy();}catch(e){}});_execCharts={};}
+
+function _populateExecSelect(){
+  const sel=document.getElementById('execPeriodoSel');if(!sel||sel.options.length)return;
+  const hoje=new Date();const y=hoje.getFullYear();const q=Math.floor(hoje.getMonth()/3)+1;
+  const opts=[];
+  for(let i=0;i<6;i++){
+    const d=new Date(y,hoje.getMonth()-i,1);
+    const val=`mes:${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const lbl=d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
+    opts.push(`<option value="${val}">${lbl}</option>`);
+  }
+  opts.push(`<option disabled>─────</option>`);
+  opts.push(`<option value="q:${y}-${q}">Q${q} ${y} (atual)</option>`);
+  const pq=q>1?{y,q:q-1}:{y:y-1,q:4};
+  opts.push(`<option value="q:${pq.y}-${pq.q}">Q${pq.q} ${pq.y}</option>`);
+  opts.push(`<option disabled>─────</option>`);
+  opts.push(`<option value="ano:${y}">${y} — ano completo</option>`);
+  opts.push(`<option value="ano:${y-1}">${y-1} — ano completo</option>`);
+  sel.innerHTML=opts.join('');
+}
+
+function _execGetPeriodo(value){
+  const hoje=new Date();
+  if(value&&value.startsWith('mes:')){
+    const[yStr,mStr]=value.slice(4).split('-');const y=+yStr,m=+mStr;
+    return{inicio:new Date(y,m-1,1),fim:new Date(y,m,0,23,59,59),tipo:'mes',meses:[{y,m}]};
+  }
+  if(value&&value.startsWith('q:')){
+    const[yStr,qStr]=value.slice(2).split('-');const y=+yStr,q=+qStr,mi=(q-1)*3;
+    return{inicio:new Date(y,mi,1),fim:new Date(y,mi+3,0,23,59,59),tipo:'trimestre',meses:[...Array(3)].map((_,i)=>({y,m:mi+i+1}))};
+  }
+  if(value&&value.startsWith('ano:')){
+    const y=+value.slice(4);
+    return{inicio:new Date(y,0,1),fim:new Date(y,11,31,23,59,59),tipo:'ano',meses:[...Array(12)].map((_,i)=>({y,m:i+1}))};
+  }
+  const y=hoje.getFullYear(),m=hoje.getMonth()+1;
+  return{inicio:new Date(y,m-1,1),fim:new Date(y,m,0,23,59,59),tipo:'mes',meses:[{y,m}]};
+}
+
 function initExec(){
-  if(execDone)return;execDone=true;
-  const cl=CS_DB.getClientes();const npsAll=CS_DB.getAllNPS();const calc=CS_DB.calcNPS(npsAll);const z=CS_DB.npsZona(calc.score);
+  _destroyExecCharts();
+  const sel=document.getElementById('execPeriodoSel');
+  if(!sel||!sel.options.length)_populateExecSelect();
+  const periodo=_execGetPeriodo(sel?.value);
+  const parseMrr=v=>parseFloat(String(v||'0').replace(/[^\d,.-]/g,'').replace(',','.'))||0;
+  const cl=CS_DB.getClientes();
+  const reunioesAll=CS_DB.getAllReunioes();
+  const npsAll=CS_DB.getAllNPS();
+
+  // Filtros por período
+  const npsNoP=npsAll.filter(n=>{const d=new Date(n.dataISO||n.data||0);return d>=periodo.inicio&&d<=periodo.fim;});
+  const reuNoP=reunioesAll.filter(r=>{const d=new Date(r.dataISO||r.data||0);return d>=periodo.inicio&&d<=periodo.fim;});
+
+  // NPS
+  const calcNPS=CS_DB.calcNPS(npsNoP.length?npsNoP:npsAll);
+  const z=CS_DB.npsZona(calcNPS.score);
+
+  // Churn rate
+  const churns=CS_DB.get('churns')||[];
+  const churnsNoP=churns.filter(c=>{const d=new Date(c.registradoEm||0);return d>=periodo.inicio&&d<=periodo.fim;});
+  const totalAtivos=cl.filter(c=>c.status!=='Cancelado').length||1;
+  const churnRate=churnsNoP.length/totalAtivos*100;
+
+  // Taxa de renovação
+  const clRenNoP=cl.filter(c=>{if(!c.dataRenovacao)return false;const d=new Date(c.dataRenovacao);return d>=periodo.inicio&&d<=periodo.fim;});
+  const renOk=clRenNoP.filter(c=>c.status==='Ativo'||c.status==='Expansão').length;
+  const taxaRenov=clRenNoP.length>0?Math.round(renOk/clRenNoP.length*100):null;
+
+  // HS médio
+  const hsMedio=cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):70;
+
+  // Subtítulo período
+  const subPeriodo=periodo.tipo==='mes'
+    ?new Date(periodo.inicio).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})
+    :periodo.tipo==='trimestre'
+    ?`Q${Math.floor(new Date(periodo.inicio).getMonth()/3)+1} ${new Date(periodo.inicio).getFullYear()}`
+    :String(new Date(periodo.inicio).getFullYear());
+
+  // KPIs
   document.getElementById('execKPIs').innerHTML=`
-    <div class="kpi green"><div class="kpi-lbl">Taxa de Renovação</div><div class="kpi-val">94%</div><div class="kpi-sub up">Meta: 90% ✓</div></div>
-    <div class="kpi blue"><div class="kpi-lbl">NPS Médio</div><div class="kpi-val" style="color:${z.cor||'var(--gray2)'}">${calc.score??'—'}</div><div class="kpi-sub ${calc.score>=50?'up':'dn'}">${z.label}</div></div>
-    <div class="kpi red"><div class="kpi-lbl">Churn Rate</div><div class="kpi-val">4.2%</div><div class="kpi-sub dn">Meta: abaixo 3%</div></div>
-    <div class="kpi gray"><div class="kpi-lbl">HS Médio</div><div class="kpi-val" style="color:${hsColor(cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):70)}">${cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):70}</div><div class="kpi-sub up">Carteira</div></div>`;
-  document.getElementById('riscoList').innerHTML=cl.filter(c=>c.status==='Em Risco').map(c=>`<div class="risk-row"><div><div class="risk-co">${c.empresa}</div><div class="risk-sub">HS: ${c.healthScore} · NPS: ${c.ultimoNPS??'—'} · MRR: ${c.mrr}</div></div><span class="badge b-risco" style="margin-left:auto">Crítico</span></div>`).join('');
-  const c1=document.getElementById('mrrPie')?.getContext('2d');
-  if(c1)new Chart(c1,{type:'doughnut',data:{labels:['Saudável','Atenção','Risco','Implant.'],datasets:[{data:[cl.filter(c=>c.healthScore>=70).length,cl.filter(c=>c.healthScore>=40&&c.healthScore<70).length,cl.filter(c=>c.status==='Em Risco').length,cl.filter(c=>c.status==='Implantação').length],backgroundColor:['#00B478','#E0A800','#D10000','#1E5AE0'],borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,animateScale:true,duration:1000,easing:'easeOutQuart'},plugins:{legend:{display:false}}}});
+    <div class="kpi ${taxaRenov===null?'gray':taxaRenov>=90?'green':'red'}">
+      <div class="kpi-lbl">Taxa de Renovação</div>
+      <div class="kpi-val">${taxaRenov!==null?taxaRenov+'%':'—'}</div>
+      <div class="kpi-sub ${taxaRenov===null?'':taxaRenov>=90?'up':'dn'}">${taxaRenov===null?'Sem vencimentos no período':clRenNoP.length+' contrato(s) venceu · Meta 90%'}</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-lbl">NPS ${npsNoP.length?'no período':'(carteira)'}${npsNoP.length?'':' *'}</div>
+      <div class="kpi-val" style="color:${z.cor||'var(--gray2)'}">${calcNPS.score??'—'}</div>
+      <div class="kpi-sub ${(calcNPS.score??0)>=50?'up':'dn'}">${z.label} · ${npsNoP.length||npsAll.length} pesquisas</div>
+    </div>
+    <div class="kpi ${churnRate>3?'red':'green'}">
+      <div class="kpi-lbl">Churn Rate</div>
+      <div class="kpi-val">${churnRate.toFixed(1)}%</div>
+      <div class="kpi-sub ${churnRate<=3?'up':'dn'}">${churnsNoP.length} cancelamento(s) · Meta &lt;3%</div>
+    </div>
+    <div class="kpi gray">
+      <div class="kpi-lbl">HS Médio</div>
+      <div class="kpi-val" style="color:${hsColor(hsMedio)}">${hsMedio}</div>
+      <div class="kpi-sub ${hsMedio>=70?'up':hsMedio>=40?'':' dn'}">${totalAtivos} clientes ativos</div>
+    </div>`;
+
+  // Contas em risco
+  const emRisco=cl.filter(c=>c.status==='Em Risco'||c.healthScore<40);
+  const rs=document.getElementById('execRiscoSub');if(rs)rs.textContent=emRisco.length+' conta(s)';
+  document.getElementById('riscoList').innerHTML=emRisco.length
+    ?emRisco.map(c=>`<div class="risk-row"><div><div class="risk-co">${_escH(c.empresa)}</div><div class="risk-sub">HS: ${c.healthScore} · NPS: ${c.ultimoNPS??'—'} · MRR: ${c.mrr||'—'}</div></div><span class="badge b-risco" style="margin-left:auto">Crítico</span></div>`).join('')
+    :'<div style="color:var(--gray2);padding:14px 0;font-size:12.5px;text-align:center"><i class="ti ti-shield-check" style="color:var(--green)"></i> Nenhuma conta em risco crítico no período</div>';
+
+  // MRR bar — janela de meses do período (mín. 3, máx. 12)
+  let mrrMeses=periodo.meses;
+  if(periodo.tipo==='mes'){
+    const{y,m}=periodo.meses[0];
+    mrrMeses=[...Array(6)].map((_,i)=>{const d=new Date(y,m-6+i,1);return{y:d.getFullYear(),m:d.getMonth()+1};});
+  }
+  const mrrLabels=mrrMeses.map(({y,m})=>new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase());
+  const mrrData=mrrMeses.map(({y,m})=>{
+    const fim=new Date(y,m,0,23,59,59);
+    return Math.round(cl.filter(c=>c.status!=='Cancelado'&&(!c.criadoEm||new Date(c.criadoEm)<=fim)).reduce((s,c)=>s+parseMrr(c.mrr),0)/1000);
+  });
+  const ms=document.getElementById('execMrrSub');if(ms)ms.textContent=subPeriodo;
   const c2=document.getElementById('mrrBar')?.getContext('2d');
-  if(c2){
-    const hoje=new Date();
-    const meses6=[...Array(6)].map((_,i)=>{const d=new Date(hoje.getFullYear(),hoje.getMonth()-5+i,1);return{label:d.toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase(),fim:new Date(d.getFullYear(),d.getMonth()+1,0,23,59,59)}});
-    const parseMrr=v=>parseFloat(String(v||'0').replace(/[^\d,.-]/g,'').replace(',','.'))||0;
-    const mrrPorMes=meses6.map(m=>{
-      const ativosNoMes=cl.filter(c=>{
-        if(!c.criadoEm)return c.status!=='Cancelado'; // sem data de criação, assume que já existia
-        return new Date(c.criadoEm)<=m.fim && c.status!=='Cancelado';
-      });
-      return Math.round(ativosNoMes.reduce((s,c)=>s+parseMrr(c.mrr),0)/1000);
-    });
-    new Chart(c2,{type:'bar',data:{labels:meses6.map(m=>m.label),datasets:[{data:mrrPorMes,backgroundColor:'#1E5AE0',borderRadius:5,maxBarThickness:36,hoverBackgroundColor:'#0A1F5C'}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>'R$'+ctx.raw+'K'}}},scales:{y:{ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'K'}},x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
-  }
+  if(c2)_execCharts.mrrBar=new Chart(c2,{type:'bar',data:{labels:mrrLabels,datasets:[{data:mrrData,backgroundColor:mrrLabels.map((_,i)=>i===mrrLabels.length-1?'#1E5AE0':'#0A1F5C'),borderRadius:5,maxBarThickness:36}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>'R$'+ctx.raw+'K'}}},scales:{y:{ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'K'}},x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
+
+  // Pie distribuição HS
+  const c1=document.getElementById('mrrPie')?.getContext('2d');
+  if(c1)_execCharts.mrrPie=new Chart(c1,{type:'doughnut',data:{labels:['Saudável','Atenção','Risco','Implant.'],datasets:[{data:[cl.filter(c=>c.healthScore>=70).length,cl.filter(c=>c.healthScore>=40&&c.healthScore<70).length,cl.filter(c=>c.status==='Em Risco').length,cl.filter(c=>c.status==='Implantação').length],backgroundColor:['#00B478','#E0A800','#D10000','#1E5AE0'],borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,animateScale:true,duration:1000,easing:'easeOutQuart'},plugins:{legend:{display:false}}}});
+
+  // VoC — problemas recorrentes (filtra por período, fallback para tudo)
+  const voc=CS_DB.get('voc')||[];
+  const vocNoP=voc.filter(v=>{const d=new Date(v.criadoEm||0);return d>=periodo.inicio&&d<=periodo.fim;});
+  const vocBase=vocNoP.length?vocNoP:voc;
+  const vs=document.getElementById('execVocSub');if(vs)vs.textContent=vocNoP.length?subPeriodo:'carteira completa';
+  const vocCats={};vocBase.forEach(v=>{if(v.categoria)vocCats[v.categoria]=(vocCats[v.categoria]||0)+1;});
+  const vocSorted=Object.entries(vocCats).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const fallbackCats=['Latência','Playback','BI','ERP','Treinamento','Sensor'];
+  const fallbackData=[14,11,9,7,6,5];
   const c3=document.getElementById('probBar')?.getContext('2d');
-  if(c3)new Chart(c3,{type:'bar',data:{labels:['Latência','Playback','BI','ERP','Treinamento','Sensor'],datasets:[{data:[14,11,9,7,6,5],backgroundColor:['#D10000','#E0A800','#1E5AE0','#00B478','#0A1F5C','#8a8a8a'],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8}},scales:{x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
+  if(c3)_execCharts.probBar=new Chart(c3,{type:'bar',data:{labels:vocSorted.length?vocSorted.map(([k])=>k):fallbackCats,datasets:[{data:vocSorted.length?vocSorted.map(([,v])=>v):fallbackData,backgroundColor:['#D10000','#E0A800','#1E5AE0','#00B478','#0A1F5C','#8a8a8a'],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8}},scales:{x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
 
-  // Evolução do Projeto: distribuição real de clientes por fase de implantação
+  // Carteira por fase
   const c4=document.getElementById('projetoEvolChart')?.getContext('2d');
-  if(c4){
-    const fases=['Implantação','Ativo','Expansão','Em Risco','Cancelado'];
-    const cores=['#1E5AE0','#00B478','#0A1F5C','#D10000','#8a8a8a'];
-    const contagens=fases.map(f=>cl.filter(c=>c.status===f).length);
-    new Chart(c4,{type:'doughnut',data:{labels:fases,datasets:[{data:contagens,backgroundColor:cores,borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,animateScale:true,duration:1000},
-        plugins:{legend:{position:'right',labels:{font:{size:10.5},color:'var(--gray2)',boxWidth:12,usePointStyle:true,pointStyle:'circle'}}}}});
-  }
+  if(c4){const fases=['Implantação','Ativo','Expansão','Em Risco','Cancelado'];_execCharts.projetoEvol=new Chart(c4,{type:'doughnut',data:{labels:fases,datasets:[{data:fases.map(f=>cl.filter(c=>c.status===f).length),backgroundColor:['#1E5AE0','#00B478','#0A1F5C','#D10000','#8a8a8a'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,animateScale:true,duration:1000},plugins:{legend:{position:'right',labels:{font:{size:10.5},color:'var(--gray2)',boxWidth:12,usePointStyle:true,pointStyle:'circle'}}}}});}
 
-  // Reuniões Realizadas ao longo do ano (mês a mês, ano corrente)
-  const c5=document.getElementById('reunioesAnoChart')?.getContext('2d');
-  if(c5){
-    const reunioesAll=CS_DB.getAllReunioes();
-    const anoAtual=new Date().getFullYear();
-    const porMes=Array(12).fill(0);
-    reunioesAll.forEach(r=>{const d=new Date(r.dataISO);if(d.getFullYear()===anoAtual)porMes[d.getMonth()]++});
-    const labelsMeses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    new Chart(c5,{type:'bar',data:{labels:labelsMeses,datasets:[{label:'Reuniões realizadas',data:porMes,backgroundColor:labelsMeses.map((_,i)=>i===new Date().getMonth()?'#1E5AE0':'#0A1F5C'),borderRadius:5,maxBarThickness:34}]},
-      options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeOutBounce'},
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8}},
-        scales:{y:{beginAtZero:true,ticks:{color:'var(--gray3)',font:{size:10},stepSize:1}},x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
+  // Reuniões por período
+  let reuLabels,reuData;
+  if(periodo.tipo==='mes'){
+    const{y,m}=periodo.meses[0];
+    reuLabels=['Sem 1','Sem 2','Sem 3','Sem 4'];
+    reuData=reuLabels.map((_,i)=>{const ini=new Date(y,m-1,i*7+1);const fim2=new Date(y,m-1,Math.min((i+1)*7,new Date(y,m,0).getDate()),23,59,59);return reuNoP.filter(r=>{const d=new Date(r.dataISO||r.data||0);return d>=ini&&d<=fim2;}).length;});
+  }else{
+    reuLabels=periodo.meses.map(({y,m})=>new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase()+(periodo.tipo==='trimestre'?'':''));
+    reuData=periodo.meses.map(({y,m})=>reunioesAll.filter(r=>{const d=new Date(r.dataISO||r.data||0);return d.getFullYear()===y&&d.getMonth()===m-1;}).length);
   }
+  const rs2=document.getElementById('execReuSub');if(rs2)rs2.textContent=subPeriodo+' · '+reuNoP.length+' reunião(ões)';
+  const c5=document.getElementById('reunioesAnoChart')?.getContext('2d');
+  const hoje2=new Date();
+  if(c5)_execCharts.reunioesAno=new Chart(c5,{type:'bar',data:{labels:reuLabels,datasets:[{label:'Reuniões realizadas',data:reuData,backgroundColor:reuLabels.map((_,i)=>i===reuLabels.length-1?'#1E5AE0':'#0A1F5C'),borderRadius:5,maxBarThickness:34}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:900,easing:'easeOutBounce'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8}},scales:{y:{beginAtZero:true,ticks:{color:'var(--gray3)',font:{size:10},stepSize:1}},x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
 }
 
 // ═══ NPS CHARTS ═══
@@ -2751,9 +3226,68 @@ function renderSuccess(){}
 function downloadTemplate(){const wb=XLSX.utils.book_new();const headers=CAMPOS.map(c=>c.label+(c.req?' *':''));const ex=['Vale S.A.','Vale','33.592.510/0001-54','Mineração','Grande','A','Ativo','R$82.000','Felipe Duarte','Carlos Lima','carlos.lima@vale.com','(31) 3269-4000','Sudeste','Itabira','380','Telemetria + Videomonitoramento + Safety','Top conta'];const ws=XLSX.utils.aoa_to_sheet([headers,ex]);ws['!cols']=headers.map(()=>({wch:22}));XLSX.utils.book_append_sheet(wb,ws,'Clientes_CS_Manager');XLSX.writeFile(wb,'Template_Importacao_Clientes_Creare.xlsx')}
 
 // ═══ CONFIG ═══
-function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgNPSMeta'))document.getElementById('cfgNPSMeta').value=cfg.metaNPS??75;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';const stats=CS_DB.getStats();if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados (PostgreSQL): ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações.`;
+async function populateCSSelects(){
+  const sess=CS_DB.getSession();
+  let nomes=[];
+  try{
+    const usuarios=await CS_DB._fetch('/usuarios');
+    nomes=usuarios.filter(u=>u.ativo).map(u=>u.nome);
+  }catch(e){
+    // fallback: apenas o usuário logado
+    if(sess?.nome)nomes=[sess.nome];
+  }
+  if(!nomes.length&&sess?.nome)nomes=[sess.nome];
+  const opts=nomes.map(n=>`<option value="${_escH(n)}">${_escH(n)}</option>`).join('');
+  ['fRespCS','eRespCS','obRespCS'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const val=el.value;
+    el.innerHTML=opts;
+    if(nomes.includes(val))el.value=val;
+    else if(sess?.nome&&nomes.includes(sess.nome))el.value=sess.nome;
+  });
+  // Card equipe nas configurações (admin-only)
+  const card=document.getElementById('configEquipeCard');
+  if(card&&sess?.papel==='admin'){
+    card.style.display='block';
+    try{
+      const usuarios=await CS_DB._fetch('/usuarios');
+      const lista=document.getElementById('configEquipeLista');
+      const clientes=CS_DB.getClientes();
+      if(lista)lista.innerHTML=usuarios.map(u=>{
+        const ini=u.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const qtd=clientes.filter(c=>c.responsavelCS===u.nome).length;
+        return`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--gray5);border-radius:8px;font-size:12.5px">
+          <div class="av" style="width:32px;height:32px;font-size:12px;flex-shrink:0;${!u.ativo?'opacity:.4':''}">${ini}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escH(u.nome)}</div>
+            <div style="font-size:11px;color:var(--gray2)">${_escH(u.email)} · ${qtd} cliente(s)</div>
+          </div>
+          <span class="badge ${u.papel==='admin'?'b-risco':'b-ativo'}" style="flex-shrink:0">${u.papel==='admin'?'Admin':'Consultor'}</span>
+          <span class="badge ${u.ativo?'b-ativo':'b-cancel'}" style="flex-shrink:0">${u.ativo?'Ativo':'Inativo'}</span>
+          <button class="btn-ghost" style="padding:3px 8px;font-size:11px" onclick="editarUsuario('${u.id}')"><i class="ti ti-edit"></i></button>
+        </div>`;
+      }).join('');
+    }catch(e){}
+  }
+}
+const _DIAS_SEMANA_V4=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+function _updateTbClock(){
+  const cidade=localStorage.getItem('csm_cidade')||'';
+  const cityEl=document.getElementById('tbCity');
+  const diaEl=document.getElementById('tbDia');
+  const horaEl=document.getElementById('tbHora');
+  const chip=document.getElementById('tbClockChip');
+  if(!cityEl||!diaEl||!horaEl)return;
+  if(cidade){cityEl.textContent=cidade;if(chip)chip.style.display='flex';}
+  else{if(chip)chip.style.display='none';}
+  const now=new Date();
+  diaEl.textContent=_DIAS_SEMANA_V4[now.getDay()]+' '+String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0');
+  horaEl.textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgNPSMeta'))document.getElementById('cfgNPSMeta').value=cfg.metaNPS??75;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgCidade'))document.getElementById('cfgCidade').value=localStorage.getItem('csm_cidade')||'';const stats=CS_DB.getStats();if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados (PostgreSQL): ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações.`;
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
-async function salvarConfig(){const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,metaNPS:parseInt(document.getElementById('cfgNPSMeta').value)??75,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||''};try{await CS_DB.saveConfig(cfg);toast('Configurações salvas!');await CS_DB._gerarAlertas();updateStatusBar();renderDashboard()}catch(e){toast('Erro ao salvar configurações: '+e.message,'err')}}
+async function salvarConfig(){const cidade=(document.getElementById('cfgCidade')?.value||'').trim();if(cidade)localStorage.setItem('csm_cidade',cidade);else localStorage.removeItem('csm_cidade');_updateTbClock();const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,metaNPS:parseInt(document.getElementById('cfgNPSMeta').value)??75,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||''};try{await CS_DB.saveConfig(cfg);toast('Configurações salvas!');await CS_DB._gerarAlertas();updateStatusBar();renderDashboard()}catch(e){toast('Erro ao salvar configurações: '+e.message,'err')}}
 async function testarWebhook(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}try{const r=await CS_DB.dispararWebhook();toast(`Webhook disparado com sucesso — ${r.enviados} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 
 // ═══ LOGIN ═══
@@ -2868,17 +3402,27 @@ async function initApp(){
     return;
   }
   document.getElementById('appLoading')?.classList.add('hidden');
+  // Filtrar clientes para consultores (só vêem sua carteira)
+  _filtrarClientesPorSessao();
+  // Atualizar identidade na sidebar
+  const sess=CS_DB.getSession();
+  if(sess){
+    const userLbl=document.getElementById('userLbl');
+    if(userLbl)userLbl.innerHTML=`<i class="ti ti-user-circle"></i><span>${_escH(sess.nome)} · ${sess.papel==='admin'?'Admin':'CS'}</span>`;
+    const avEl=document.getElementById('av');
+    if(avEl)avEl.textContent=sess.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    if(sess.papel==='admin'){const nu=document.getElementById('navUsuarios');if(nu)nu.style.display='flex';}
+  }
   seedOnboardingsIfEmpty();
   renderDashboard();renderClientes();renderReunioes();renderKanban();renderAlertas();
   buildRatings();populateTlSelect();populateObSelect();populateEngSelect();populateGrupoSelect();
+  populateCSSelects();
   document.getElementById('rData').value=new Date().toLocaleDateString('pt-BR');
   const nd=document.getElementById('npsDataInput');if(nd)nd.value=new Date().toLocaleDateString('pt-BR');
   updateStatusBar();
   setTimeout(()=>renderNpsEvolutionChart(),150);
   setInterval(updateStatusBar,30000);
-  // Mostrar nav Usuários só para admin
-  const sess=CS_DB.getSession();
-  if(sess?.papel==='admin'){const nu=document.getElementById('navUsuarios');if(nu)nu.style.display='flex';}
+  _updateTbClock();setInterval(_updateTbClock,1000);
   // Solicitar permissão de notificações
   initNotificacoes();
   // Registrar Service Worker
@@ -3050,6 +3594,9 @@ async function salvarEdicao() {
 
     closeM('mEditarCliente');
     renderClientes(); renderDashboard(); updateStatusBar();
+    if(c.status==='Cancelado'&&antes.status!=='Cancelado'){
+      setTimeout(function(){abrirMotivoChurn(c.id,c.empresa,c.mrr);},300);
+    }
   }catch(e){
     toast('Erro ao salvar edição: '+e.message, 'err');
   }
@@ -3134,11 +3681,9 @@ function renderOnboarding() {
   const emAnd   = obs.filter(o => o.status === 'em-andamento').length;
   const conc    = obs.filter(o => o.status === 'concluido').length;
   const atras   = obs.filter(o => {
-    if (o.status !== 'em-andamento') return false;
-    const pct = calcObPct(o);
-    if (!o.prazoImpl) return false;
-    const [d,m,y] = o.prazoImpl.split('/');
-    return new Date(`${y}-${m}-${d}`) < new Date() && pct < 100;
+    if (o.status === 'concluido') return false;
+    const sla = _calcObSLA(o);
+    return sla && sla.atrasado;
   }).length;
 
   const kEl = document.getElementById('obKPIs');
@@ -3164,10 +3709,12 @@ function renderOnboarding() {
     const conc   = ob.steps.filter(s => s.concluido).length;
     const total2 = ob.steps.length;
     const proxStep = ob.steps.find(s => !s.concluido);
-    return `<div class="ob-card">
+    const sla    = _calcObSLA(ob);
+    const kickoffDate = ob.kickoff ? _parseDataBR(ob.kickoff) : null;
+    return `<div class="ob-card" style="${sla&&sla.atrasado?'border-left:3px solid var(--red)':''}">
       <div class="ob-header" onclick="toggleOb(${idx})">
         <div class="ob-avatar" style="background:var(--redl);color:var(--red)">${ini}</div>
-        <div>
+        <div style="flex:1;min-width:0">
           <div class="ob-name">${ob.empresa}</div>
           <div class="ob-meta">Kickoff: ${ob.kickoff} · CS: ${ob.responsavel} · ${conc}/${total2} etapas${proxStep ? ' · Próxima: <strong>' + proxStep.titulo + '</strong>' : ' · ✅ Concluído'}</div>
         </div>
@@ -3176,15 +3723,22 @@ function renderOnboarding() {
           <div class="ob-pct-lbl">concluído</div>
           <div class="ob-prog-bar"><div class="ob-prog-fill" style="width:${pct}%;background:${cor}"></div></div>
         </div>
-        <span class="badge ${pct>=100?'b-ativo':pct>0?'b-impl':'b-cancel'}" style="margin-left:12px;flex-shrink:0">${pct>=100?'Concluído':pct>0?'Em andamento':'Não iniciado'}</span>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;margin-left:12px">
+          <span class="badge ${pct>=100?'b-ativo':pct>0?'b-impl':'b-cancel'}">${pct>=100?'Concluído':pct>0?'Em andamento':'Não iniciado'}</span>
+          ${sla?`<span class="badge ${sla.cls}" style="font-size:10px">${sla.atrasado?'⚠ ':''}SLA: ${sla.label}</span>`:''}
+        </div>
         <i class="ti ti-chevron-down" style="margin-left:8px;color:var(--gray2);font-size:14px"></i>
       </div>
       <div class="ob-body" id="ob-body-${idx}">
+        ${sla&&sla.atrasado?`<div style="background:var(--redl);color:var(--red);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12.5px;font-weight:600"><i class="ti ti-alert-triangle"></i> SLA em atraso: etapa "<strong>${proxStep?proxStep.titulo:''}</strong>" deveria ter sido concluída ${sla.diff}d atrás. Verifique o cronograma com o cliente.</div>`:''}
         <div class="ob-steps">
           ${ob.steps.map((step, si) => {
             const cls   = step.concluido ? 'done' : si === ob.steps.findIndex(s => !s.concluido) ? 'active' : '';
             const dotCls = step.concluido ? 'os-done' : cls === 'active' ? 'os-active' : 'os-pend';
             const ico   = step.concluido ? '<i class="ti ti-check" style="font-size:11px"></i>' : si + 1;
+            const expDate = kickoffDate ? _obStepExpDate(kickoffDate, step.dias) : '';
+            const hoje2 = new Date(); hoje2.setHours(0,0,0,0);
+            const stepAtrasado = !step.concluido && kickoffDate && new Date(kickoffDate.getTime()+step.dias*86400000) < hoje2;
             return `<div class="ob-step ${cls}" onclick="toggleObStep(${idx},${si})">
               <div class="ob-step-dot ${dotCls}">${ico}</div>
               <div style="flex:1">
@@ -3193,7 +3747,10 @@ function renderOnboarding() {
               </div>
               <div class="ob-step-meta">
                 <span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:10px">${step.area}</span>
-                ${step.concluido ? '<div style="color:var(--green);font-size:10.5px;margin-top:3px">✓ ' + (step.dataConc||'') + '</div>' : '<div style="font-size:10.5px;color:var(--gray2);margin-top:3px">Dia +' + step.dias + '</div>'}
+                ${step.concluido
+                  ? '<div style="color:var(--green);font-size:10.5px;margin-top:3px">✓ ' + (step.dataConc||'') + '</div>'
+                  : `<div style="font-size:10px;margin-top:3px;${stepAtrasado?'color:var(--red);font-weight:600':'color:var(--gray2)'}">Prev: ${expDate||'Dia +'+step.dias}${stepAtrasado?' ⚠':''}</div>`
+                }
               </div>
             </div>`;
           }).join('')}
@@ -3210,6 +3767,25 @@ function renderOnboarding() {
 function calcObPct(ob) {
   if (!ob.steps || !ob.steps.length) return 0;
   return Math.round(ob.steps.filter(s => s.concluido).length / ob.steps.length * 100);
+}
+function _calcObSLA(ob) {
+  if (ob.status === 'concluido') return { label: 'Concluído', cls: 'b-ativo', atrasado: false };
+  if (!ob.kickoff) return null;
+  const kickoffDate = _parseDataBR(ob.kickoff);
+  if (!kickoffDate) return null;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const proxStep = ob.steps.find(s => !s.concluido);
+  if (!proxStep) return { label: 'No prazo', cls: 'b-ativo', atrasado: false };
+  const expectedDate = new Date(kickoffDate.getTime() + proxStep.dias * 86400000);
+  const diff = Math.round((hoje - expectedDate) / 86400000);
+  if (diff > 0) return { label: diff + 'd atrasado', cls: 'b-risco', atrasado: true, diff };
+  if (diff >= -3) return { label: 'Em risco', cls: 'b-exp', atrasado: false };
+  return { label: 'No prazo', cls: 'b-ativo', atrasado: false };
+}
+function _obStepExpDate(kickoffDate, dias) {
+  if (!kickoffDate) return '';
+  const d = new Date(kickoffDate.getTime() + dias * 86400000);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
 function toggleOb(idx) {
@@ -3672,7 +4248,28 @@ function renderCliente360(){
     <div class="card" style="margin-top:14px">
       <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução do Health Score <span class="sub" id="c360HsSubtitle"></span></div>
       <div class="chart-wrap" style="height:150px"><canvas id="c360HsChart"></canvas></div>
-    </div>`;
+    </div>
+    ${(()=>{
+      const atasCliente=(CS_DB.get('atas')||[]).filter(a=>a.clienteId===cid||a.empresa===c.empresa).sort((a,b)=>new Date(b.criadoEm||0)-new Date(a.criadoEm||0));
+      return`<div class="card" style="margin-top:14px">
+        <div class="card-ttl"><i class="ti ti-notes"></i>Atas de Reunião<span class="sub">${atasCliente.length} registro(s)</span>
+          <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:4px 10px" onclick="openM('mNovaAta');document.getElementById('ataCid').value='${cid}';document.getElementById('ataEmpresa').textContent='${c.empresa.replace(/'/g,"\\'")}';"><i class="ti ti-plus"></i>Nova ata</button>
+        </div>
+        ${atasCliente.length?atasCliente.map(ata=>{
+          const qtdAcoes=(ata.acoes_ids||ata.acoes||[]).length;
+          const dataExib=ata.data?ata.data:(ata.criadoEm?new Date(ata.criadoEm).toLocaleDateString('pt-BR'):'—');
+          const tipoExib=ata.tipo||ata.titulo||'Check-in';
+          return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray4);font-size:12.5px;cursor:pointer" onclick="verAta('${ata.id}')">
+            <i class="ti ti-notes" style="color:var(--blue);font-size:16px;flex-shrink:0"></i>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escH(ata.titulo||tipoExib)}</div>
+              <div style="color:var(--gray2);font-size:11px">${dataExib}${qtdAcoes?' · '+qtdAcoes+' ação(ões) vinculada(s)':''}</div>
+            </div>
+            <span class="badge b-impl" style="flex-shrink:0;font-size:10px">${_escH(tipoExib)}</span>
+          </div>`;
+        }).join(''):'<div style="color:var(--gray2);padding:10px 0;font-size:12.5px">Nenhuma ata registrada para este cliente.</div>'}
+      </div>`;
+    })()}`;
 
   setTimeout(()=>{
     const ctx=document.getElementById('c360NpsChart')?.getContext('2d');
@@ -4157,21 +4754,80 @@ function renderAgenda(){
 // ════════════════════════════════════════════════
 // GESTÃO DE USUÁRIOS
 // ════════════════════════════════════════════════
+let _usuariosCache=[];
 async function renderUsuarios(){
   const el=document.getElementById('usuariosList');if(!el)return;
   try{
-    const usuarios=await CS_DB._fetch('/usuarios');
-    el.innerHTML=`<div class="tbl-card"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th></th></tr></thead><tbody>${
-      usuarios.map(u=>`<tr>
-        <td style="font-weight:600">${u.nome}</td>
-        <td style="color:var(--gray2)">${u.email}</td>
-        <td><span class="badge">${u.papel}</span></td>
-        <td><span class="badge ${u.ativo?'b-ativo':'b-risco'}">${u.ativo?'Ativo':'Inativo'}</span></td>
-        <td style="white-space:nowrap">
-          ${u.ativo?`<span class="lnk" style="color:var(--red)" onclick="toggleUsuario('${u.id}',false)">Desativar</span>`:`<span class="lnk" style="color:var(--green)" onclick="toggleUsuario('${u.id}',true)">Reativar</span>`}
-        </td></tr>`).join('')
-    }</tbody></table></div>`;
+    const [usuarios,clientes]=await Promise.all([CS_DB._fetch('/usuarios'),Promise.resolve(CS_DB.getClientes())]);
+    _usuariosCache=usuarios;
+    const portfolio={};
+    clientes.forEach(c=>{if(c.responsavelCS)portfolio[c.responsavelCS]=(portfolio[c.responsavelCS]||0)+1;});
+    const total=usuarios.length,ativos=usuarios.filter(u=>u.ativo).length,admins=usuarios.filter(u=>u.papel==='admin').length,consultores=usuarios.filter(u=>u.papel==='consultor').length;
+    const kpiEl=document.getElementById('usuariosKpi');
+    if(kpiEl)kpiEl.innerHTML=`
+      <div class="kpi-card"><div class="kpi-lbl">Total</div><div class="kpi-val">${total}</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Ativos</div><div class="kpi-val" style="color:var(--green)">${ativos}</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Admins</div><div class="kpi-val">${admins}</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Consultores</div><div class="kpi-val">${consultores}</div></div>`;
+    const sess=CS_DB.getSession();
+    el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${
+      usuarios.map(u=>{
+        const ini=u.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+        const qtd=portfolio[u.nome]||0;
+        const isMe=sess&&sess.id===u.id;
+        return `<div class="card" style="margin:0;padding:16px 18px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div class="av" style="width:40px;height:40px;font-size:15px;flex-shrink:0;${!u.ativo?'opacity:.45':''}">
+              ${ini}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                ${_escH(u.nome)}${isMe?' <span style="font-size:10px;color:var(--gray3);font-weight:400">(você)</span>':''}
+              </div>
+              <div style="font-size:12px;color:var(--gray2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escH(u.email)}</div>
+            </div>
+            <span class="badge ${u.papel==='admin'?'b-risco':'b-ativo'}" style="flex-shrink:0">${u.papel==='admin'?'Admin':'Consultor'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray2);margin-bottom:12px">
+            <i class="ti ti-building"></i>
+            <span>${qtd} ${qtd===1?'cliente':'clientes'} na carteira</span>
+            <span style="margin-left:auto"><span class="badge ${u.ativo?'b-ativo':'b-risco'}">${u.ativo?'Ativo':'Inativo'}</span></span>
+          </div>
+          <div style="display:flex;gap:8px;border-top:1px solid var(--gray4);padding-top:10px">
+            <button class="btn-ghost" style="flex:1;font-size:12px;padding:5px 8px" onclick="editarUsuario('${u.id}')">
+              <i class="ti ti-edit"></i>Editar
+            </button>
+            ${!isMe?`<button class="btn-ghost" style="font-size:12px;padding:5px 8px;color:${u.ativo?'var(--red)':'var(--green)'}" onclick="toggleUsuario('${u.id}',${!u.ativo})">
+              <i class="ti ti-${u.ativo?'user-off':'user-check'}"></i>${u.ativo?'Desativar':'Reativar'}
+            </button>`:''}
+          </div>
+        </div>`;
+      }).join('')
+    }</div>`;
   }catch(e){el.innerHTML=`<div style="color:var(--red);padding:20px">${e.message}</div>`;}
+}
+function editarUsuario(id){
+  const u=_usuariosCache.find(x=>String(x.id)===String(id));if(!u)return;
+  document.getElementById('euId').value=u.id;
+  document.getElementById('euNome').value=u.nome;
+  document.getElementById('euPapel').value=u.papel;
+  document.getElementById('euSenha').value='';
+  openM('mEditarUsuario');
+}
+async function salvarEdicaoUsuario(){
+  const id=document.getElementById('euId').value;
+  const nome=document.getElementById('euNome').value.trim();
+  const papel=document.getElementById('euPapel').value;
+  const senha=document.getElementById('euSenha').value;
+  if(!nome){toast('Nome é obrigatório.','err');return;}
+  const body={nome,papel};
+  if(senha){if(senha.length<8){toast('Senha deve ter ao menos 8 caracteres.','err');return;}body.senha=senha;}
+  try{
+    await CS_DB._fetch(`/usuarios/${id}`,{method:'PATCH',body:JSON.stringify(body)});
+    toast('Usuário atualizado!');
+    closeM('mEditarUsuario');
+    renderUsuarios();
+  }catch(e){toast(e.message||'Erro ao atualizar usuário.','err');}
 }
 async function criarUsuario(){
   const nome=document.getElementById('uNome').value.trim();
@@ -4183,7 +4839,7 @@ async function criarUsuario(){
     await CS_DB._fetch('/usuarios',{method:'POST',body:JSON.stringify({nome,email,senha,papel})});
     toast('Usuário criado com sucesso!');closeM('mNovoUsuario');
     ['uNome','uEmail','uSenha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    renderUsuarios();
+    renderUsuarios();populateCSSelects();
   }catch(e){toast(e.message||'Erro ao criar usuário.','err')}
 }
 async function toggleUsuario(id,ativo){
@@ -4192,6 +4848,20 @@ async function toggleUsuario(id,ativo){
     toast(ativo?'Usuário reativado.':'Usuário desativado.','warn');
     renderUsuarios();
   }catch(e){toast(e.message,'err')}
+}
+function _filtrarClientesPorSessao(){
+  const sess=CS_DB.getSession();
+  if(!sess||sess.papel==='admin')return;
+  CS_DB._cache.clientes=CS_DB._cache.clientes.filter(c=>c.responsavelCS===sess.nome);
+}
+function fazerLogout(){
+  if(!confirm('Deseja encerrar sua sessão?'))return;
+  CS_DB.clearSession();
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  // Limpar campos de login
+  const li=document.getElementById('lEmail'),lp=document.getElementById('lSenha');
+  if(li)li.value='';if(lp)lp.value='';
 }
 
 // ════════════════════════════════════════════════
@@ -4238,6 +4908,834 @@ window.onload=async ()=>{
     document.getElementById('app').style.display='none';
   }
 };
+
+// ═══ HELPERS ═══
+function _escH(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function _parseRenov(v){
+  if(!v)return null;
+  var m=v.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if(m)return m[3]+'-'+m[2]+'-'+m[1];
+  m=v.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return v;
+  return null;
+}
+
+function irParaAcao(acaoId){
+  nav(document.querySelector('[data-p=planos]'),'planos');
+  setTimeout(function(){
+    var card=document.getElementById('kcard-'+acaoId);
+    if(!card)return;
+    card.scrollIntoView({behavior:'smooth',block:'center'});
+    card.style.transition='outline .15s,box-shadow .15s';
+    card.style.outline='2px solid var(--red)';
+    card.style.boxShadow='0 0 0 4px rgba(239,68,68,.18)';
+    setTimeout(function(){card.style.outline='';card.style.boxShadow='';},2200);
+  },250);
+}
+
+// ═══ PAINEL DO DIA ═══
+function renderHoje(){
+  var cl=CS_DB.getClientes();
+  var acoes=CS_DB.getAllAcoes();
+  var re=CS_DB.getAllReunioes();
+  var npsAll=CS_DB.getAllNPS();
+  var agora=new Date();
+  var hoje=new Date(agora);hoje.setHours(0,0,0,0);
+  var amanha=new Date(hoje);amanha.setDate(amanha.getDate()+1);
+  var em30=new Date();em30.setDate(em30.getDate()+30);
+  var em60=new Date();em60.setDate(em60.getDate()+60);
+
+  var dataEl=document.getElementById('hojeData');
+  if(dataEl)dataEl.textContent=agora.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  var reunHoje=acoes.filter(function(a){return a.categoria==='reuniao_agendada'&&a.prazoISO&&new Date(a.prazoISO)>=hoje&&new Date(a.prazoISO)<amanha&&a.status!=='Cancelada';});
+  var acAtras=acoes.filter(function(a){return a.prazoISO&&new Date(a.prazoISO)<hoje&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.categoria!=='reuniao_agendada';});
+  var renov30=cl.filter(function(c){if(!c.dataRenovacao)return false;var d=new Date(c.dataRenovacao);return d>=hoje&&d<=em30;}).sort(function(a,b){return new Date(a.dataRenovacao)-new Date(b.dataRenovacao);});
+  var renov60=cl.filter(function(c){if(!c.dataRenovacao)return false;var d=new Date(c.dataRenovacao);return d>em30&&d<=em60;}).sort(function(a,b){return new Date(a.dataRenovacao)-new Date(b.dataRenovacao);});
+  var semContato=cl.filter(function(c){var r=re.filter(function(x){return x.clienteId===c.id;})[0];var d=r?Math.floor((agora-new Date(r.dataISO||r.data))/86400000):999;return d>45&&c.status!=='Cancelado';}).sort(function(a,b){var ra=re.filter(function(x){return x.clienteId===a.id;})[0];var rb=re.filter(function(x){return x.clienteId===b.id;})[0];var da=ra?Math.floor((agora-new Date(ra.dataIso||ra.dataISO||ra.data))/86400000):999;var db=rb?Math.floor((agora-new Date(rb.dataIso||rb.dataISO||rb.data))/86400000):999;return db-da;});
+  var detratores=npsAll.filter(function(n){if(n.nota>6)return false;var temCard=acoes.some(function(a){return a.clienteId===n.clienteId&&a.categoria==='follow_up_detrator'&&a.status!=='Concluído'&&a.status!=='Cancelada';});return!temCard;});
+  var detUnico=[];var detIds=new Set();detratores.forEach(function(n){if(!detIds.has(n.clienteId)){detIds.add(n.clienteId);detUnico.push(n);}});
+
+  var kpiEl=document.getElementById('hojeKPIs');
+  if(kpiEl)kpiEl.innerHTML=
+    '<div class="kpi '+(reunHoje.length?'blue':'')+'"><div class="kpi-lbl"><i class="ti ti-calendar-event"></i>Reuniões Hoje</div><div class="kpi-val">'+reunHoje.length+'</div><div class="kpi-sub">'+(reunHoje.length?'agendadas':'sem agenda')+'</div></div>'+
+    '<div class="kpi '+(acAtras.length?'red':'')+'"><div class="kpi-lbl"><i class="ti ti-clock-exclamation"></i>Ações Atrasadas</div><div class="kpi-val" style="color:'+(acAtras.length?'var(--red)':'var(--black)')+'">'+acAtras.length+'</div><div class="kpi-sub">'+(acAtras.length?'requer atenção':'em dia')+'</div></div>'+
+    '<div class="kpi '+(renov30.length?'yellow':'')+'"><div class="kpi-lbl"><i class="ti ti-calendar-due"></i>Renovações 30d</div><div class="kpi-val" style="color:'+(renov30.length?'var(--yellow)':'var(--black)')+'">'+renov30.length+'</div><div class="kpi-sub">'+renov60.length+' em 31–60d</div></div>'+
+    '<div class="kpi '+(semContato.length?'red':'')+'"><div class="kpi-lbl"><i class="ti ti-user-x"></i>Sem Contato +45d</div><div class="kpi-val" style="color:'+(semContato.length?'var(--red)':'var(--black)')+'">'+semContato.length+'</div><div class="kpi-sub">clientes parados</div></div>';
+
+  function mkSecao(titulo,icone,cor,items,renderItem,vazio){
+    if(!items.length)return'<div class="card" style="margin-bottom:14px"><div class="card-ttl"><i class="ti '+icone+'" style="color:'+cor+'"></i>'+titulo+'</div><div style="text-align:center;padding:16px 0;color:var(--gray3);font-size:12.5px">'+vazio+'</div></div>';
+    return'<div class="card" style="margin-bottom:14px"><div class="card-ttl"><i class="ti '+icone+'" style="color:'+cor+'"></i>'+titulo+'<span class="badge" style="background:'+cor+';color:#fff;margin-left:8px">'+items.length+'</span></div><div style="display:flex;flex-direction:column;gap:0">'+items.map(renderItem).join('')+'</div></div>';
+  }
+  function mkLinha(left,right,onclick){return'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray5);cursor:'+(onclick?'pointer':'default')+'" '+(onclick?'onclick="'+onclick+'"':'')+'>'  +left+'<span style="margin-left:auto;font-size:11.5px;color:var(--gray3);flex-shrink:0">'+right+'</span></div>';}
+
+  var html='';
+  html+=mkSecao('Reuniões Agendadas para Hoje','ti-calendar-event','var(--blue)',reunHoje,function(a){
+    var c=CS_DB.getClienteById(a.clienteId);
+    var hr=a.prazoISO?new Date(a.prazoISO).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return mkLinha('<i class="ti ti-building" style="color:var(--gray3)"></i><div><div style="font-weight:500;font-size:13px">'+(c?c.empresa:a.empresa||'')+'</div><div style="font-size:11.5px;color:var(--gray2)">'+_escH(a.descricao||'')+'</div></div>',hr,'abrirEditar(\''+a.clienteId+'\')');
+  },'Nenhuma reunião agendada para hoje.');
+
+  html+=mkSecao('Ações Atrasadas','ti-clock-exclamation','var(--red)',acAtras.slice(0,10),function(a){
+    var d=Math.ceil((hoje-new Date(a.prazoISO))/86400000);
+    return mkLinha('<i class="ti ti-clipboard-list" style="color:var(--red)"></i><div><div style="font-weight:500;font-size:13px">'+_escH(a.descricao||'')+'</div><div style="font-size:11.5px;color:var(--gray2)">'+_escH(a.empresa||'')+(a.prioridade?' · '+a.prioridade:'')+'</div></div>',d+'d atraso','irParaAcao(\''+a.id+'\')');
+  },'Nenhuma ação atrasada. Tudo em dia!');
+
+  html+=mkSecao('Renovações nos Próximos 30 Dias','ti-calendar-due','#c8700a',[].concat(renov30,renov60).slice(0,10),function(c){
+    var d=new Date(c.dataRenovacao);var dias=Math.ceil((d-agora)/86400000);var cor=dias<=30?'var(--red)':'#c8700a';
+    return mkLinha('<i class="ti ti-building" style="color:var(--gray3)"></i><div><div style="font-weight:500;font-size:13px">'+_escH(c.empresa)+'</div><div style="font-size:11.5px;color:var(--gray2)">'+_escH(c.responsavelCS||'')+(c.mrr?' · '+c.mrr:'')+'</div></div>','<span style="color:'+cor+';font-weight:600">'+dias+'d</span> · '+d.toLocaleDateString('pt-BR'),'abrirEditar(\''+c.id+'\')');
+  },'Nenhuma renovação nos próximos 60 dias.');
+
+  html+=mkSecao('Clientes Sem Contato (+45 dias)','ti-user-x','var(--red)',semContato.slice(0,10),function(c){
+    var r=re.filter(function(x){return x.clienteId===c.id;})[0];
+    var d=r?Math.floor((agora-new Date(r.dataISO||r.data))/86400000):999;
+    var cor=d>60?'var(--red)':'#c8700a';
+    return mkLinha('<span class="hs-pill '+hsCls(c.healthScore)+'" style="flex-shrink:0">'+c.healthScore+'</span><div><div style="font-weight:500;font-size:13px">'+_escH(c.empresa)+'</div><div style="font-size:11.5px;color:var(--gray2)">'+_escH(c.responsavelCS||'')+(c.mrr?' · '+c.mrr:'')+'</div></div>','<span style="color:'+cor+';font-weight:600">'+(d===999?'nunca':d+'d')+'</span>','openM(\'mReuniao\');setTimeout(function(){var s=document.getElementById(\'rCliente\');if(s)s.value=\''+c.id+'\'},100)');
+  },'Todos os clientes foram contatados nos últimos 45 dias.');
+
+  html+=mkSecao('Detratores sem Follow-up','ti-mood-sad','#7c3aed',detUnico.slice(0,10),function(n){
+    var c=CS_DB.getClienteById(n.clienteId);
+    return mkLinha('<span style="font-weight:700;color:var(--red);font-size:16px;flex-shrink:0">'+n.nota+'</span><div><div style="font-weight:500;font-size:13px">'+_escH((c?c.empresa:n.empresa)||'')+'</div><div style="font-size:11.5px;color:var(--gray2)">'+_escH(n.respondente||'')+(n.data?' · '+n.data:'')+'</div></div>','','');
+  },'Nenhum detrator sem tratativa. Bom trabalho!');
+
+  var contEl=document.getElementById('hojeContent');
+  if(contEl)contEl.innerHTML=html;
+}
+
+// ═══ PIPELINE DE RENOVAÇÃO ═══
+function renderPipeline(){
+  var cl=CS_DB.getClientes();
+  var hoje=new Date();
+  function diasRenov(c){
+    if(c.dataRenovacao)return Math.round((new Date(c.dataRenovacao)-hoje)/86400000);
+    if(!c.renovacao||c.renovacao==='—')return 999;
+    var iso=_parseRenov(c.renovacao);
+    if(iso)return Math.round((new Date(iso)-hoje)/86400000);
+    return 999;
+  }
+  var comRenov=cl.filter(function(c){return c.dataRenovacao||(c.renovacao&&c.renovacao!=='—');}).map(function(c){return Object.assign({},c,{diasR:diasRenov(c)});}).sort(function(a,b){return a.diasR-b.diasR;});
+  var vencidos=comRenov.filter(function(c){return c.diasR<0;});
+  var d30=comRenov.filter(function(c){return c.diasR>=0&&c.diasR<=30;});
+  var d60=comRenov.filter(function(c){return c.diasR>30&&c.diasR<=60;});
+  var d90=comRenov.filter(function(c){return c.diasR>60&&c.diasR<=90;});
+  function mrrTotal(c){return parseInt((c.mrr||'0').replace(/\D/g,''))||0;}
+  function sumMRR(list){return list.reduce(function(s,c){return s+mrrTotal(c);},0);}
+  function fmtMRR(v){return v>=1000?'R$'+Math.round(v/1000)+'K':'R$'+v;}
+
+  var kEl=document.getElementById('pipelineKPIs');
+  if(kEl)kEl.innerHTML=
+    '<div class="kpi red"><div class="kpi-lbl"><i class="ti ti-alert-circle"></i>Vencidos</div><div class="kpi-val">'+vencidos.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(vencidos))+' em risco</div></div>'+
+    '<div class="kpi red"><div class="kpi-lbl"><i class="ti ti-clock"></i>Até 30 dias</div><div class="kpi-val">'+d30.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d30))+' MRR</div></div>'+
+    '<div class="kpi yellow"><div class="kpi-lbl"><i class="ti ti-clock"></i>31–60 dias</div><div class="kpi-val">'+d60.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d60))+' MRR</div></div>'+
+    '<div class="kpi green"><div class="kpi-lbl"><i class="ti ti-calendar"></i>61–90 dias</div><div class="kpi-val">'+d90.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d90))+' MRR</div></div>';
+
+  function colCard(c){
+    var dias=c.diasR;var cor=dias<0?'var(--red)':dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
+    return'<div style="background:var(--white);border:1px solid var(--gray4);border-radius:9px;padding:10px 12px;cursor:pointer" onclick="abrirEditar(\''+c.id+'\')">'
+      +'<div style="font-weight:600;font-size:12.5px">'+_escH(c.empresa)+'</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11.5px">'
+      +'<span class="'+tierB(c.tier)+'">'+_escH(c.tier||'C')+'</span>'
+      +'<span style="color:var(--gray2)">'+_escH(c.mrr||'—')+'</span>'
+      +'<span class="hs-pill '+hsCls(c.healthScore)+'" style="margin-left:auto">'+c.healthScore+'</span>'
+      +'</div>'
+      +'<div style="font-size:11px;margin-top:6px;color:'+cor+';font-weight:600">'+(dias<0?'Venceu '+Math.abs(dias)+'d atrás':dias===0?'Vence hoje':'Vence em '+dias+'d')+'</div>'
+      +'</div>';
+  }
+  function colHTML(titulo,cor,icone,list){
+    return'<div>'
+      +'<div style="display:flex;align-items:center;gap:6px;padding:8px 0 10px;font-size:12px;font-weight:700;color:'+cor+'"><i class="ti '+icone+'"></i>'+titulo+'<span style="margin-left:auto;font-size:11px;background:'+cor+';color:#fff;border-radius:10px;padding:1px 7px">'+list.length+'</span></div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px">'+(list.length?list.map(colCard).join(''):'<div style="text-align:center;padding:20px;color:var(--gray3);font-size:12px">Nenhum cliente</div>')+'</div>'
+      +'</div>';
+  }
+
+  var colEl=document.getElementById('pipelineColunas');
+  if(colEl)colEl.innerHTML=
+    colHTML('Vencidos','var(--red)','ti-alert-circle',vencidos)+
+    colHTML('Até 30 dias','var(--red)','ti-flame',d30)+
+    colHTML('31–60 dias','var(--yellow)','ti-clock',d60)+
+    colHTML('61–90 dias','var(--green)','ti-calendar-check',d90);
+
+  var tb=document.getElementById('pipelineTbody');
+  if(tb)tb.innerHTML=comRenov.map(function(c){
+    var dias=c.diasR;var cor=dias<0?'var(--red)':dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
+    var prob=dias<0?'Crítico':dias<=30?'Alta':dias<=60?'Média':'Baixa';
+    var probCor=dias<0||dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
+    return'<tr>'
+      +'<td style="font-weight:600;cursor:pointer" onclick="abrirEditar(\''+c.id+'\')">'+_escH(c.empresa)+'</td>'
+      +'<td><span class="'+tierB(c.tier)+'">'+_escH(c.tier||'C')+'</span></td>'
+      +'<td>'+_escH(c.mrr||'—')+'</td>'
+      +'<td><span class="hs-pill '+hsCls(c.healthScore)+'">'+c.healthScore+'</span></td>'
+      +'<td>'+_escH(c.renovacao||'—')+'</td>'
+      +'<td style="font-weight:700;color:'+cor+'">'+(dias<0?'Vencido '+Math.abs(dias)+'d':dias+'d')+'</td>'
+      +'<td><span style="font-weight:600;color:'+probCor+'">'+prob+'</span></td>'
+      +'<td style="color:var(--gray2)">'+_escH(c.responsavelCS||'—')+'</td>'
+      +'<td><button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="abrirTimeline(\''+c.id+'\')"><i class="ti ti-timeline"></i></button></td>'
+      +'</tr>';
+  }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--gray2);padding:30px">Nenhum cliente com data de renovação cadastrada.</td></tr>';
+}
+
+// ═══ VOZ DO CLIENTE ═══
+var VOC_STATUS=[
+  {id:'capturado',     label:'Capturado',          cor:'var(--gray3)',  bg:'var(--gray5)',  icone:'ti-download'},
+  {id:'enviado_produto',label:'Enviado ao Produto', cor:'var(--blue)',   bg:'var(--bbg)',    icone:'ti-send'},
+  {id:'em_analise',   label:'Em Análise',           cor:'var(--yellow)', bg:'var(--ybg)',    icone:'ti-zoom-question'},
+  {id:'implementado', label:'Implementado',          cor:'var(--green)',  bg:'var(--gbg)',    icone:'ti-check'}
+];
+function _vocNextStatus(status){var i=VOC_STATUS.findIndex(function(s){return s.id===status;});return i<VOC_STATUS.length-1?VOC_STATUS[i+1].id:null;}
+function _vocStatusMeta(status){return VOC_STATUS.find(function(s){return s.id===status;})||VOC_STATUS[0];}
+
+function populateVoCSelect(){
+  var s=document.getElementById('vocCliente');if(!s)return;
+  var cl=CS_DB.getClientes();
+  s.innerHTML='<option value="">— Selecione —</option>'+cl.map(function(c){return'<option value="'+c.id+'">'+_escH(c.empresa||'')+'</option>';}).join('');
+}
+
+function renderVoC(){
+  var voc=CS_DB.get('voc')||[];
+  var fltCli=document.getElementById('vocFltCliente')?document.getElementById('vocFltCliente').value:'';
+  var fltCat=document.getElementById('vocFltCategoria')?document.getElementById('vocFltCategoria').value:'';
+  var fltCliEl=document.getElementById('vocFltCliente');
+  if(fltCliEl){
+    var cur=fltCliEl.value;
+    var empresas=[...new Set(voc.map(function(v){return v.empresa;}))].sort();
+    fltCliEl.innerHTML='<option value="">Todos os clientes</option>'+empresas.map(function(e){return'<option value="'+_escH(e)+'"'+(cur===e?' selected':'')+'>'+_escH(e)+'</option>';}).join('');
+  }
+  var filtrado=voc.filter(function(v){return(!fltCli||v.empresa===fltCli)&&(!fltCat||v.categoria===fltCat);});
+  var kEl=document.getElementById('vocKPIs');
+  if(kEl){
+    var tot=voc.length;
+    var imp=voc.filter(function(v){return v.status==='implementado';}).length;
+    var emProc=voc.filter(function(v){return v.status==='enviado_produto'||v.status==='em_analise';}).length;
+    var alta=voc.filter(function(v){return v.prioridade==='alta'&&v.status!=='implementado';}).length;
+    var txImp=tot?Math.round(imp/tot*100):0;
+    kEl.innerHTML=
+      '<div class="kpi gray"><div class="kpi-lbl">Total de feedbacks</div><div class="kpi-val">'+tot+'</div></div>'+
+      '<div class="kpi blue"><div class="kpi-lbl">Em processamento</div><div class="kpi-val">'+emProc+'</div></div>'+
+      '<div class="kpi green"><div class="kpi-lbl">Implementados</div><div class="kpi-val">'+imp+'</div><div class="kpi-sub">'+txImp+'% do total</div></div>'+
+      '<div class="kpi '+(alta>0?'red':'gray')+'"><div class="kpi-lbl">Alta prioridade</div><div class="kpi-val" style="'+(alta>0?'color:var(--red)':'')+'">'+alta+'</div><div class="kpi-sub">pendentes</div></div>';
+  }
+  var kb=document.getElementById('vocKanban');if(!kb)return;
+  kb.innerHTML=VOC_STATUS.map(function(st){
+    var items=filtrado.filter(function(v){return v.status===st.id;});
+    var next=_vocNextStatus(st.id);
+    var nextMeta=next?_vocStatusMeta(next):null;
+    var cards=items.length?items.map(function(v){
+      var priCor=v.prioridade==='alta'?'#D10000':v.prioridade==='media'?'#e0880a':'#1d9e75';
+      var priLbl=v.prioridade==='alta'?'Alta':v.prioridade==='media'?'Média':'Baixa';
+      var txt=v.texto.length>110?v.texto.slice(0,107)+'...':v.texto;
+      return'<div style="background:#fff;border:1px solid var(--gray4);border-radius:10px;padding:12px 14px;margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:6px">'
+        +'<div style="font-size:11px;font-weight:700;color:var(--dark);line-height:1.4;flex:1">'+_escH(v.empresa)+'</div>'
+        +'<span style="font-size:10px;font-weight:700;color:'+priCor+';background:'+priCor+'18;padding:2px 7px;border-radius:20px;flex-shrink:0">'+priLbl+'</span>'
+        +'</div>'
+        +'<div style="font-size:12px;color:var(--gray1);line-height:1.5;margin-bottom:8px">'+_escH(txt)+'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">'
+        +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="badge" style="background:var(--gray5);color:var(--gray2);font-size:10px">'+_escH(v.categoria)+'</span><span style="font-size:10px;color:var(--gray3)">'+_escH(v.dataCaptura||'')+'</span></div>'
+        +'<div style="display:flex;gap:5px">'+(next?'<button class="btn-ghost" style="padding:3px 9px;font-size:10.5px" onclick="moverVoC(\''+v.id+'\',\''+next+'\')"><i class="ti '+nextMeta.icone+'" style="font-size:11px"></i>'+nextMeta.label+'</button>':'')+'<button class="btn-ghost" style="padding:3px 8px;color:var(--gray3)" onclick="excluirVoC(\''+v.id+'\')"><i class="ti ti-trash" style="font-size:11px"></i></button></div>'
+        +'</div>'+(v.notas?'<div style="margin-top:8px;padding:6px 10px;background:var(--gray5);border-radius:7px;font-size:11px;color:var(--gray2);line-height:1.4">'+_escH(v.notas)+'</div>':'')
+        +'</div>';
+    }).join(''):'<div style="padding:20px 0;text-align:center;color:var(--gray3);font-size:12px"><i class="ti ti-inbox" style="display:block;font-size:22px;margin-bottom:6px"></i>Vazio</div>';
+    return'<div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid '+st.cor+'"><i class="ti '+st.icone+'" style="color:'+st.cor+';font-size:14px"></i><span style="font-size:12px;font-weight:700;color:var(--dark)">'+st.label+'</span><span style="font-size:11px;font-weight:600;color:'+st.cor+';background:'+st.bg+';padding:2px 8px;border-radius:20px;margin-left:auto">'+items.length+'</span></div>'
+      +cards+'</div>';
+  }).join('');
+}
+
+async function salvarVoC(){
+  var cid=document.getElementById('vocCliente')?document.getElementById('vocCliente').value:'';
+  var cli=CS_DB.getClienteById(cid);
+  var texto=(document.getElementById('vocTexto')?document.getElementById('vocTexto').value:'').trim();
+  if(!texto){toast('Informe o feedback do cliente.','err');return;}
+  var item={
+    id:'voc_'+Date.now(),clienteId:cid,empresa:cli?cli.empresa:'—',
+    categoria:document.getElementById('vocCategoria')?document.getElementById('vocCategoria').value:'Outro',
+    prioridade:document.getElementById('vocPrioridade')?document.getElementById('vocPrioridade').value:'media',
+    dataCaptura:document.getElementById('vocData')?document.getElementById('vocData').value:new Date().toLocaleDateString('pt-BR'),
+    texto:texto,notas:(document.getElementById('vocNotas')?document.getElementById('vocNotas').value:'').trim(),
+    status:'capturado',reuniaoId:null,criadoEm:new Date().toISOString()
+  };
+  var voc=CS_DB.get('voc')||[];voc.push(item);
+  await CS_DB.set('voc',voc);
+  closeM('mNovoVoC');toast('Feedback registrado na Voz do Cliente!');renderVoC();
+}
+
+async function moverVoC(id,novoStatus){
+  var voc=CS_DB.get('voc')||[];
+  var item=voc.find(function(v){return v.id===id;});if(!item)return;
+  item.status=novoStatus;
+  await CS_DB.set('voc',voc);
+  toast('Feedback movido para "'+_vocStatusMeta(novoStatus).label+'"');renderVoC();
+}
+
+async function excluirVoC(id){
+  if(!confirm('Excluir este feedback da Voz do Cliente?'))return;
+  await CS_DB.set('voc',(CS_DB.get('voc')||[]).filter(function(v){return v.id!==id;}));
+  toast('Feedback removido.');renderVoC();
+}
+
+async function importarVoC(){
+  var reu=CS_DB.getAllReunioes();
+  var voc=CS_DB.get('voc')||[];
+  var jaImport=new Set(voc.filter(function(v){return v.reuniaoId;}).map(function(v){return v.reuniaoId;}));
+  var adicionados=0;
+  reu.forEach(function(r){
+    if(!r.melhorias||!r.melhorias.trim())return;
+    if(jaImport.has(r.id))return;
+    var cli=CS_DB.getClienteById(r.clienteId);
+    voc.push({id:'voc_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),clienteId:r.clienteId||'',empresa:r.empresa||cli&&cli.empresa||'—',categoria:'Outro',prioridade:'media',dataCaptura:r.data||new Date().toLocaleDateString('pt-BR'),texto:r.melhorias.trim(),notas:'',status:'capturado',reuniaoId:r.id,criadoEm:new Date().toISOString()});
+    adicionados++;
+  });
+  await CS_DB.set('voc',voc);
+  if(adicionados){toast(adicionados+' feedback(s) importados das reuniões!');renderVoC();}
+  else toast('Nenhum feedback novo encontrado nas reuniões.','warn');
+}
+
+// ═══ TEMPLATES DE E-MAIL ═══
+var _EMAIL_TEMPLATES_DEFAULT=[
+  {id:'tpl_qbr',nome:'QBR Trimestral',categoria:'QBR',assunto:'Revisão Trimestral de Resultados — {{empresa}}',corpo:'Prezado(a) {{contato}},\n\nEspero que esteja bem!\n\nGostaria de agendar nossa Revisão Trimestral de Resultados (QBR) para revisarmos juntos os principais indicadores, conquistas e próximos passos da nossa parceria.\n\nAlguns tópicos que abordaremos:\n• Health Score atual: {{healthScore}}\n• Resultados de satisfação (NPS: {{nps}})\n• Evolução dos planos de ação\n• Metas para o próximo trimestre\n\nPoderia me indicar sua disponibilidade para os próximos dias?\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_checkin',nome:'Check-in Mensal',categoria:'Check-in',assunto:'Check-in mensal — {{empresa}}',corpo:'Olá, {{contato}}!\n\nPassando para fazer nosso check-in mensal e garantir que tudo está correndo bem com a {{empresa}}.\n\nComo tem sido a experiência com o sistema? Há algum ponto de atenção, dúvida ou melhoria que podemos trabalhar juntos?\n\nSou todo ouvidos. Pode responder este e-mail ou, se preferir, podemos agendar uma conversa rápida de 15 minutos.\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_renovacao',nome:'Alerta de Renovação',categoria:'Renovação',assunto:'Renovação contratual — {{empresa}}',corpo:'Prezado(a) {{contato}},\n\nEspero que esteja bem!\n\nGostaria de informar que o contrato da {{empresa}} com a Creare Sistemas tem previsão de renovação em {{dataRenovacao}}.\n\nEstamos muito satisfeitos com nossa parceria e gostaríamos de conversar sobre a continuidade e possíveis expansões que possam agregar ainda mais valor ao seu negócio.\n\nPoderia confirmar o interesse em renovar e indicar um momento para conversarmos?\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_followup',nome:'Follow-up Pós-Reunião',categoria:'Follow-up',assunto:'Próximos passos — {{empresa}}',corpo:'Olá, {{contato}}!\n\nObrigado pelo tempo dedicado à nossa reunião de hoje.\n\nConforme conversamos, seguem os próximos passos combinados:\n\n• [INSERIR PONTOS COMBINADOS]\n\nQualquer dúvida, estou à disposição. Nos falamos em breve!\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'},
+  {id:'tpl_nps_detrator',nome:'Follow-up Detrator NPS',categoria:'Follow-up',assunto:'Gostaríamos de ouvir você — {{empresa}}',corpo:'Prezado(a) {{contato}},\n\nObrigado por responder nossa pesquisa de satisfação. Valorizamos muito sua opinião e entendemos que temos pontos a melhorar.\n\nGostaria de entender melhor sua experiência e o que podemos fazer para torná-la mais positiva. Posso agendar uma conversa rápida de 20 minutos?\n\nSua satisfação é nossa prioridade e estamos comprometidos em resolver qualquer ponto de insatisfação.\n\nAtenciosamente,\n{{responsavelCS}}\nCustomer Success — Creare Sistemas'}
+];
+var _emailFiltroAtivo='';
+var _emailComporTplId=null;
+var _emailCatColors={'QBR':'#2563eb','Check-in':'#059669','Renovação':'#d97706','Follow-up':'#7c3aed','Personalizado':'#64748b'};
+
+function _getEmailTemplates(){
+  var custom=CS_DB.get('emailTemplates')||[];
+  var customIds=custom.map(function(t){return t.id;});
+  var defs=_EMAIL_TEMPLATES_DEFAULT.filter(function(t){return customIds.indexOf(t.id)<0;});
+  return defs.concat(custom);
+}
+
+function emailFiltrar(cat){
+  _emailFiltroAtivo=cat;
+  document.querySelectorAll('[id^="emailFltBtn-"]').forEach(function(b){b.classList.remove('active');});
+  var btn=document.getElementById('emailFltBtn-'+cat);if(btn)btn.classList.add('active');
+  renderEmailTemplates();
+}
+
+function renderEmailTemplates(){
+  var el=document.getElementById('emailTemplatesList');if(!el)return;
+  var todos=_getEmailTemplates();
+  var filtrados=_emailFiltroAtivo?todos.filter(function(t){return t.categoria===_emailFiltroAtivo;}):todos;
+  if(!filtrados.length){el.innerHTML='<div style="text-align:center;padding:56px 24px;color:var(--gray3)"><i class="ti ti-mail-off" style="font-size:40px;display:block;margin-bottom:10px;color:var(--gray4)"></i><div style="font-size:14px;font-weight:600;margin-bottom:4px">Nenhum template encontrado</div></div>';return;}
+  var grupos={};
+  filtrados.forEach(function(t){if(!grupos[t.categoria])grupos[t.categoria]=[];grupos[t.categoria].push(t);});
+  var catOrder=['QBR','Check-in','Renovação','Follow-up','Personalizado'];
+  var html='';
+  catOrder.forEach(function(cat){
+    if(!grupos[cat])return;
+    var cor=_emailCatColors[cat]||'var(--blue)';
+    html+='<div style="margin-bottom:20px"><div style="font-size:11px;font-weight:700;color:'+cor+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+cor+'"></span>'+cat+'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">';
+    grupos[cat].forEach(function(tpl){
+      var isDefault=_EMAIL_TEMPLATES_DEFAULT.some(function(d){return d.id===tpl.id&&!tpl.customizado;});
+      var corpoPreview=(tpl.corpo||'').replace(/\{\{[^}]+\}\}/g,'…').substring(0,120);
+      html+='<div style="background:var(--white);border:1px solid var(--gray4);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">';
+      html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px"><div style="font-size:13.5px;font-weight:700;color:var(--black);line-height:1.3">'+_escH(tpl.nome||'')+'</div><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+cor+'18;color:'+cor+';flex-shrink:0">'+_escH(cat)+'</span></div>';
+      html+='<div style="font-size:11.5px;font-weight:600;color:var(--gray1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_escH(tpl.assunto||'')+'</div>';
+      html+='<div style="font-size:11.5px;color:var(--gray2);line-height:1.6;max-height:50px;overflow:hidden">'+_escH(corpoPreview)+(tpl.corpo&&tpl.corpo.length>120?'…':'')+'</div>';
+      html+='<div style="display:flex;gap:6px;margin-top:2px"><button class="btn-primary" style="flex:1;justify-content:center;font-size:11.5px;padding:6px 10px" onclick="emailAbrirCompor(\''+tpl.id+'\')"><i class="ti ti-send" style="font-size:12px"></i>Usar</button>';
+      html+='<button class="btn-ghost" style="font-size:11.5px;padding:6px 10px" onclick="emailAbrirEditar(\''+tpl.id+'\')" title="Editar"><i class="ti ti-pencil" style="font-size:12px"></i></button>';
+      if(!isDefault)html+='<button class="btn-ghost" style="font-size:11.5px;padding:6px 10px;color:var(--red);border-color:#fca5a5" onclick="emailExcluirTemplate(\''+tpl.id+'\')" title="Excluir"><i class="ti ti-trash" style="font-size:12px"></i></button>';
+      html+='</div></div>';
+    });
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function emailAbrirNovoTemplate(){
+  document.getElementById('emailTplId').value='';
+  document.getElementById('mEmailTemplateTtl').textContent='Novo Template';
+  document.getElementById('emailTplNome').value='';
+  document.getElementById('emailTplCategoria').value='Personalizado';
+  document.getElementById('emailTplAssunto').value='';
+  document.getElementById('emailTplCorpo').value='';
+  openM('mEmailTemplate');
+}
+
+function emailAbrirEditar(id){
+  var tpl=_getEmailTemplates().find(function(t){return t.id===id;});if(!tpl)return;
+  document.getElementById('emailTplId').value=tpl.id;
+  document.getElementById('mEmailTemplateTtl').textContent='Editar Template';
+  document.getElementById('emailTplNome').value=tpl.nome||'';
+  document.getElementById('emailTplCategoria').value=tpl.categoria||'Personalizado';
+  document.getElementById('emailTplAssunto').value=tpl.assunto||'';
+  document.getElementById('emailTplCorpo').value=tpl.corpo||'';
+  openM('mEmailTemplate');
+}
+
+async function emailSalvarTemplate(){
+  var nome=(document.getElementById('emailTplNome').value||'').trim();
+  var assunto=(document.getElementById('emailTplAssunto').value||'').trim();
+  var corpo=(document.getElementById('emailTplCorpo').value||'').trim();
+  if(!nome){toast('Informe o nome do template.','err');return;}
+  if(!assunto){toast('Informe o assunto.','err');return;}
+  if(!corpo){toast('Informe o corpo do e-mail.','err');return;}
+  var id=document.getElementById('emailTplId').value||('tpl_'+Date.now());
+  var tpl={id:id,nome:nome,categoria:document.getElementById('emailTplCategoria').value,assunto:assunto,corpo:corpo,customizado:true,criadoEm:new Date().toISOString()};
+  var lista=CS_DB.get('emailTemplates')||[];
+  var idx=lista.findIndex(function(t){return t.id===id;});
+  if(idx>=0)lista[idx]=tpl;else lista.push(tpl);
+  await CS_DB.set('emailTemplates',lista);
+  closeM('mEmailTemplate');toast('Template salvo!');renderEmailTemplates();
+}
+
+async function emailExcluirTemplate(id){
+  if(!confirm('Excluir este template?'))return;
+  var lista=(CS_DB.get('emailTemplates')||[]).filter(function(t){return t.id!==id;});
+  await CS_DB.set('emailTemplates',lista);
+  toast('Template excluído.','warn');renderEmailTemplates();
+}
+
+function emailAbrirCompor(tplId){
+  _emailComporTplId=tplId;
+  var tpl=_getEmailTemplates().find(function(t){return t.id===tplId;});if(!tpl)return;
+  document.getElementById('mComporTplNome').textContent=tpl.nome;
+  var sel=document.getElementById('emailComporCliente');
+  var clientes=CS_DB.getClientes().filter(function(c){return c.status!=='Cancelado';});
+  sel.innerHTML='<option value="">— Selecione o cliente —</option>'+clientes.sort(function(a,b){return(a.empresa||'').localeCompare(b.empresa||'');}).map(function(c){return'<option value="'+c.id+'">'+_escH(c.empresa||'')+'</option>';}).join('');
+  document.getElementById('emailPreviewAssunto').textContent='';
+  document.getElementById('emailPreviewCorpo').textContent='';
+  openM('mComporEmail');
+}
+
+function _preencherTemplateEmail(texto,cli){
+  if(!cli)return texto;
+  var nps='—';
+  try{var npsAll=CS_DB.getAllNPS();var npsC=npsAll.filter(function(n){return n.clienteId===cli.id;});if(npsC.length)nps=npsC[npsC.length-1].nota;}catch(e){}
+  return texto
+    .replace(/\{\{empresa\}\}/g,cli.empresa||'').replace(/\{\{nomeFantasia\}\}/g,cli.nomeFantasia||cli.empresa||'')
+    .replace(/\{\{contato\}\}/g,cli.contato||'').replace(/\{\{cargo\}\}/g,cli.cargo||'')
+    .replace(/\{\{email\}\}/g,cli.email||'').replace(/\{\{responsavelCS\}\}/g,cli.responsavelCS||'')
+    .replace(/\{\{healthScore\}\}/g,cli.healthScore!=null?String(cli.healthScore):'—')
+    .replace(/\{\{nps\}\}/g,String(nps)).replace(/\{\{mrr\}\}/g,cli.mrr||'—')
+    .replace(/\{\{dataRenovacao\}\}/g,cli.vigencia||cli.dataRenovacao||'—')
+    .replace(/\{\{cidade\}\}/g,cli.cidade||'').replace(/\{\{uf\}\}/g,cli.uf||'');
+}
+
+function emailAtualizarPreview(){
+  var tpl=_getEmailTemplates().find(function(t){return t.id===_emailComporTplId;});if(!tpl)return;
+  var cid=document.getElementById('emailComporCliente').value;
+  var cli=cid?CS_DB.getClienteById(cid):null;
+  document.getElementById('emailPreviewAssunto').textContent=_preencherTemplateEmail(tpl.assunto,cli||{});
+  document.getElementById('emailPreviewCorpo').textContent=_preencherTemplateEmail(tpl.corpo,cli||{});
+}
+
+function emailCopiarTexto(){
+  var texto=document.getElementById('emailPreviewCorpo').textContent;
+  if(!texto){toast('Selecione um cliente primeiro.','warn');return;}
+  navigator.clipboard.writeText(texto).then(function(){toast('Corpo copiado!');}).catch(function(){toast('Erro ao copiar.','err');});
+}
+function emailCopiarAssunto(){
+  var texto=document.getElementById('emailPreviewAssunto').textContent;
+  if(!texto){toast('Selecione um cliente primeiro.','warn');return;}
+  navigator.clipboard.writeText(texto).then(function(){toast('Assunto copiado!');}).catch(function(){toast('Erro ao copiar.','err');});
+}
+function emailAbrirMailto(){
+  var assunto=document.getElementById('emailPreviewAssunto').textContent;
+  var corpo=document.getElementById('emailPreviewCorpo').textContent;
+  if(!assunto){toast('Selecione um cliente primeiro.','warn');return;}
+  var cid=document.getElementById('emailComporCliente').value;
+  var cli=cid?CS_DB.getClienteById(cid):null;
+  var para=cli?encodeURIComponent(cli.email||''):'';
+  window.open('mailto:'+para+'?subject='+encodeURIComponent(assunto)+'&body='+encodeURIComponent(corpo),'_self');
+}
+
+// ═══ MOTIVO DE CHURN ═══
+function abrirMotivoChurn(clienteId,empresa,mrr){
+  document.getElementById('mChurnClienteId').value=clienteId;
+  document.getElementById('mChurnEmpresaNome').textContent=empresa||'';
+  document.getElementById('mChurnCategoria').value='';
+  document.getElementById('mChurnMotivo').value='';
+  document.getElementById('mChurnMRR').value=mrr||'';
+  openM('mMotivoChurn');
+}
+
+async function salvarMotivoChurn(){
+  var clienteId=document.getElementById('mChurnClienteId').value;
+  var categoria=document.getElementById('mChurnCategoria').value;
+  if(!categoria){toast('Selecione a categoria do motivo.','err');return;}
+  var cli=CS_DB.getClienteById(clienteId);
+  var obj={
+    id:'churn_'+Date.now(),clienteId:clienteId,
+    empresa:cli?cli.empresa:(document.getElementById('mChurnEmpresaNome').textContent||''),
+    categoria:categoria,motivo:(document.getElementById('mChurnMotivo').value||'').trim(),
+    mrr:document.getElementById('mChurnMRR').value||'',
+    registradoPor:(CS_DB.getSession&&CS_DB.getSession()&&CS_DB.getSession().nome)||'',
+    registradoEm:new Date().toISOString()
+  };
+  var lista=CS_DB.get('churns')||[];
+  lista=lista.filter(function(c){return c.clienteId!==clienteId;});
+  lista.push(obj);
+  await CS_DB.set('churns',lista);
+  closeM('mMotivoChurn');toast('Motivo de cancelamento registrado.');
+  var pg=document.getElementById('page-churn');
+  if(pg&&pg.classList.contains('active'))renderHistoricoChurn();
+}
+
+// ═══ DOWNLOAD TEMPLATE ATA ═══
+function baixarTemplateAta(){
+  var hoje=new Date();var dd=String(hoje.getDate()).padStart(2,'0');var mm=String(hoje.getMonth()+1).padStart(2,'0');var aaaa=hoje.getFullYear();
+  var css='@page Section1{margin:2.5cm}div.Section1{page:Section1}body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#111111;line-height:1.6}h1{font-size:20pt;font-weight:700;color:#1e3a5f;border-bottom:3pt solid #1e3a5f;padding-bottom:6pt;margin:0 0 14pt 0}h2{font-size:11pt;font-weight:700;color:#ffffff;padding:5pt 10pt;margin:18pt 0 6pt 0}p{margin:3pt 0;font-size:11pt}ul{margin:2pt 0;padding-left:18pt}li{margin:5pt 0;line-height:1.9}table.lay{width:100%;border:none;border-collapse:collapse}table.lay td{border:none;vertical-align:top;padding:0 6pt 0 0;font-size:11pt}table.ac{width:100%;border-collapse:collapse}table.ac th{background:#1e3a5f;color:#ffffff;padding:6pt 8pt;text-align:left;font-size:10pt;font-weight:700}table.ac td{border:1pt solid #cccccc;padding:6pt 8pt;font-size:11pt;height:20pt}.u{border-bottom:1pt solid #999999}.rod{border-top:1pt solid #cccccc;padding-top:8pt;margin-top:20pt;font-size:9.5pt;color:#666666}';
+  function ul(n){var s='<ul>';for(var i=0;i<n;i++)s+='<li>&nbsp;</li>';return s+'</ul>';}
+  function tr4(){return'<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>';}
+  function sp(n){var s='';for(var i=0;i<n;i++)s+='&nbsp;';return s;}
+  var corpo='<h1>ATA DE REUNIÃO &nbsp;&nbsp;&nbsp; <span style="font-size:12pt;font-weight:400;color:#555555">Creare Sistemas</span></h1>'
+    +'<table class="lay" style="margin-bottom:14pt"><tr><td style="width:55%"><b>Cliente:</b> <span class="u">'+sp(50)+'</span></td><td style="width:22%"><b>Data:</b> <span class="u">'+sp(18)+'</span></td><td style="width:23%"><b>Duração:</b> <span class="u">'+sp(8)+'</span> min</td></tr><tr><td colspan="3" style="padding-top:6pt"><b>Tipo:</b> &nbsp; &#9675; Check-in &nbsp;&nbsp; &#9675; QBR &nbsp;&nbsp; &#9675; Onboarding &nbsp;&nbsp; &#9675; Al. Técnico &nbsp;&nbsp; &#9675; Outro</td></tr></table>'
+    +'<h2 style="background:#1e3a5f">PARTICIPANTES</h2><table class="lay"><tr><td style="width:50%"><b>Cliente:</b><br>&bull; <span class="u">'+sp(45)+'</span><br>&bull; <span class="u">'+sp(45)+'</span><br>&bull; <span class="u">'+sp(45)+'</span></td><td style="width:50%"><b>Creare:</b><br>&bull; <span class="u">'+sp(45)+'</span><br>&bull; <span class="u">'+sp(45)+'</span><br>&bull; <span class="u">'+sp(45)+'</span></td></tr></table>'
+    +'<h2 style="background:#1e3a5f">ASSUNTOS DISCUTIDOS</h2><p><b>1.</b> <span class="u">'+sp(90)+'</span></p>'+ul(2)+'<p style="margin-top:8pt"><b>2.</b> <span class="u">'+sp(90)+'</span></p>'+ul(2)+'<p style="margin-top:8pt"><b>3.</b> <span class="u">'+sp(90)+'</span></p>'+ul(2)+'<p style="margin-top:8pt"><b>4.</b> <span class="u">'+sp(90)+'</span></p>'+ul(2)
+    +'<h2 style="background:#b91c1c">RISCOS / PONTOS DE ATENÇÃO</h2>'+ul(3)
+    +'<h2 style="background:#6d28d9">AÇÕES DEFINIDAS</h2><table class="ac"><tr><th style="width:44%">Ação / Tarefa</th><th style="width:20%">Responsável</th><th style="width:16%">Prazo</th><th style="width:20%">Área</th></tr>'+tr4()+tr4()+tr4()+tr4()+tr4()+tr4()+'</table>'
+    +'<h2 style="background:#15803d">PRÓXIMOS PASSOS</h2>'+ul(3)
+    +'<h2 style="background:#1e3a5f">SENTIMENTO DO CLIENTE</h2><p>&#9675; Positivo &nbsp;&nbsp;&nbsp;&nbsp; &#9675; Neutro &nbsp;&nbsp;&nbsp;&nbsp; &#9675; Misto &nbsp;&nbsp;&nbsp;&nbsp; &#9675; Negativo</p><p style="margin-top:6pt">Observações: <span class="u">'+sp(100)+'</span></p><p><span class="u">'+sp(120)+'</span></p>'
+    +'<div class="rod"><table class="lay"><tr><td><b>Registrado por:</b> <span class="u">'+sp(35)+'</span></td><td style="text-align:right;color:#888888">Creare Sistemas &mdash; CS Manager</td></tr></table></div>';
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Ata Creare</title><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]--><style>'+css+'</style></head><body><div class="Section1">'+corpo+'</div></body></html>';
+  var blob=new Blob(['﻿'+html],{type:'application/msword;charset=utf-8'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='Ata_Reuniao_'+dd+mm+aaaa+'.doc';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('Template Word baixado!','ok');
+}
+
+// ═══ ATA / TRANSCRIÇÃO ═══
+var _txResultado=null;var _ataAssuntoIdx=0;var _ataAcaoIdx=0;
+
+async function _loadPdfJs(){
+  if(window.pdfjsLib)return window.pdfjsLib;
+  return new Promise(function(resolve,reject){
+    var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=function(){var lib=window['pdfjs-dist/build/pdf']||window.pdfjsLib;if(lib){lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';window.pdfjsLib=lib;}resolve(lib);};
+    s.onerror=function(){reject(new Error('Não foi possível carregar PDF.js.'));};document.head.appendChild(s);
+  });
+}
+async function _extractPdfText(file){
+  var pdfjsLib=await _loadPdfJs();var ab=await file.arrayBuffer();var pdf=await pdfjsLib.getDocument({data:ab}).promise;var fullText='';
+  for(var i=1;i<=pdf.numPages;i++){var page=await pdf.getPage(i);var content=await page.getTextContent();var pageText='';content.items.forEach(function(item){pageText+=item.str+(item.hasEOL?'\n':' ');});fullText+=pageText+'\n\n';}
+  return fullText;
+}
+function _txGetApiKey(){var cfg=CS_DB.getConfig&&CS_DB.getConfig()||{};return cfg.anthropicKey||'';}
+
+function txMudarTab(tab){
+  var isColar=tab==='colar';
+  document.getElementById('txPanelColar').style.display=isColar?'block':'none';
+  document.getElementById('txPanelUpload').style.display=isColar?'none':'block';
+  document.getElementById('txTabColar').style.background=isColar?'var(--blue)':'var(--gray5)';document.getElementById('txTabColar').style.color=isColar?'#fff':'var(--gray2)';
+  document.getElementById('txTabUpload').style.background=isColar?'var(--gray5)':'var(--blue)';document.getElementById('txTabUpload').style.color=isColar?'var(--gray2)':'#fff';
+}
+function txMudarTipo(tipo){
+  document.getElementById('txTipo').value=tipo;var isAta=tipo==='ata';
+  document.getElementById('txTipoAta').style.background=isAta?'var(--blue)':'var(--gray5)';document.getElementById('txTipoAta').style.color=isAta?'#fff':'var(--gray2)';
+  document.getElementById('txTipoTransc').style.background=isAta?'var(--gray5)':'var(--blue)';document.getElementById('txTipoTransc').style.color=isAta?'var(--gray2)':'#fff';
+  var ph=document.getElementById('txTexto');if(ph)ph.placeholder=isAta?'Cole aqui o conteúdo da ata…':'Cole aqui a transcrição…';
+  var btn=document.getElementById('txBtnProcessar');if(btn)btn.innerHTML=isAta?'<i class="ti ti-file-search"></i>Analisar Ata':'<i class="ti ti-robot"></i>Processar com Claude';
+}
+async function txLerArquivo(ev){
+  var file=ev.target.files[0];if(!file)return;
+  var nome=document.getElementById('txArquivoNome');nome.textContent='Lendo '+file.name+'…';
+  try{
+    var text;
+    if(file.name.toLowerCase().endsWith('.pdf')){nome.textContent='Extraindo texto do PDF…';text=await _extractPdfText(file);}
+    else{text=await new Promise(function(res,rej){var r=new FileReader();r.onload=function(e){res(e.target.result);};r.onerror=rej;r.readAsText(file,'UTF-8');});}
+    document.getElementById('txTexto').value=text;
+    nome.innerHTML='<i class="ti ti-check" style="color:var(--green)"></i> '+file.name;
+    txMudarTab('colar');
+  }catch(e){nome.innerHTML='<i class="ti ti-x" style="color:var(--red)"></i> Erro: '+e.message;}
+}
+function _txAbrirModal(){
+  var sel=document.getElementById('txCliente');
+  var clientes=CS_DB.getClientes().sort(function(a,b){return(a.empresa||'').localeCompare(b.empresa||'');});
+  sel.innerHTML='<option value="">— Selecione o cliente —</option>'+clientes.map(function(c){return'<option value="'+c.id+'">'+_escH(c.empresa||'')+'</option>';}).join('');
+  document.getElementById('txData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('txTexto').value='';document.getElementById('txTitulo').value='';document.getElementById('txArquivoNome').textContent='';
+  document.getElementById('txEtapa1').style.display='block';document.getElementById('txEtapa2').style.display='none';document.getElementById('txLoading').style.display='none';
+  txMudarTab('colar');txMudarTipo('ata');_txResultado=null;
+}
+function txVoltarEtapa1(){document.getElementById('txEtapa1').style.display='block';document.getElementById('txEtapa2').style.display='none';}
+
+function txProcessar(){
+  var cid=document.getElementById('txCliente').value;var texto=(document.getElementById('txTexto').value||'').trim();
+  var tipoDoc=document.getElementById('txTipo').value||'ata';
+  if(!cid){toast('Selecione o cliente.','err');return;}if(!texto||texto.length<30){toast('Cole ou carregue o conteúdo da ata.','err');return;}
+  if(tipoDoc==='ata'){
+    document.getElementById('txEtapa1').style.display='none';document.getElementById('txEtapa2').style.display='none';document.getElementById('txLoading').style.display='block';
+    document.getElementById('txLoadingTitulo').textContent='Analisando ata…';document.getElementById('txLoadingDesc').textContent='Extraindo tópicos, participantes, ações e próximos passos';
+    setTimeout(function(){
+      try{var resultado=_parseAtaLocal(texto);_txResultado=resultado;_txMostrarResultado(resultado);var btnM=document.getElementById('txBtnMelhorar');if(btnM)btnM.style.display=_txGetApiKey()?'inline-flex':'none';}
+      catch(e){document.getElementById('txLoading').style.display='none';document.getElementById('txEtapa1').style.display='block';toast('Erro ao analisar ata: '+e.message,'err');}
+    },200);return;
+  }
+  txProcessarComClaude();
+}
+
+async function txProcessarComClaude(){
+  var cid=document.getElementById('txCliente').value;var texto=(document.getElementById('txTexto').value||'').trim();
+  if(!cid){toast('Selecione o cliente.','err');return;}if(!texto||texto.length<50){toast('Cole ou carregue a transcrição.','err');return;}
+  var apiKey=_txGetApiKey();if(!apiKey){toast('Configure a Chave API Anthropic em Configurações.','err');return;}
+  var cli=CS_DB.getClienteById(cid);var empresa=cli?cli.empresa:'';
+  var tipoDoc=document.getElementById('txTipo').value||'ata';var isAta=tipoDoc==='ata';
+  document.getElementById('txEtapa1').style.display='none';document.getElementById('txEtapa2').style.display='none';document.getElementById('txLoading').style.display='block';
+  document.getElementById('txLoadingTitulo').textContent=isAta?'Melhorando análise com Claude…':'Processando com Claude…';document.getElementById('txLoadingDesc').textContent='Gerando resumo executivo e insights';
+  var prompt=(isAta?'Analise a ATA DE REUNIÃO com o cliente "'+empresa+'".':'Analise a TRANSCRIÇÃO com "'+empresa+'".')+'\n\nRetorne APENAS JSON:\n{"resumo":"","sentimento":"positivo|neutro|negativo|misto","sentimento_descricao":"","participantes_cliente":[],"participantes_creare":[],"pontos_chave":[],"riscos":[],"acoes":[{"titulo":"","responsavel":"","prazo":"","area":"CS|TI|Comercial|Operações"}],"proximos_passos":"","topicos":[]}\n\n'+(isAta?'ATA:':'TRANSCRIÇÃO:')+'\n'+texto.substring(0,30000);
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':apiKey,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2048,messages:[{role:'user',content:prompt}]})});
+    if(!resp.ok){var et=await resp.text();throw new Error('API '+resp.status+': '+et.substring(0,200));}
+    var data=await resp.json();var raw=(data.content&&data.content[0]&&data.content[0].text)||'';
+    var resultado=JSON.parse((raw.match(/\{[\s\S]*\}/)||[raw])[0]);
+    _txResultado=resultado;var btnM=document.getElementById('txBtnMelhorar');if(btnM)btnM.style.display='none';
+    _txMostrarResultado(resultado);
+  }catch(e){
+    document.getElementById('txLoading').style.display='none';
+    document.getElementById(_txResultado?'txEtapa2':'txEtapa1').style.display='block';
+    var msg=e.message||String(e);if(msg.includes('401'))msg='Chave API inválida.';
+    toast('Erro ao processar com Claude: '+msg,'err');
+  }
+}
+
+function _parseAtaLocal(texto){
+  var r={resumo:'',sentimento:'neutro',sentimento_descricao:'',participantes_cliente:[],participantes_creare:[],pontos_chave:[],riscos:[],acoes:[],proximos_passos:'',topicos:[]};
+  var norm=texto.replace(/\r\n|\r/g,'\n').replace(/[ \t]{2,}/g,' ').replace(/([A-Z])\s([A-Z])\s([A-Z])/g,'$1$2$3');
+  var linhas=norm.split('\n').map(function(l){return l.trim();});
+  var HEADERS={
+    part:/^(participantes?|attendees?|presentes?)(\s*:|$)/i,
+    assunto:/^(assuntos?\s*(discutidos?|abordados?|tratados?|da\s+reuni[aã]o)|tópicos?(\s+abordados?)?|pauta|agenda)(\s+e\s+\w+)?(\s*:|$)/i,
+    riscos:/^(riscos?|pontos?\s+de\s+aten[çc][aã]o|alertas?|pendências?\s+cr[ií]ticas?|issues?)(\s*[\/\-]?\s*.{0,40})?$/i,
+    acoes:/^(ações?\s*(definidas?|acordadas?|combinadas?|pendentes?|a\s+serem?\s+tomadas?)|action\s+items?|tarefas?\s+definidas?|compromisos?)(\s*:|$)/i,
+    proximos:/^(próximos?\s+passos?(\s+e\s+\w+)?|next\s+steps?|follow[\s\-]?up|encaminhamentos?)(\s*:|$)/i,
+    sentim:/^(sentimento(\s+do\s+cliente)?|clima\s+da\s+reuni[aã]o|satisfa[çc][aã]o)(\s*:|$)/i
+  };
+  var secMap=[];
+  linhas.forEach(function(l,i){if(!l||l.length>90)return;for(var k in HEADERS){if(HEADERS[k].test(l)){secMap.push({sec:k,ini:i});break;}}});
+  for(var s=0;s<secMap.length;s++){secMap[s].fim=secMap[s+1]?secMap[s+1].ini:linhas.length;}
+  function secLinhas(k){var entry=secMap.find(function(x){return x.sec===k;});if(!entry)return[];return linhas.slice(entry.ini+1,entry.fim).filter(function(l){return l.trim();});}
+  var partLinhas=secLinhas('part');var subP=null;
+  partLinhas.forEach(function(l){
+    if(/^(cliente|empresa|rochalog|customer|contratante)\s*:/i.test(l)){subP='cli';return;}
+    if(/^(creare|fornecedor|equipe\s+creare|prestador|vendor)\s*:/i.test(l)){subP='cre';return;}
+    var nome=l.replace(/^[•\-\*•▸●▸→]\s*/,'').trim();if(!nome||nome.length<3)return;
+    if(subP==='cli')r.participantes_cliente.push(nome);
+    else if(subP==='cre')r.participantes_creare.push(nome);
+    else{if(/creare|cs\s+creare|customer\s+success/i.test(nome))r.participantes_creare.push(nome);else r.participantes_cliente.push(nome);}
+  });
+  var assLinhas=secLinhas('assunto');var topicoAtual=null;
+  assLinhas.forEach(function(l){
+    var mNum=l.match(/^(\d+)[.\)]\s+(.+)/);if(mNum){topicoAtual=mNum[2].trim();r.topicos.push(topicoAtual);r.pontos_chave.push('📌 '+topicoAtual);return;}
+    var mAlpha=l.match(/^[a-z][.\)]\s+(.+)/i);if(mAlpha&&!topicoAtual){topicoAtual=mAlpha[1].trim();r.topicos.push(topicoAtual);r.pontos_chave.push('📌 '+topicoAtual);return;}
+    var bullet=l.replace(/^[•\-\*•▸▸→◦]\s*/,'').trim();
+    if(bullet){r.pontos_chave.push(topicoAtual?'  → '+bullet:bullet);if(_txIsAcao(bullet)&&!_txAcaoExiste(r.acoes,bullet))r.acoes.push({titulo:bullet,responsavel:'',prazo:'',area:_txArea(bullet)});}
+  });
+  secLinhas('riscos').forEach(function(l){var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();if(b&&b.length>2)r.riscos.push(b);});
+  secLinhas('acoes').forEach(function(l){
+    if(/\|/.test(l)){var cols=l.split('|').map(function(c){return c.trim();}).filter(Boolean);if(/ação|tarefa|action|responsável|prazo|área/i.test(cols[0]))return;var tit=cols[0];if(tit&&tit.length>2&&!_txAcaoExiste(r.acoes,tit))r.acoes.push({titulo:tit,responsavel:cols[1]||'',prazo:cols[2]||'',area:cols[3]?cols[3].replace(/\W+$/,''):_txArea(tit)});return;}
+    var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();if(!b)return;
+    var mR=b.match(/responsável?[:\s]+([^|]+)/i);var mP=b.match(/prazo[:\s]+([^|]+)/i);var mA=b.match(/área?[:\s]+([^|]+)/i);var tit=b.split('|')[0].trim();
+    if(tit&&!_txAcaoExiste(r.acoes,tit))r.acoes.push({titulo:tit,responsavel:mR?mR[1].trim():'',prazo:mP?mP[1].trim():'',area:mA?mA[1].trim().replace(/\W+$/,''):_txArea(tit)});
+  });
+  secLinhas('proximos').forEach(function(l){var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();if(!b)return;r.proximos_passos+=(r.proximos_passos?'\n':'')+b;if(_txIsAcao(b)&&!_txAcaoExiste(r.acoes,b))r.acoes.push({titulo:b,responsavel:'',prazo:'',area:_txArea(b)});});
+  secLinhas('sentim').forEach(function(l){var ll=l.toLowerCase();if(/positivo/.test(ll))r.sentimento='positivo';else if(/negativo/.test(ll))r.sentimento='negativo';else if(/misto/.test(ll))r.sentimento='misto';r.sentimento_descricao=(r.sentimento_descricao?r.sentimento_descricao+' ':'')+l.replace(/^(positivo|negativo|neutro|misto)[,.]?\s*/i,'').trim();});
+  if(!r.participantes_cliente.length&&!r.participantes_creare.length){
+    var emPart=false,subG=null;
+    linhas.forEach(function(l){if(HEADERS.part.test(l)){emPart=true;subG=null;return;}if(emPart){if(/^(cliente|empresa)\s*:/i.test(l)){subG='cli';return;}if(/^(creare)\s*:/i.test(l)){subG='cre';return;}var n=l.replace(/^[•\-\*•]\s*/,'').trim();if(n&&n.length>3&&/[\-—]/.test(n)){if(subG==='cli')r.participantes_cliente.push(n);else if(subG==='cre')r.participantes_creare.push(n);else r.participantes_cliente.push(n);}if(!n)emPart=false;}});
+  }
+  if(!r.topicos.length){linhas.forEach(function(l){var mN=l.match(/^(\d+)[.\)]\s+([A-ZÁÉÍÓÚÀÂÊÎÔÛÃÕÇ][^.]{4,60})/);if(mN&&!_txAcaoExiste(r.acoes,mN[2])){r.topicos.push(mN[2].trim());r.pontos_chave.push('📌 '+mN[2].trim());}});}
+  if(!r.acoes.length){linhas.forEach(function(l){var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();if(b.length<8||b.length>200)return;if(_txIsAcao(b)&&!_txAcaoExiste(r.acoes,b))r.acoes.push({titulo:b,responsavel:'',prazo:'',area:_txArea(b)});});}
+  if(!r.proximos_passos){for(var i=0;i<linhas.length;i++){if(HEADERS.proximos.test(linhas[i])){linhas.slice(i+1).forEach(function(l){var b=l.replace(/^[•\-\*•▸→]\s*/,'').trim();if(b)r.proximos_passos+=(r.proximos_passos?'\n':'')+b;});break;}}}
+  var pts=[];
+  if(r.topicos.length)pts.push('Reunião abordou '+r.topicos.length+' tópico'+(r.topicos.length!==1?'s':'')+': '+r.topicos.slice(0,3).join(', ')+(r.topicos.length>3?' e outros.':'.'));
+  var todos=[].concat(r.participantes_cliente,r.participantes_creare);if(todos.length)pts.push('Participantes: '+todos.slice(0,4).join(', ')+(todos.length>4?' e outros.':'.'));
+  if(r.acoes.length)pts.push(r.acoes.length+' ação'+(r.acoes.length!==1?'ões identificadas':'  identificada')+'.');
+  if(r.riscos.length)pts.push('Ponto'+(r.riscos.length>1?'s':'')+' de atenção: '+r.riscos.slice(0,2).join('; ')+(r.riscos.length>2?' e outros.':'.'));
+  if(r.proximos_passos)pts.push('Próximos passos: '+r.proximos_passos.split('\n')[0]+'.');
+  r.resumo=pts.join(' ')||'Ata processada. Verifique os dados extraídos abaixo.';
+  return r;
+}
+function _txIsAcao(t){return /\b(verificar|agendar|liberar|demonstrar|estudar|integrar|trabalhar|consultar|cadastrar|enviar|validar|criar|realizar|controlar|melhorar|avisar|disponibilizar|desabilitar|silenciar|configurar|testar|implementar|apresentar|solicitar|credenciar|habilitar|treinar|mapear|levantar|ajustar|corrigir|definir|revisar|acompanhar|monitorar|confirmar|contatar|alinhar)\b/i.test(t)||/necessidade de|pendente[^s]|a ser (feito|realizado|validado|verificado|confirmado)|ficou de|será realiz|deverá|precisa (ser|verificar)|solicitar|combinou/i.test(t);}
+function _txArea(t){if(/\b(TI|técnic|sistem|API|integra[çc]|software|hardware|tablet|rastreador|BI|acesso|login|credencial|banco\s+de\s+dados|servidor|rede|wi.fi|dados)\b/i.test(t))return'TI';if(/\b(comercial|contrato|proposta|renovação|venda|negóci|expansão|precific)\b/i.test(t))return'Comercial';if(/\b(operaç|pátio|veículo|máquina|logística|abastecimento|manutenção|frota|condutor|motorista)\b/i.test(t))return'Operações';return'CS';}
+function _txAcaoExiste(acoes,titulo){return acoes.some(function(a){return a.titulo.toLowerCase().trim()===titulo.toLowerCase().trim();});}
+
+function _txMostrarResultado(r){
+  document.getElementById('txLoading').style.display='none';
+  var sMap={positivo:{bg:'#dcfce7',color:'#15803d',icon:'😊',label:'Sentimento Positivo'},neutro:{bg:'var(--gray5)',color:'var(--gray1)',icon:'😐',label:'Sentimento Neutro'},negativo:{bg:'#fee2e2',color:'#dc2626',icon:'😟',label:'Sentimento Negativo'},misto:{bg:'#fefce8',color:'#b45309',icon:'🤔',label:'Sentimento Misto'}};
+  var s=sMap[r.sentimento]||sMap.neutro;
+  var banner=document.getElementById('txSentimentoBanner');banner.style.background=s.bg;banner.style.color=s.color;
+  document.getElementById('txSentimentoIcon').textContent=s.icon;document.getElementById('txSentimentoLabel').textContent=s.label;document.getElementById('txSentimentoDesc').textContent=r.sentimento_descricao||'';
+  var partDiv=document.getElementById('txResumo').parentElement;var partOld=document.getElementById('txParticipantes');if(partOld)partOld.remove();
+  if((r.participantes_cliente&&r.participantes_cliente.length)||(r.participantes_creare&&r.participantes_creare.length)){
+    var partEl=document.createElement('div');partEl.id='txParticipantes';partEl.style.cssText='font-size:12px;color:var(--gray1);margin-bottom:8px;display:flex;gap:16px;flex-wrap:wrap';
+    if(r.participantes_cliente&&r.participantes_cliente.length)partEl.innerHTML+='<div><strong style="color:var(--gray2);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px">Cliente:</strong> '+r.participantes_cliente.map(_escH).join(' · ')+'</div>';
+    if(r.participantes_creare&&r.participantes_creare.length)partEl.innerHTML+='<div><strong style="color:var(--gray2);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px">Creare:</strong> '+r.participantes_creare.map(_escH).join(' · ')+'</div>';
+    partDiv.insertBefore(partEl,partDiv.querySelector('#txResumo'));
+  }
+  document.getElementById('txResumo').textContent=r.resumo||'';
+  var ul=document.getElementById('txPontos');ul.innerHTML=(r.pontos_chave||[]).map(function(p){return'<li>'+_escH(p)+'</li>';}).join('')||'<li style="color:var(--gray3)">Nenhum identificado</li>';
+  var ur=document.getElementById('txRiscos');ur.innerHTML=(r.riscos||[]).length?(r.riscos||[]).map(function(p){return'<li>'+_escH(p)+'</li>';}).join(''):'<li style="color:var(--green)">Nenhum risco identificado ✓</li>';
+  var acoes=r.acoes||[];document.getElementById('txAcoesCount').textContent='— '+acoes.length+' identificada'+(acoes.length!==1?'s':'');
+  var al=document.getElementById('txAcoesList');
+  if(!acoes.length){al.innerHTML='<div style="font-size:12px;color:var(--gray3);padding:8px 0">Nenhuma ação identificada.</div>';}
+  else{al.innerHTML=acoes.map(function(a,i){return'<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray4)"><input type="checkbox" id="txAcao'+i+'" checked style="width:14px;height:14px;flex-shrink:0"><div style="flex:1"><div style="font-size:12.5px;font-weight:600;color:var(--black)">'+_escH(a.titulo||'')+'</div><div style="font-size:11.5px;color:var(--gray2);margin-top:2px">'+(a.responsavel?'<span style="margin-right:10px"><i class="ti ti-user" style="font-size:11px"></i> '+_escH(a.responsavel)+'</span>':'')+(a.prazo?'<span style="margin-right:10px"><i class="ti ti-calendar" style="font-size:11px"></i> '+_escH(a.prazo)+'</span>':'')+(a.area?'<span style="background:var(--gray4);padding:1px 7px;border-radius:12px;font-size:10.5px">'+_escH(a.area)+'</span>':'')+'</div></div></div>';}).join('');}
+  document.getElementById('txProximos').textContent=r.proximos_passos||'';document.getElementById('txEtapa2').style.display='block';
+}
+
+async function txAplicar(){
+  if(!_txResultado)return;
+  var r=_txResultado;var cid=document.getElementById('txCliente').value;var cli=CS_DB.getClienteById(cid);
+  if(!cli){toast('Cliente não encontrado.','err');return;}
+  var data=document.getElementById('txData').value||new Date().toISOString().split('T')[0];
+  var titulo=(document.getElementById('txTitulo').value||'').trim()||'Reunião com '+cli.empresa;
+  var quem=(CS_DB.getSession&&CS_DB.getSession()&&CS_DB.getSession().nome)||'CS';
+  var ataId='ata_'+Date.now();
+  var novaAta={id:ataId,clienteId:cid,empresa:cli.empresa||'',titulo:titulo,data:data,tipo:'ata',resumo:r.resumo||'',topicos:r.topicos||[],pontos_chave:r.pontos_chave||[],riscos:r.riscos||[],proximos_passos:r.proximos_passos||'',sentimento:r.sentimento||'neutro',sentimento_descricao:r.sentimento_descricao||'',participantes_cliente:r.participantes_cliente||[],participantes_creare:r.participantes_creare||[],acoes_ids:[],criadoEm:new Date().toISOString(),criadoPor:quem};
+  var atasList=CS_DB.get('atas')||[];atasList.push(novaAta);await CS_DB.set('atas',atasList);
+  var tl='📋 Ata importada: '+titulo+'\n\n'+r.resumo;if(r.topicos&&r.topicos.length)tl+='\n\n📌 Tópicos: '+r.topicos.slice(0,4).join(', ')+(r.topicos.length>4?' e outros.':'.');if(r.proximos_passos)tl+='\n\n➡ Próximos passos: '+r.proximos_passos.split('\n')[0];
+  await CS_DB._addTimeline(cid,'reuniao','Ata de reunião importada e analisada',tl);
+  var reuData={clienteId:cid,tipo:'check-in',sentimento:r.sentimento||'neutro',participantesCreare:(r.participantes_creare||[]).join('; '),participantesCliente:(r.participantes_cliente||[]).join('; '),pontosPosi:(r.pontos_chave||[]).join('\n'),problemasIdent:(r.riscos||[]).join('\n'),melhorias:'',proximaReuniao:r.proximos_passos||'',resumoIA:r.resumo||''};
+  var reuSalva=await CS_DB.saveReuniao(reuData);var reuId=reuSalva&&(reuSalva.id||reuSalva.data&&reuSalva.data.id)||('reu_'+Date.now());
+  var atasUpd=CS_DB.get('atas')||[];var iAta=atasUpd.findIndex(function(a){return a.id===ataId;});if(iAta>=0)atasUpd[iAta].reuniaoId=reuId;await CS_DB.set('atas',atasUpd);
+  var acoes=r.acoes||[];var criadas=0;var acoesCriadasIds=[];
+  for(var i=0;i<acoes.length;i++){
+    var cb=document.getElementById('txAcao'+i);if(cb&&!cb.checked)continue;
+    var saved=await CS_DB.saveAcao({clienteId:cid,descricao:acoes[i].titulo||'Ação da ata',area:acoes[i].area||'CS',prioridade:'Média',status:'Pendente',progresso:0,responsavel:acoes[i].responsavel||quem,prazo:acoes[i].prazo||'',prazoISO:'',comentarios:'',categoria:'follow-up',reuniaoTipo:'check-in',reuniaoData:data,reuniaoHora:'',reuniaoPauta:'Ata: '+titulo});
+    if(saved&&saved.id){acoesCriadasIds.push(saved.id);criadas++;}
+  }
+  var atasUpd2=CS_DB.get('atas')||[];var iAta2=atasUpd2.findIndex(function(a){return a.id===ataId;});if(iAta2>=0)atasUpd2[iAta2].acoes_ids=acoesCriadasIds;await CS_DB.set('atas',atasUpd2);
+  closeM('mTranscricao');
+  var msg='Ata salva — '+cli.empresa;if(criadas)msg+=' · '+criadas+' card'+(criadas!==1?'s':'')+' criado'+(criadas!==1?'s':'');
+  toast(msg);try{renderDashboard();}catch(e){}try{renderKanban&&renderKanban();}catch(e){}
+}
+
+// ═══ ATA VIEWER ═══
+function verAta(ataId){
+  var ata=(CS_DB.get('atas')||[]).find(function(a){return a.id===ataId;});
+  if(!ata){toast('Ata não encontrada.','warn');return;}
+  var sMap={positivo:{bg:'#dcfce7',color:'#15803d',icon:'😊',label:'Positivo'},neutro:{bg:'var(--gray5)',color:'var(--gray1)',icon:'😐',label:'Neutro'},negativo:{bg:'#fee2e2',color:'#dc2626',icon:'😟',label:'Negativo'},misto:{bg:'#fefce8',color:'#b45309',icon:'🤔',label:'Misto'}};
+  var s=sMap[ata.sentimento||'neutro']||sMap.neutro;
+  var dataFmt='';if(ata.data){try{dataFmt=new Date(ata.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});}catch(e){dataFmt=ata.data;}}
+  function sec(icon,titulo,cor,conteudo){return'<div class="card" style="margin-bottom:10px'+(cor?';border-left:3px solid '+cor:'')+'"><div class="card-ttl"'+(cor?'style="color:'+cor+'"':'')+'><i class="ti '+icon+'"></i>'+titulo+'</div>'+conteudo+'</div>';}
+  var html='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:10px;padding:14px 16px;margin-bottom:12px"><div style="font-size:16px;font-weight:700;color:var(--black);margin-bottom:4px">'+_escH(ata.titulo||'Ata de Reunião')+'</div><div style="font-size:12px;color:var(--gray2)">'+_escH(ata.empresa||'')+(dataFmt?' · '+dataFmt:'')+(ata.criadoPor?' · Registrado por '+_escH(ata.criadoPor):'')+'</div></div>';
+  html+='<div style="background:'+s.bg+';color:'+s.color+';border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:center"><span style="font-size:20px">'+s.icon+'</span><div><div style="font-size:12.5px;font-weight:700">Sentimento '+s.label+'</div>'+(ata.sentimento_descricao?'<div style="font-size:11.5px;opacity:.85">'+_escH(ata.sentimento_descricao)+'</div>':'')+'</div></div>';
+  if(ata.resumo)html+=sec('ti-notes','Resumo executivo','','<div style="font-size:13px;line-height:1.8;color:var(--gray1)">'+_escH(ata.resumo)+'</div>');
+  var pCli=ata.participantes_cliente||[],pCre=ata.participantes_creare||[];
+  if(pCli.length||pCre.length){html+=sec('ti-users','Participantes','','<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12.5px">'+(pCli.length?'<div><div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Cliente</div>'+pCli.map(function(p){return'<div style="padding:3px 0;border-bottom:1px solid var(--gray5)">'+_escH(p)+'</div>';}).join('')+'</div>':'')+(pCre.length?'<div><div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Creare</div>'+pCre.map(function(p){return'<div style="padding:3px 0;border-bottom:1px solid var(--gray5)">'+_escH(p)+'</div>';}).join('')+'</div>':'')+'</div>');}
+  if(ata.topicos&&ata.topicos.length)html+=sec('ti-list-check','Assuntos Abordados','','<ol style="margin:0;padding-left:20px;font-size:12.5px;color:var(--gray1)">'+ata.topicos.map(function(t){return'<li style="padding:4px 0;border-bottom:1px solid var(--gray5)">'+_escH(t)+'</li>';}).join('')+'</ol>');
+  if(ata.pontos_chave&&ata.pontos_chave.length>(ata.topicos||[]).length){var extras=ata.pontos_chave.filter(function(p){return!/^📌/.test(p);});if(extras.length)html+=sec('ti-check','Pontos Discutidos','','<ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.9;color:var(--gray1)">'+extras.map(function(p){return'<li>'+_escH(p)+'</li>';}).join('')+'</ul>');}
+  if(ata.riscos&&ata.riscos.length)html+=sec('ti-alert-triangle','Riscos / Pontos de Atenção','var(--red)','<ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:2;color:var(--gray1)">'+ata.riscos.map(function(r){return'<li>'+_escH(r)+'</li>';}).join('')+'</ul>');
+  if(ata.proximos_passos)html+=sec('ti-arrow-right','Próximos Passos','#16a34a','<div style="font-size:12.5px;line-height:1.9;color:var(--gray1)">'+_escH(ata.proximos_passos).replace(/\n/g,'<br>')+'</div>');
+  var ataAcoesIds=ata.acoes_ids||[];
+  var acoesVinc=CS_DB.getAllAcoes().filter(function(a){return ataAcoesIds.indexOf(a.id)>=0;});
+  if(acoesVinc.length){
+    var acoesConteudo='<div style="font-size:11px;color:var(--gray2);margin-bottom:8px"><i class="ti ti-info-circle"></i> Clique para acompanhar o card</div>'+acoesVinc.map(function(ac){
+      var dot=ac.status==='Concluído'?'#22c55e':ac.status==='Em Andamento'?'var(--blue)':'#94a3b8';
+      return'<div onclick="closeM(\'mVerAta\');setTimeout(function(){irParaAcao(\''+ac.id+'\')},220)" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--gray4);border-left:3px solid '+dot+';border-radius:7px;margin-bottom:6px;cursor:pointer"><div style="flex:1"><div style="font-size:12.5px;font-weight:600;color:var(--black)">'+_escH(ac.descricao||'')+'</div><div style="font-size:11px;color:var(--gray2);margin-top:2px">'+_escH(ac.area||'')+(ac.responsavel?' · '+_escH(ac.responsavel):'')+'</div></div><span class="badge">'+ac.status+'</span></div>';
+    }).join('');
+    html+=sec('ti-layout-kanban','Cards de Ação <span class="sub">'+acoesVinc.length+'</span>','var(--blue)',acoesConteudo);
+  }else{html+='<div style="font-size:12px;color:var(--gray3);text-align:center;padding:14px;background:var(--gray5);border-radius:8px;margin-bottom:10px"><i class="ti ti-circle-dashed" style="font-size:18px;display:block;margin-bottom:4px"></i>Nenhum card de ação vinculado a esta ata</div>';}
+  document.getElementById('verAtaConteudo').innerHTML=html;openM('mVerAta');
+}
+
+function verAtaDeAcao(){
+  var id=document.getElementById('detAcaoId').value;
+  var a=CS_DB.getAllAcoes().find(function(x){return x.id===id;});
+  if(!a||!a.ataId){toast('Esta ação não tem ata vinculada.','warn');return;}
+  closeM('mDetalhesAcao');setTimeout(function(){verAta(a.ataId);},220);
+}
+
+function salvarDevolutiva(){
+  toast('Devolutiva registrada.');closeM('mDevolutiva');
+}
+
+// ═══ NOVA ATA ESTRUTURADA ═══
+function _ataAbrirModal(){
+  var sel=document.getElementById('ataCliente');
+  var clientes=CS_DB.getClientes().sort(function(a,b){return(a.empresa||'').localeCompare(b.empresa||'');});
+  sel.innerHTML='<option value="">— Selecione o cliente —</option>'+clientes.map(function(c){return'<option value="'+c.id+'">'+_escH(c.empresa||'')+'</option>';}).join('');
+  document.getElementById('ataData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ataTipo').value='Check-in Mensal';document.getElementById('ataDuracao').value='';
+  document.getElementById('ataPartCliente').value='';document.getElementById('ataPartCreare').value='';
+  document.getElementById('ataRiscos').value='';document.getElementById('ataProximos').value='';
+  document.getElementById('ataSentimento').value='neutro';document.getElementById('ataSentimentoObs').value='';
+  _ataAssuntoIdx=0;_ataAcaoIdx=0;
+  var al=document.getElementById('ataAssuntosLista');var acl=document.getElementById('ataAcoesLista');
+  if(al)al.innerHTML='';if(acl)acl.innerHTML='';
+  ataAdicionarAssunto();ataAdicionarAcao();
+}
+function ataAdicionarAssunto(){
+  var el=document.getElementById('ataAssuntosLista');if(!el)return;
+  var idx=_ataAssuntoIdx++;var div=document.createElement('div');div.id='ataAssunto'+idx;div.style.cssText='display:flex;gap:6px;margin-bottom:6px;align-items:flex-start';
+  div.innerHTML='<div style="width:20px;height:20px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:10px">'+(idx+1)+'</div><div style="flex:1"><input type="text" placeholder="Título do assunto" style="width:100%;margin-bottom:4px;font-size:12.5px" id="ataAssuntoTit'+idx+'"><textarea rows="2" placeholder="Pontos discutidos, decisões…" style="width:100%;font-size:12px;resize:vertical" id="ataAssuntoDesc'+idx+'"></textarea></div><button onclick="document.getElementById(\'ataAssunto'+idx+'\').remove()" style="background:none;border:none;cursor:pointer;color:var(--gray3);padding:8px 4px;font-size:16px;flex-shrink:0"><i class="ti ti-x"></i></button>';
+  el.appendChild(div);
+}
+function ataAdicionarAcao(){
+  var el=document.getElementById('ataAcoesLista');if(!el)return;
+  var idx=_ataAcaoIdx++;var div=document.createElement('div');div.id='ataAcao'+idx;div.style.cssText='background:var(--white);border:1px solid var(--gray4);border-radius:7px;padding:10px;margin-bottom:6px;display:grid;grid-template-columns:1fr 150px 120px 110px auto;gap:6px;align-items:center';
+  div.innerHTML='<input type="text" placeholder="Descrição da ação" id="ataAcaoTit'+idx+'" style="font-size:12px"><input type="text" placeholder="Responsável" id="ataAcaoResp'+idx+'" style="font-size:12px"><input type="text" placeholder="Prazo" id="ataAcaoPrazo'+idx+'" style="font-size:12px"><select id="ataAcaoArea'+idx+'" style="font-size:12px"><option>CS</option><option>TI</option><option>Comercial</option><option>Operações</option><option>Técnico</option></select><button onclick="document.getElementById(\'ataAcao'+idx+'\').remove()" style="background:none;border:none;cursor:pointer;color:var(--gray3);padding:4px"><i class="ti ti-x"></i></button>';
+  el.appendChild(div);
+}
+
+async function ataSalvar(aplicar){
+  var cid=document.getElementById('ataCliente').value;var data=document.getElementById('ataData').value;
+  if(!cid){toast('Selecione o cliente.','err');return;}if(!data){toast('Informe a data da reunião.','err');return;}
+  var cli=CS_DB.getClienteById(cid);var tipo=document.getElementById('ataTipo').value;
+  var partCliente=document.getElementById('ataPartCliente').value.trim();var partCreare=document.getElementById('ataPartCreare').value.trim();
+  var riscos=document.getElementById('ataRiscos').value.trim().split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  var proximos=document.getElementById('ataProximos').value.trim().split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  var sentimento=document.getElementById('ataSentimento').value;var sentObs=document.getElementById('ataSentimentoObs').value.trim();
+  var quem=(CS_DB.getSession&&CS_DB.getSession()&&CS_DB.getSession().nome)||'CS';
+  var assuntos=[];
+  document.querySelectorAll('[id^="ataAssunto"]').forEach(function(div){var m=div.id.match(/ataAssunto(\d+)$/);if(!m)return;var i=m[1];var tit=(document.getElementById('ataAssuntoTit'+i)&&document.getElementById('ataAssuntoTit'+i).value||'').trim();var desc=(document.getElementById('ataAssuntoDesc'+i)&&document.getElementById('ataAssuntoDesc'+i).value||'').trim();if(tit||desc)assuntos.push({titulo:tit,descricao:desc});});
+  var acoesList=[];
+  document.querySelectorAll('[id^="ataAcao"]').forEach(function(div){var m=div.id.match(/ataAcao(\d+)$/);if(!m)return;var i=m[1];var tit=(document.getElementById('ataAcaoTit'+i)&&document.getElementById('ataAcaoTit'+i).value||'').trim();if(!tit)return;acoesList.push({titulo:tit,responsavel:(document.getElementById('ataAcaoResp'+i)&&document.getElementById('ataAcaoResp'+i).value||'').trim(),prazo:(document.getElementById('ataAcaoPrazo'+i)&&document.getElementById('ataAcaoPrazo'+i).value||'').trim(),area:(document.getElementById('ataAcaoArea'+i)&&document.getElementById('ataAcaoArea'+i).value||'CS')});});
+  var ataId='ata_'+Date.now();
+  var ataObj={id:ataId,clienteId:cid,empresa:cli?cli.empresa:'',tipo:tipo,data:data,participantesCliente:partCliente,participantesCreare:partCreare,assuntos:assuntos,riscos:riscos,acoes:acoesList,proximosPassos:proximos,sentimento:sentimento,sentimentoObs:sentObs,criadoPor:quem,criadoEm:new Date().toISOString(),acoes_ids:[]};
+  var atas=CS_DB.get('atas')||[];atas.push(ataObj);await CS_DB.set('atas',atas);
+  if(aplicar){
+    await CS_DB.saveReuniao({clienteId:cid,tipo:'check-in',sentimento:sentimento,participantesCreare:partCreare,participantesCliente:partCliente,pontosPosi:assuntos.map(function(a){return a.titulo+(a.descricao?': '+a.descricao:'');}).join('\n'),problemasIdent:riscos.join('\n'),melhorias:'',proximaReuniao:proximos.join('; '),resumoIA:''});
+    var tl=tipo+' — '+cli.empresa;if(partCliente)tl+='\nParticipantes cliente: '+partCliente;if(partCreare)tl+='\nParticipantes Creare: '+partCreare;assuntos.forEach(function(a,i){tl+='\n\n'+(i+1)+'. '+a.titulo+(a.descricao?'\n   '+a.descricao:'');});if(riscos.length)tl+='\n\nRiscos: '+riscos.join(' | ');if(proximos.length)tl+='\n\nPróximos passos: '+proximos.join(' | ');
+    await CS_DB._addTimeline(cid,'reuniao','Ata de reunião registrada',tl);
+    var criadas=0;var acoesCriadas=[];
+    for(var i=0;i<acoesList.length;i++){var saved=await CS_DB.saveAcao({clienteId:cid,descricao:acoesList[i].titulo,area:acoesList[i].area||'CS',prioridade:'Média',status:'Pendente',progresso:0,responsavel:acoesList[i].responsavel||quem,prazo:acoesList[i].prazo||'',prazoISO:'',comentarios:'',categoria:'follow-up',reuniaoTipo:'check-in',reuniaoData:data,reuniaoHora:'',reuniaoPauta:'Ata: '+tipo});if(saved&&saved.id){acoesCriadas.push(saved.id);criadas++;}}
+    var atasUpd=CS_DB.get('atas')||[];var iA=atasUpd.findIndex(function(a){return a.id===ataId;});if(iA>=0)atasUpd[iA].acoes_ids=acoesCriadas;await CS_DB.set('atas',atasUpd);
+    closeM('mNovaAta');toast('Ata de '+cli.empresa+' registrada'+(criadas?' · '+criadas+' ação'+(criadas>1?'ões':'')+(criadas>1?'s':'')+' criada'+(criadas>1?'s':''):''));
+    try{renderDashboard();}catch(e){}
+  }else{closeM('mNovaAta');toast('Rascunho salvo.');}
+}
+
+function renderHistoricoChurn(){
+  var el=document.getElementById('churnHistoricoContent');if(!el)return;
+  var churns=CS_DB.get('churns')||[];
+  if(!churns.length){
+    el.innerHTML='<div style="text-align:center;padding:28px 24px;color:var(--gray3)"><i class="ti ti-clipboard-x" style="font-size:32px;display:block;margin-bottom:8px;color:var(--gray4)"></i><div style="font-size:13px;font-weight:600;margin-bottom:4px">Nenhum cancelamento registrado ainda</div><div style="font-size:11.5px">Ao marcar um cliente como Cancelado, você poderá registrar o motivo para análise estratégica.</div></div>';
+    return;
+  }
+  var totalMRR=churns.reduce(function(s,c){var v=parseFloat((c.mrr||'').replace(/[^0-9,]/g,'').replace(',','.'))||0;return s+v;},0);
+  var cats={};churns.forEach(function(c){cats[c.categoria]=(cats[c.categoria]||0)+1;});
+  var catEntries=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
+  var maxCat=Math.max.apply(null,Object.values(cats).concat([1]));
+  var catColors={'Produto / Funcionalidade':'#6366f1','Preço / Custo':'#f59e0b','Concorrência':'#ef4444','Suporte / Atendimento':'#f97316','Falência / Encerramento':'#64748b','Fusão / Aquisição':'#8b5cf6','Insatisfação Geral':'#dc2626','Outro':'#9ca3af'};
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
+  html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:12px 14px"><div style="font-size:10px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Cancelamentos</div><div style="font-size:24px;font-weight:700;color:var(--red)">'+churns.length+'</div></div>';
+  html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:12px 14px"><div style="font-size:10px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">MRR Perdido</div><div style="font-size:24px;font-weight:700;color:var(--red)">R$'+totalMRR.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})+'</div></div>';
+  html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:12px 14px"><div style="font-size:10px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Principal Motivo</div><div style="font-size:13px;font-weight:700;color:var(--black);line-height:1.3">'+(catEntries[0]||'—')+'</div></div>';
+  html+='</div>';
+  if(catEntries.length){
+    html+='<div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:14px;margin-bottom:14px"><div style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Por categoria</div>';
+    catEntries.forEach(function(k){
+      var cor=catColors[k]||'var(--blue)';var pct=Math.round(cats[k]/maxCat*100);
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px"><div style="width:190px;font-size:11.5px;color:var(--gray1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+_escH(k)+'</div><div style="flex:1;height:7px;background:var(--gray4);border-radius:4px;overflow:hidden"><div style="height:100%;border-radius:4px;background:'+cor+';width:'+pct+'%"></div></div><div style="width:22px;text-align:right;font-size:11.5px;font-weight:700;color:var(--gray1)">'+cats[k]+'</div></div>';
+    });
+    html+='</div>';
+  }
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:var(--gray5)">';
+  ['Empresa','Categoria','MRR Perdido','Detalhamento','Registrado em'].forEach(function(h){html+='<th style="font-size:10.5px;font-weight:700;color:var(--gray2);text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid var(--gray4)">'+h+'</th>';});
+  html+='</tr></thead><tbody>';
+  churns.slice().sort(function(a,b){return new Date(b.registradoEm)-new Date(a.registradoEm);}).forEach(function(c){
+    var cor=catColors[c.categoria]||'#9ca3af';
+    html+='<tr style="border-bottom:1px solid var(--gray4)"><td style="padding:9px 12px;font-weight:600;font-size:12.5px">'+_escH(c.empresa||'—')+'</td><td style="padding:9px 12px"><span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:'+cor+'18;color:'+cor+'">'+_escH(c.categoria||'—')+'</span></td><td style="padding:9px 12px;font-size:12.5px;font-weight:600;color:var(--red)">'+_escH(c.mrr||'—')+'</td><td style="padding:9px 12px;font-size:12px;color:var(--gray1);max-width:240px">'+(c.motivo?_escH(c.motivo):'<span style="color:var(--gray3);font-style:italic">Não informado</span>')+'</td><td style="padding:9px 12px;font-size:12px;color:var(--gray2);white-space:nowrap">'+new Date(c.registradoEm).toLocaleDateString('pt-BR')+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
 </script>
 </body>
 </html>

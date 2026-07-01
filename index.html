@@ -739,6 +739,13 @@ tr:hover td{background:#fafafa}
       <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" title="Menu"><i class="ti ti-menu-2"></i></button>
     <div class="tb-title" id="tbTitle"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
       <div class="tb-right">
+        <div id="tbClockChip" style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid var(--gray4);font-size:11.5px;color:var(--gray2);background:var(--gray6);white-space:nowrap;user-select:none;flex-shrink:0">
+          <i class="ti ti-map-pin" style="font-size:12px;color:var(--red)"></i>
+          <span id="tbCity">—</span>
+          <span style="color:var(--gray4)">·</span>
+          <span id="tbDia" style="font-size:10.5px"></span>
+          <span id="tbHora" style="font-weight:600;color:var(--black);font-size:12px;font-variant-numeric:tabular-nums"></span>
+        </div>
         <div class="search-wrap">
           <input class="tb-search" id="globalSearchInput" placeholder="Buscar... (Ctrl+K)" oninput="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off" title="Ctrl+K: buscar | Ctrl+N: novo cliente | Ctrl+Shift+R: nova reunião | Ctrl+Shift+T: nova tarefa">
           <div class="sd-drop" id="searchDropdown"></div>
@@ -1147,7 +1154,7 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-exec">
   <div class="ph"><h2><i class="ti ti-chart-bar"></i>Dashboard Executivo</h2>
     <div style="display:flex;gap:8px;align-items:center">
-      <select class="flt-sel"><option>Junho 2026</option><option>Q2 2026</option><option>2026</option></select>
+      <select class="flt-sel" id="execPeriodoSel" onchange="initExec()"></select>
       <button class="btn-ghost" onclick="imprimirExec()"><i class="ti ti-printer"></i>Imprimir</button>
     </div>
   </div>
@@ -2844,7 +2851,7 @@ function nav(el,p){
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('tbTitle').innerHTML=`<i class="ti ${PICONS[p]}"></i>${PTITLES[p]}`;
-  if(p==='exec'){execDone=false;setTimeout(initExec,80);}
+  if(p==='exec'){_populateExecSelect();setTimeout(initExec,80);}
   if(p==='nps'){renderNPSPage();populateNPSClienteSelect();}
   if(p==='alertas')renderAlertas();
   if(p==='timeline')populateTlSelect();
@@ -4547,14 +4554,16 @@ function renderKanban(){
     const items=ac.filter(a=>a.status===col);
     return`<div class="k-col" ondragover="event.preventDefault();this.classList.add('k-col-over')" ondragleave="this.classList.remove('k-col-over')" ondrop="dropAcaoNaColuna(event,'${col}',this)"><div class="k-col-h ${headCls[ci]}">${heads[ci]}<span class="k-cnt">${items.length}</span></div><div class="k-body">${items.map(a=>{
       const isReuniao=a.categoria==='reuniao_agendada';
-      const isAtrasada=!isReuniao&&a.prazoISO&&new Date(a.prazoISO)<new Date()&&a.status!=='Concluído'&&a.status!=='Cancelada';
+      const _hoje=new Date();_hoje.setHours(0,0,0,0);
+      let _prazoTag='',_prazoIsAtrasado=false,_cardBorder='';
+      if(!isReuniao&&a.prazoISO&&a.status!=='Concluído'&&a.status!=='Cancelada'){const _pd=new Date(a.prazoISO);_pd.setHours(0,0,0,0);const _diff=Math.round((_pd-_hoje)/86400000);if(_diff<0){_prazoTag=`<span style="font-size:9px;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;margin-left:5px"><i class="ti ti-alert-triangle" style="font-size:8px"></i> ${Math.abs(_diff)}d atrasado</span>`;_cardBorder='border-left:3px solid var(--red);background:rgba(239,68,68,.04)';_prazoIsAtrasado=true;}else if(_diff===0){_prazoTag=`<span style="font-size:9px;background:var(--yellow);color:var(--ytxt);border-radius:3px;padding:1px 5px;margin-left:5px"><i class="ti ti-clock" style="font-size:8px"></i> Vence hoje</span>`;_cardBorder='border-left:3px solid var(--yellow)';}else if(_diff<=3){_prazoTag=`<span style="font-size:9px;background:var(--ybg);color:var(--ytxt);border-radius:3px;padding:1px 5px;margin-left:5px"><i class="ti ti-clock" style="font-size:8px"></i> ${_diff}d</span>`;_cardBorder='border-left:3px solid var(--yellow)';}}
+      const isAtrasada=_prazoIsAtrasado;
+      const atrasadaBadge=_prazoTag;
       const pc={Alta:'pa',Média:'pm',Baixa:'pb',Concluído:'pc'}[a.prioridade||a.status]||'pm';
       const pf=a.status==='Concluído'?'done':'';
       const av=(a.responsavel||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       const clickHandler=isReuniao?`abrirTratarReuniaoAgendada('${a.id}')`:`abrirDetalhesAcao('${a.id}')`;
-      const cardStyle=isReuniao?'border-left:3px solid var(--blue)':isAtrasada?'border-left:3px solid var(--red);background:rgba(239,68,68,.04)':'';
-      const diasAtraso=isAtrasada?Math.ceil((new Date()-new Date(a.prazoISO))/86400000):0;
-      const atrasadaBadge=isAtrasada?`<span style="font-size:9px;background:var(--red);color:#fff;border-radius:3px;padding:1px 5px;margin-left:5px">Atrasada${diasAtraso>0?' '+diasAtraso+'d':''}</span>`:'';
+      const cardStyle=isReuniao?'border-left:3px solid var(--blue)':_cardBorder;
       const _devs=a.devolutivas||[];
       const _lastSol=_devs.filter(d=>d.tipo==='solicitacao').slice(-1)[0];
       const _lastResp=_devs.filter(d=>d.tipo==='resposta').slice(-1)[0];
@@ -6008,9 +6017,35 @@ function renderNPSEvol(period,btn){
     scales:{y:{min:-100,max:100,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},x:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
 }
 
-let execDone=false;
+let _execCharts={};
+function _destroyExecCharts(){Object.values(_execCharts).forEach(c=>{try{c.destroy();}catch(e){}});_execCharts={};}
+function _populateExecSelect(){
+  const sel=document.getElementById('execPeriodoSel');
+  if(!sel||sel.options.length)return;
+  const hoje=new Date();
+  const opts=[];
+  for(let i=0;i<6;i++){
+    const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1);
+    const y=d.getFullYear();const m=d.getMonth()+1;
+    const label=d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    opts.push(`<option value="mes:${y}-${String(m).padStart(2,'0')}">${label.charAt(0).toUpperCase()+label.slice(1)}</option>`);
+  }
+  const qAtual=Math.ceil((hoje.getMonth()+1)/3);
+  for(let i=0;i<2;i++){const y=hoje.getFullYear()-i;const qMax=i===0?qAtual:4;for(let q=qMax;q>=1;q--)opts.push(`<option value="q:${y}-${q}">Q${q} ${y}</option>`);}
+  for(let i=0;i<2;i++)opts.push(`<option value="ano:${hoje.getFullYear()-i}">${hoje.getFullYear()-i}</option>`);
+  sel.innerHTML=opts.join('');
+}
+function _execGetPeriodo(value){
+  const hoje=new Date();
+  if(!value||!value.includes(':'))value='mes:'+hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
+  const[tipo,resto]=value.split(':');
+  if(tipo==='mes'){const[y,m]=resto.split('-').map(Number);return{inicio:new Date(y,m-1,1),fim:new Date(y,m,0,23,59,59),tipo:'mes'};}
+  if(tipo==='q'){const[y,q]=resto.split('-').map(Number);const m0=(q-1)*3;return{inicio:new Date(y,m0,1),fim:new Date(y,m0+3,0,23,59,59),tipo:'trimestre'};}
+  if(tipo==='ano'){const y=parseInt(resto);return{inicio:new Date(y,0,1),fim:new Date(y,11,31,23,59,59),tipo:'ano'};}
+  return{inicio:new Date(hoje.getFullYear(),hoje.getMonth(),1),fim:new Date(hoje.getFullYear(),hoje.getMonth()+1,0),tipo:'mes'};
+}
 function initExec(){
-  const chartsJaFeitos=execDone;execDone=true;
+  _destroyExecCharts();
   const cl=CS_DB.getClientes();const npsAll=CS_DB.getAllNPS();const calc=CS_DB.calcNPS(npsAll);const z=CS_DB.npsZona(calc.score);
   const clAtivos=cl.filter(c=>c.status!=='Cancelado');const cancelados=cl.filter(c=>c.status==='Cancelado');
   const taxaRen=cl.length?Math.round(clAtivos.length/cl.length*100):100;
@@ -6018,17 +6053,16 @@ function initExec(){
   const hsMed=cl.length?Math.round(cl.reduce((s,c)=>s+(c.healthScore||70),0)/cl.length):70;
   document.getElementById('execKPIs').innerHTML=`
     <div class="kpi green"><div class="kpi-lbl">Taxa de Renovação</div><div class="kpi-val">${taxaRen}%</div><div class="kpi-sub ${taxaRen>=90?'up':'dn'}">Meta: 90% ${taxaRen>=90?'✓':'✗'}</div></div>
-    <div class="kpi blue"><div class="kpi-lbl">NPS Médio</div><div class="kpi-val" style="color:${z.cor||'var(--gray2)'}">${calc.score??'—'}</div><div class="kpi-sub ${calc.score>=50?'up':'dn'}">${z.label}</div></div>
+    <div class="kpi blue"><div class="kpi-lbl">NPS Médio</div><div class="kpi-val" style="color:${z.cor||'var(--gray2)'}">${calc.score??'—'}</div><div class="kpi-sub ${(calc.score??0)>=50?'up':'dn'}">${z.label}</div></div>
     <div class="kpi red"><div class="kpi-lbl">Churn Rate</div><div class="kpi-val">${churnRate}%</div><div class="kpi-sub ${churnRate<=3?'up':'dn'}">Meta: abaixo 3% ${churnRate<=3?'✓':'✗'}</div></div>
     <div class="kpi gray"><div class="kpi-lbl">HS Médio</div><div class="kpi-val" style="color:${hsColor(hsMed)}">${hsMed}</div><div class="kpi-sub up">Carteira</div></div>`;
   document.getElementById('riscoList').innerHTML=cl.filter(c=>c.status==='Em Risco').map(c=>`<div class="risk-row"><div><div class="risk-co">${c.empresa}</div><div class="risk-sub">HS: ${c.healthScore} · NPS: ${c.ultimoNPS??'—'} · MRR: ${c.mrr}</div></div><span class="badge b-risco" style="margin-left:auto">Crítico</span></div>`).join('');
-  if(chartsJaFeitos)return;
   const c1=document.getElementById('mrrPie')?.getContext('2d');
-  if(c1)new Chart(c1,{type:'doughnut',data:{labels:['Saudável','Atenção','Risco','Implant.'],datasets:[{data:[cl.filter(c=>c.healthScore>=70).length,cl.filter(c=>c.healthScore>=40&&c.healthScore<70).length,cl.filter(c=>c.status==='Em Risco').length,cl.filter(c=>c.status==='Implantação').length],backgroundColor:['#1d9e75','#e0880a','#D10000','#555'],borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeInOutBack'},cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,padding:8,usePointStyle:true}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}}}});
+  if(c1)_execCharts.mrrPie=new Chart(c1,{type:'doughnut',data:{labels:['Saudável','Atenção','Risco','Implant.'],datasets:[{data:[cl.filter(c=>c.healthScore>=70).length,cl.filter(c=>c.healthScore>=40&&c.healthScore<70).length,cl.filter(c=>c.status==='Em Risco').length,cl.filter(c=>c.status==='Implantação').length],backgroundColor:['#1d9e75','#e0880a','#D10000','#555'],borderWidth:2,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeInOutBack'},cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,padding:8,usePointStyle:true}},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}}}});
   renderMRRBar('6m');
   setTimeout(renderMapaCarteira,120);
   const c3=document.getElementById('probBar')?.getContext('2d');
-  if(c3)new Chart(c3,{type:'bar',data:{labels:['Latência','Playback','BI','ERP','Treinamento','Sensor'],datasets:[{data:[14,11,9,7,6,5],backgroundColor:['#D10000','#c44','#a55','#888','#aaa','#ccc'],borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},y:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}})
+  if(c3)_execCharts.probBar=new Chart(c3,{type:'bar',data:{labels:['Latência','Playback','BI','ERP','Treinamento','Sensor'],datasets:[{data:[14,11,9,7,6,5],backgroundColor:['#D10000','#c44','#a55','#888','#aaa','#ccc'],borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeInOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(17,17,17,.85)',cornerRadius:7,padding:9}},scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'var(--gray3)',font:{size:10}}},y:{grid:{display:false},ticks:{color:'var(--gray3)',font:{size:10}}}}}});
 }
 
 // ═══ NPS CHARTS ═══
@@ -6413,7 +6447,7 @@ function downloadTemplate(){
 // ═══ CONFIG ═══
 function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgUF'))document.getElementById('cfgUF').value=cfg.uf||'';if(document.getElementById('cfgCidade'))document.getElementById('cfgCidade').value=cfg.cidade||'';if(document.getElementById('cfgAnthropicKey'))document.getElementById('cfgAnthropicKey').value=cfg.anthropicKey||localStorage.getItem('_anthropicKey')||'';if(document.getElementById('cfgAnthropicStatus'))document.getElementById('cfgAnthropicStatus').style.display='none';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
-function salvarConfig(){const ak=(document.getElementById('cfgAnthropicKey')?.value||'').trim();if(ak)localStorage.setItem('_anthropicKey',ak);const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||'',anthropicKey:ak};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar()}
+function salvarConfig(){const ak=(document.getElementById('cfgAnthropicKey')?.value||'').trim();if(ak)localStorage.setItem('_anthropicKey',ak);const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||'',anthropicKey:ak};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar();_updateTbClock();}
 async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}const cfg=CS_DB.getConfig();const hsMin=Number(cfg.alertaHSMinimo)||50;const diasMin=Number(cfg.alertaDiasSemContato)||30;const clientes=CS_DB.getClientes();const reunioes=CS_DB.getReunioesAll?CS_DB.getReunioesAll():[];const now=new Date();const alertas=[];for(const c of clientes){const reu=reunioes.filter(r=>r.clienteId===c.id);const ult=reu.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];if(ult){const dias=Math.floor((now-new Date(ult.dataISO))/86400000);if(dias>=diasMin)alertas.push({tipo:'sem_contato',empresa:c.empresa,dias})}if(c.healthScore<hsMin)alertas.push({tipo:'hs_baixo',empresa:c.empresa,hs:c.healthScore})}if(!alertas.length){toast('Nenhum alerta ativo no momento.');return}try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sistema:'CS Manager v3 — Creare Sistemas',gerado_em:new Date().toISOString(),total_alertas:alertas.length,alertas})});toast(`Webhook disparado — ${alertas.length} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 </script>
 <script>
@@ -6458,6 +6492,21 @@ let dark=false;
 function toggleTheme(){dark=!dark;document.documentElement.classList.toggle('dark-mode',dark);document.getElementById('thLbl').textContent=dark?'Modo claro':'Modo escuro';document.getElementById('thIcon').className=dark?'ti ti-sun':'ti ti-moon'}
 
 // ═══ INIT ═══
+const _DIAS_SEMANA=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+function _updateTbClock(){
+  const cfg=CS_DB.getConfig();
+  const cidade=cfg.cidade||'';
+  const cityEl=document.getElementById('tbCity');
+  const diaEl=document.getElementById('tbDia');
+  const horaEl=document.getElementById('tbHora');
+  const chip=document.getElementById('tbClockChip');
+  if(!cityEl||!diaEl||!horaEl)return;
+  if(cidade){cityEl.textContent=cidade;if(chip)chip.style.display='flex';}
+  else{if(chip)chip.style.display='none';}
+  const now=new Date();
+  diaEl.textContent=_DIAS_SEMANA[now.getDay()]+' '+String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0');
+  horaEl.textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
 function initApp(){
   CS_DB.init();
   if(checkNPSPublicoUrl())return;
@@ -6467,6 +6516,7 @@ function initApp(){
   _setDateDP('rData','rDataPk',new Date().toLocaleDateString('pt-BR'));
   _setDateDP('npsDataInput','npsDataPk',new Date().toLocaleDateString('pt-BR'));
   initNotificacoes();
+  _updateTbClock();setInterval(_updateTbClock,1000);
   // Keyboard shortcuts
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();const s=document.getElementById('globalSearchInput');if(s){s.focus();s.select();}}
@@ -6897,13 +6947,7 @@ function renderOnboarding() {
   const total   = obs.length;
   const emAnd   = obs.filter(o => o.status === 'em-andamento').length;
   const conc    = obs.filter(o => o.status === 'concluido').length;
-  const atras   = obs.filter(o => {
-    if (o.status !== 'em-andamento') return false;
-    const pct = calcObPct(o);
-    if (!o.prazoImpl) return false;
-    const [d,m,y] = o.prazoImpl.split('/');
-    return new Date(`${y}-${m}-${d}`) < new Date() && pct < 100;
-  }).length;
+  const atras   = obs.filter(o => o.status === 'em-andamento' && (_calcObSLA(o)?.atrasado ?? false)).length;
 
   const ttvArr = obs.filter(o => o.status === 'concluido').map(o => calcTTV(o)).filter(v => typeof v === 'number');
   const ttvMed = ttvArr.length ? Math.round(ttvArr.reduce((s, v) => s + v, 0) / ttvArr.length) : null;
@@ -6983,7 +7027,9 @@ function renderOnboarding() {
     const ttvNum = typeof ttv === 'number' ? ttv : ttv?.emCurso;
     const ttvTxt = typeof ttv === 'number' ? ttv + 'd' : ttv?.emCurso != null ? ttv.emCurso + 'd em curso' : null;
     const ttvCor = typeof ttv === 'number' ? (ttv <= 30 ? 'var(--green)' : ttv <= 45 ? 'var(--blue)' : 'var(--yellow)') : 'var(--gray3)';
-    return `<div class="ob-card">
+    const _obSLA = _calcObSLA(ob);
+    const _obCardBorder = _obSLA?.atrasado ? 'border-left:3px solid var(--red)' : '';
+    return `<div class="ob-card" style="${_obCardBorder}">
       <div class="ob-header" onclick="toggleOb(${idx})">
         <div class="ob-avatar" style="background:var(--redl);color:var(--red)">${ini}</div>
         <div>
@@ -6997,6 +7043,7 @@ function renderOnboarding() {
         </div>
         ${ttvTxt ? `<span style="font-size:10.5px;color:${ttvCor};white-space:nowrap;margin-left:10px"><i class="ti ti-clock-bolt" style="font-size:11px"></i> TTV: ${ttvTxt}</span>` : ''}
         <span class="badge ${pct>=100?'b-ativo':pct>0?'b-impl':'b-cancel'}" style="margin-left:12px;flex-shrink:0">${pct>=100?'Concluído':pct>0?'Em andamento':'Não iniciado'}</span>
+        ${_obSLA && ob.status==='em-andamento' ? `<span class="badge ${_obSLA.cls}" style="margin-left:4px;flex-shrink:0">${_obSLA.label}</span>` : ''}
         <i class="ti ti-chevron-down" style="margin-left:8px;color:var(--gray2);font-size:14px"></i>
       </div>
       <div class="ob-body" id="ob-body-${idx}">
@@ -7041,6 +7088,21 @@ function _obStepSLAHtml(ob,step){
 function calcObPct(ob) {
   if (!ob.steps || !ob.steps.length) return 0;
   return Math.round(ob.steps.filter(s => s.concluido).length / ob.steps.length * 100);
+}
+
+function _calcObSLA(ob) {
+  if (ob.status === 'concluido') return { label: 'Concluído', cls: 'b-ativo', atrasado: false };
+  if (!ob.kickoff) return null;
+  const kd = _parseDataBR(ob.kickoff);
+  if (!kd) return null;
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const proxStep = ob.steps.find(s => !s.concluido);
+  if (!proxStep) return { label: 'No prazo', cls: 'b-ativo', atrasado: false };
+  const expectedDate = new Date(kd.getTime() + proxStep.dias * 86400000);
+  const diff = Math.round((hoje - expectedDate) / 86400000);
+  if (diff > 0) return { label: diff + 'd atrasado', cls: 'b-risco', atrasado: true, diff };
+  if (diff >= -3) return { label: 'Em risco', cls: 'b-exp', atrasado: false };
+  return { label: 'No prazo', cls: 'b-ativo', atrasado: false };
 }
 
 function calcTTV(ob) {
@@ -7846,6 +7908,12 @@ function renderCliente360(){
         <div class="card-ttl"><i class="ti ti-brain"></i>O que fazer agora?<span class="sub">recomendação baseada em dados</span></div>
         <div id="c360NextAction"></div>
       </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-notes"></i>Atas de Reunião${(()=>{const _n=(CS_DB.get('atas')||[]).filter(a=>a.clienteId===cid||a.empresa===c.empresa).length;return`<span class="sub">${_n} registro(s)</span>`;})()}
+        <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="openM('mNovaAta');try{document.getElementById('ataCli').value='${cid}';}catch(e){}"><i class="ti ti-plus"></i>Nova ata</button>
+      </div>
+      ${(()=>{const atasCliente=(CS_DB.get('atas')||[]).filter(a=>a.clienteId===cid||a.empresa===c.empresa).sort((a,b)=>new Date(b.criadoEm||0)-new Date(a.criadoEm||0));return atasCliente.length?atasCliente.map(ata=>`<div onclick="verAta('${ata.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray4);cursor:pointer" onmouseover="this.style.background='var(--gray6)'" onmouseout="this.style.background=''"><div style="flex-shrink:0;width:32px;height:32px;border-radius:6px;background:var(--bbg);display:flex;align-items:center;justify-content:center;color:var(--blue)"><i class="ti ti-notes" style="font-size:14px"></i></div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escH(ata.titulo||'Sem título')}</div><div style="font-size:11px;color:var(--gray2)">${_escH(ata.tipo||'Reunião')} · ${ata.data||''}</div></div><i class="ti ti-chevron-right" style="color:var(--gray3);font-size:14px"></i></div>`).join(''):'<div style="color:var(--gray2);padding:10px 0;font-size:12.5px">Nenhuma ata registrada para este cliente.</div>';})()}
     </div>
     </div><!-- /c360AbaGeral -->
     <div id="c360AbaPlano" style="display:none">

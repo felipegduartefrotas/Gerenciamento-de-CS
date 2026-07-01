@@ -82,6 +82,10 @@ const CS_DB = {
     await Promise.all([
       this._carregarKv('onboardings'),
       this._carregarKv('lastBackup'),
+      this._carregarKv('emailTemplates'),
+      this._carregarKv('atas'),
+      this._carregarKv('churns'),
+      this._carregarKv('voc'),
     ]);
     try {
       this._cache.config = await this._fetch('/config');
