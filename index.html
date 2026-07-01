@@ -741,9 +741,10 @@ tr:hover td{background:#fafafa}
       <div class="tb-right">
         <div id="tbClockChip" style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid var(--gray4);font-size:11.5px;color:var(--gray2);background:var(--gray6);white-space:nowrap;user-select:none;flex-shrink:0">
           <i class="ti ti-map-pin" style="font-size:12px;color:var(--red)"></i>
-          <span id="tbCity">—</span>
-          <span style="color:var(--gray4)">·</span>
+          <span id="tbCity" style="display:none"></span>
+          <span id="tbCitySep" style="color:var(--gray4);display:none">·</span>
           <span id="tbDia" style="font-size:10.5px"></span>
+          <span style="color:var(--gray4)">·</span>
           <span id="tbHora" style="font-weight:600;color:var(--black);font-size:12px;font-variant-numeric:tabular-nums"></span>
         </div>
         <div class="search-wrap">
@@ -6494,18 +6495,32 @@ function toggleTheme(){dark=!dark;document.documentElement.classList.toggle('dar
 // ═══ INIT ═══
 const _DIAS_SEMANA=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 function _updateTbClock(){
-  const cfg=CS_DB.getConfig();
-  const cidade=cfg.cidade||'';
+  const cidade=localStorage.getItem('csm_cidade')||CS_DB.getConfig().cidade||'';
   const cityEl=document.getElementById('tbCity');
   const diaEl=document.getElementById('tbDia');
   const horaEl=document.getElementById('tbHora');
   const chip=document.getElementById('tbClockChip');
-  if(!cityEl||!diaEl||!horaEl)return;
-  if(cidade){cityEl.textContent=cidade;if(chip)chip.style.display='flex';}
-  else{if(chip)chip.style.display='none';}
+  const sep=document.getElementById('tbCitySep');
+  if(!chip||!diaEl||!horaEl)return;
+  chip.style.display='flex';
+  if(cityEl){cityEl.textContent=cidade;cityEl.style.display=cidade?'':'none';}
+  if(sep)sep.style.display=cidade?'':'none';
   const now=new Date();
   diaEl.textContent=_DIAS_SEMANA[now.getDay()]+' '+String(now.getDate()).padStart(2,'0')+'/'+String(now.getMonth()+1).padStart(2,'0');
   horaEl.textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function _autoDetectCidade(){
+  if(!navigator.geolocation)return;
+  const ts=localStorage.getItem('csm_cidade_ts');
+  if(ts&&Date.now()-parseInt(ts)<86400000&&localStorage.getItem('csm_cidade'))return;
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      const r=await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&localityLanguage=pt`);
+      const d=await r.json();
+      const c=d.city||d.locality||d.principalSubdivision||'';
+      if(c){localStorage.setItem('csm_cidade',c);localStorage.setItem('csm_cidade_ts',String(Date.now()));_updateTbClock();}
+    }catch(e){}
+  },()=>{},{timeout:6000,maximumAge:3600000});
 }
 function initApp(){
   CS_DB.init();
@@ -6516,7 +6531,7 @@ function initApp(){
   _setDateDP('rData','rDataPk',new Date().toLocaleDateString('pt-BR'));
   _setDateDP('npsDataInput','npsDataPk',new Date().toLocaleDateString('pt-BR'));
   initNotificacoes();
-  _updateTbClock();setInterval(_updateTbClock,1000);
+  _updateTbClock();setInterval(_updateTbClock,1000);_autoDetectCidade();
   // Keyboard shortcuts
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();const s=document.getElementById('globalSearchInput');if(s){s.focus();s.select();}}
