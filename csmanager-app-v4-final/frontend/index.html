@@ -518,6 +518,10 @@ tr:hover td{background:#fafafa}
           <i class="ti ti-map-pin" style="font-size:12px;color:var(--red)"></i>
           <span id="tbCity" style="display:none"></span>
           <span id="tbCitySep" style="color:var(--gray4);display:none">·</span>
+          <span id="tbWxIcon" style="font-size:14px;line-height:1;display:none"></span>
+          <span id="tbWxTemp" style="font-weight:700;color:var(--black);display:none"></span>
+          <span id="tbWxDesc" style="font-size:10px;color:var(--gray2);display:none"></span>
+          <span id="tbWxSep" style="color:var(--gray4);display:none">·</span>
           <span id="tbDia" style="font-size:10.5px"></span>
           <span style="color:var(--gray4)">·</span>
           <span id="tbHora" style="font-weight:600;color:var(--black);font-size:12px;font-variant-numeric:tabular-nums"></span>
@@ -959,6 +963,7 @@ tr:hover td{background:#fafafa}
     <div style="background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--gray2);line-height:1.7">
       <strong style="color:var(--gray1)">Níveis de acesso disponíveis:</strong><br>
       <span style="color:var(--red);font-weight:600">Administrador</span> — acesso total: gerencia usuários, vê todos os clientes, configura o sistema, acessa relatórios financeiros.<br>
+      <span style="color:#d97706;font-weight:600">Gerencial</span> — visão completa de todos os clientes e relatórios, sem poder criar/excluir usuários ou alterar senhas de terceiros.<br>
       <span style="color:var(--green);font-weight:600">Consultor CS</span> — acesso à própria carteira: vê apenas os clientes onde é responsável, registra reuniões e ações, sem acesso a usuários ou dados financeiros de outras contas.
     </div>
     <div id="configEquipeLista" style="display:flex;flex-direction:column;gap:6px"></div>
@@ -1304,7 +1309,7 @@ tr:hover td{background:#fafafa}
       <div class="fg form-full"><label>Nome <span class="req">*</span></label><input type="text" id="uNome" placeholder="Nome completo"></div>
       <div class="fg form-full"><label>E-mail <span class="req">*</span></label><input type="email" id="uEmail" placeholder="nome@creare.com.br"></div>
       <div class="fg"><label>Senha <span class="req">*</span></label><input type="password" id="uSenha" placeholder="mín. 8 caracteres"></div>
-      <div class="fg"><label>Nível de acesso</label><select id="uPapel"><option value="consultor">Consultor CS — carteira própria</option><option value="admin">Administrador — acesso total</option></select></div>
+      <div class="fg"><label>Nível de acesso</label><select id="uPapel"><option value="consultor">Consultor CS — carteira própria</option><option value="gerencial">Gerencial — visão geral, sem gestão de usuários</option><option value="admin">Administrador — acesso total</option></select></div>
     </div>
     <div class="btn-row">
       <button class="btn-ghost" onclick="closeM('mNovoUsuario')">Cancelar</button>
@@ -1320,7 +1325,7 @@ tr:hover td{background:#fafafa}
     <input type="hidden" id="euId">
     <div class="form-g2">
       <div class="fg form-full"><label>Nome <span class="req">*</span></label><input type="text" id="euNome" placeholder="Nome completo"></div>
-      <div class="fg"><label>Nível de acesso</label><select id="euPapel"><option value="consultor">Consultor CS — carteira própria</option><option value="admin">Administrador — acesso total</option></select></div>
+      <div class="fg"><label>Nível de acesso</label><select id="euPapel"><option value="consultor">Consultor CS — carteira própria</option><option value="gerencial">Gerencial — visão geral, sem gestão de usuários</option><option value="admin">Administrador — acesso total</option></select></div>
       <div class="fg"><label>Nova senha <span style="font-size:11px;color:var(--gray3)">(deixe em branco para manter)</span></label><input type="password" id="euSenha" placeholder="mín. 8 caracteres"></div>
     </div>
     <div class="btn-row">
@@ -3264,7 +3269,7 @@ async function populateCSSelects(){
             <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escH(u.nome)}</div>
             <div style="font-size:11px;color:var(--gray2)">${_escH(u.email)} · ${qtd} cliente(s)</div>
           </div>
-          <span class="badge ${u.papel==='admin'?'b-risco':'b-ativo'}" style="flex-shrink:0">${u.papel==='admin'?'Admin':'Consultor'}</span>
+          <span class="badge ${u.papel==='admin'?'b-risco':u.papel==='gerencial'?'b-exp':'b-ativo'}" style="flex-shrink:0">${u.papel==='admin'?'Admin':u.papel==='gerencial'?'Gerencial':'Consultor'}</span>
           <span class="badge ${u.ativo?'b-ativo':'b-cancel'}" style="flex-shrink:0">${u.ativo?'Ativo':'Inativo'}</span>
           <button class="btn-ghost" style="padding:3px 8px;font-size:11px" onclick="editarUsuario('${u.id}')"><i class="ti ti-edit"></i></button>
         </div>`;
@@ -3273,6 +3278,52 @@ async function populateCSSelects(){
   }
 }
 const _DIAS_SEMANA_V4=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+// ═══ CLIMA NA TOPBAR ═══
+var _wxCache=null;var _wxTs=0;
+function _wxCodeIcon(c){if(c===0)return'☀️';if(c<=2)return'🌤️';if(c===3)return'☁️';if(c<=48)return'🌫️';if(c<=55)return'🌦️';if(c<=65)return'🌧️';if(c<=75)return'❄️';if(c<=82)return'🌧️';return'⛈️';}
+function _wxCodeDesc(c){var m={0:'Céu limpo',1:'Principalmente limpo',2:'Parcialmente nublado',3:'Nublado',45:'Névoa',48:'Névoa com depósito',51:'Garoa leve',53:'Garoa moderada',55:'Garoa forte',61:'Chuva fraca',63:'Chuva moderada',65:'Chuva forte',71:'Neve fraca',73:'Neve moderada',75:'Neve forte',80:'Pancadas de chuva',81:'Chuvas fortes',82:'Chuvas muito fortes',95:'Tempestade',96:'Tempestade c/ granizo',99:'Tempestade c/ granizo forte'};return m[c]||'—';}
+function _wxApply(d){
+  var tbWxIcon=document.getElementById('tbWxIcon');
+  var tbWxTemp=document.getElementById('tbWxTemp');
+  var tbWxDesc=document.getElementById('tbWxDesc');
+  var tbWxSep=document.getElementById('tbWxSep');
+  var tbCity=document.getElementById('tbCity');
+  var tbCitySep=document.getElementById('tbCitySep');
+  if(tbWxIcon){tbWxIcon.textContent=_wxCodeIcon(d.code);tbWxIcon.style.display='';}
+  if(tbWxTemp){tbWxTemp.textContent=Math.round(d.temp)+'°C';tbWxTemp.style.display='';}
+  if(tbWxDesc){tbWxDesc.textContent=_wxCodeDesc(d.code);tbWxDesc.style.display='';}
+  if(tbWxSep)tbWxSep.style.display='';
+  if(tbCity&&d.city){tbCity.textContent=d.city;tbCity.style.display='';if(tbCitySep)tbCitySep.style.display='';}
+  if(d.city){localStorage.setItem('csm_cidade',d.city);localStorage.setItem('csm_cidade_ts',String(Date.now()));}
+}
+function _wxFetch(lat,lon,city){
+  var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=America%2FSao_Paulo&forecast_days=1';
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    var cur=d.current||{};
+    _wxCache={temp:cur.temperature_2m,code:cur.weather_code,wind:cur.wind_speed_10m,hum:cur.relative_humidity_2m,city:city};
+    _wxTs=Date.now();
+    _wxApply(_wxCache);
+  }).catch(function(){});
+}
+function renderWeather(){
+  if(_wxCache&&Date.now()-_wxTs<1800000){_wxApply(_wxCache);return;}
+  var _sv=null;try{_sv=JSON.parse(localStorage.getItem('_wxLastPos'));}catch(e){}
+  if(_sv)_wxFetch(_sv.lat,_sv.lon,_sv.city);
+  if(!navigator.geolocation){if(!_sv)_wxFetch(-23.5505,-46.6333,'São Paulo, SP');return;}
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat=pos.coords.latitude.toFixed(4),lon=pos.coords.longitude.toFixed(4);
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon+'&accept-language=pt-BR')
+      .then(function(r){return r.json();}).then(function(g){
+        var a=g.address||{};
+        var city=(a.city||a.town||a.village||a.county||'')+(a.state_code?', '+a.state_code:'');
+        var c=city||'Sua localização';
+        try{localStorage.setItem('_wxLastPos',JSON.stringify({lat:lat,lon:lon,city:c}));}catch(e){}
+        _wxFetch(lat,lon,c);
+      }).catch(function(){if(!_sv)_wxFetch(lat,lon,'Sua localização');});
+  },function(){if(!_sv)_wxFetch(-23.5505,-46.6333,'São Paulo, SP');},{timeout:6000});
+}
+
 function _updateTbClock(){
   const cidade=localStorage.getItem('csm_cidade')||'';
   const cityEl=document.getElementById('tbCity');
@@ -3318,7 +3369,8 @@ async function doLogin(){
   try{
     const usuario=await CS_DB.login(e,s);
     const iniciais=usuario.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    document.getElementById('userLbl').querySelector('span').textContent=`${usuario.nome} · ${usuario.papel.toUpperCase()}`;
+    const _pLbl={admin:'Admin',gerencial:'Gerencial',consultor:'CS'};
+    document.getElementById('userLbl').querySelector('span').textContent=`${usuario.nome} · ${_pLbl[usuario.papel]||usuario.papel.toUpperCase()}`;
     document.getElementById('av').textContent=iniciais;
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='flex';
@@ -3424,7 +3476,8 @@ async function initApp(){
   const sess=CS_DB.getSession();
   if(sess){
     const userLbl=document.getElementById('userLbl');
-    if(userLbl)userLbl.innerHTML=`<i class="ti ti-user-circle"></i><span>${_escH(sess.nome)} · ${sess.papel==='admin'?'Admin':'CS'}</span>`;
+    const _papelLbl={admin:'Admin',gerencial:'Gerencial',consultor:'CS'};
+    if(userLbl)userLbl.innerHTML=`<i class="ti ti-user-circle"></i><span>${_escH(sess.nome)} · ${_papelLbl[sess.papel]||sess.papel}</span>`;
     const avEl=document.getElementById('av');
     if(avEl)avEl.textContent=sess.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     if(sess.papel==='admin'){const nu=document.getElementById('navUsuarios');if(nu)nu.style.display='flex';}
@@ -3438,7 +3491,8 @@ async function initApp(){
   updateStatusBar();
   setTimeout(()=>renderNpsEvolutionChart(),150);
   setInterval(updateStatusBar,30000);
-  _updateTbClock();setInterval(_updateTbClock,1000);_autoDetectCidade();
+  _updateTbClock();setInterval(_updateTbClock,1000);
+  try{renderWeather();}catch(e){}
   // Solicitar permissão de notificações
   initNotificacoes();
   // Registrar Service Worker
@@ -4802,7 +4856,7 @@ async function renderUsuarios(){
               </div>
               <div style="font-size:12px;color:var(--gray2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escH(u.email)}</div>
             </div>
-            <span class="badge ${u.papel==='admin'?'b-risco':'b-ativo'}" style="flex-shrink:0">${u.papel==='admin'?'Admin':'Consultor'}</span>
+            <span class="badge ${u.papel==='admin'?'b-risco':u.papel==='gerencial'?'b-exp':'b-ativo'}" style="flex-shrink:0">${u.papel==='admin'?'Admin':u.papel==='gerencial'?'Gerencial':'Consultor'}</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray2);margin-bottom:12px">
             <i class="ti ti-building"></i>
@@ -4867,7 +4921,7 @@ async function toggleUsuario(id,ativo){
 }
 function _filtrarClientesPorSessao(){
   const sess=CS_DB.getSession();
-  if(!sess||sess.papel==='admin')return;
+  if(!sess||sess.papel==='admin'||sess.papel==='gerencial')return;
   CS_DB._cache.clientes=CS_DB._cache.clientes.filter(c=>c.responsavelCS===sess.nome);
 }
 function fazerLogout(){
