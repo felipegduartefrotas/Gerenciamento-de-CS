@@ -743,10 +743,15 @@ tr:hover td{background:#fafafa}
           <i class="ti ti-map-pin" style="font-size:12px;color:var(--red)"></i>
           <span id="tbCity" style="display:none"></span>
           <span id="tbCitySep" style="color:var(--gray4);display:none">·</span>
+          <span id="tbWxIcon" style="font-size:14px;line-height:1;display:none"></span>
+          <span id="tbWxTemp" style="font-weight:700;color:var(--black);display:none"></span>
+          <span id="tbWxDesc" style="font-size:10px;color:var(--gray2);display:none"></span>
+          <span id="tbWxSep" style="color:var(--gray4);display:none">·</span>
           <span id="tbDia" style="font-size:10.5px"></span>
           <span style="color:var(--gray4)">·</span>
           <span id="tbHora" style="font-weight:600;color:var(--black);font-size:12px;font-variant-numeric:tabular-nums"></span>
         </div>
+        <button onclick="fazerLogoutV3()" title="Sair" style="display:flex;align-items:center;gap:5px;background:transparent;border:1px solid var(--gray4);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--gray2);cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.background='var(--redl)';this.style.color='var(--red)';this.style.borderColor='var(--red)'" onmouseout="this.style.background='transparent';this.style.color='var(--gray2)';this.style.borderColor='var(--gray4)'"><i class="ti ti-logout" style="font-size:14px"></i>Sair</button>
         <div class="search-wrap">
           <input class="tb-search" id="globalSearchInput" placeholder="Buscar... (Ctrl+K)" oninput="globalSearch(this.value)" onblur="setTimeout(fecharSearchDropdown,200)" autocomplete="off" title="Ctrl+K: buscar | Ctrl+N: novo cliente | Ctrl+Shift+R: nova reunião | Ctrl+Shift+T: nova tarefa">
           <div class="sd-drop" id="searchDropdown"></div>
@@ -1277,6 +1282,12 @@ tr:hover td{background:#fafafa}
     <button class="btn-primary" onclick="trocarSenhaV3()"><i class="ti ti-lock"></i>Atualizar senha</button>
   </div>
   <div class="card" style="margin-bottom:12px">
+    <div class="card-ttl"><i class="ti ti-users"></i>Gestão de Usuários</div>
+    <div style="font-size:12px;color:var(--gray2);margin-bottom:12px">Cadastre os membros da equipe que utilizam a plataforma. Os dados ficam salvos localmente neste navegador.</div>
+    <div id="v3UserList" style="margin-bottom:14px"></div>
+    <button class="btn-primary" onclick="abrirNovoUsuarioV3()"><i class="ti ti-user-plus"></i>Adicionar usuário</button>
+  </div>
+  <div class="card" style="margin-bottom:12px">
     <div class="card-ttl"><i class="ti ti-webhook"></i>Integrações</div>
     <div class="form-g2">
       <div class="fg form-full">
@@ -1313,6 +1324,24 @@ tr:hover td{background:#fafafa}
     <div id="cfgAnthropicStatus" style="display:none;font-size:12px;margin-top:8px;padding:7px 11px;border-radius:7px"></div>
   </div>
   <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i>Salvar configurações</button></div>
+</div>
+
+<!-- MODAL USUÁRIO V3 -->
+<div class="modal-ov" id="mV3Usuario">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-ttl"><span><i class="ti ti-user"></i><span id="v3UserModalTitulo">Novo Usuário</span></span><span class="modal-close" onclick="closeM('mV3Usuario')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="v3uId">
+    <div class="form-g2">
+      <div class="fg form-full"><label>Nome completo *</label><input type="text" id="v3uNome" placeholder="Ex: João Silva"></div>
+      <div class="fg form-full"><label>E-mail</label><input type="email" id="v3uEmail" placeholder="joao@empresa.com"></div>
+      <div class="fg"><label>Perfil</label><select id="v3uPapel"><option value="consultor">Consultor CS</option><option value="admin">Administrador</option></select></div>
+      <div class="fg"><label>Senha</label><input type="password" id="v3uSenha" placeholder="Opcional"></div>
+    </div>
+    <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:16px">
+      <button class="btn-ghost" onclick="closeM('mV3Usuario')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarUsuarioV3()"><i class="ti ti-device-floppy"></i>Salvar</button>
+    </div>
+  </div>
 </div>
 
 <!-- EDITAR CLIENTE (modal overlay) -->
@@ -3096,7 +3125,7 @@ function renderHoje(){
   const em60=new Date();em60.setDate(em60.getDate()+60);
 
   const dataEl=document.getElementById('hojeData');
-  if(dataEl)dataEl.textContent=agora.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(dataEl)dataEl.style.display='none'; // data já exibida no chip da topbar
 
   // Reuniões agendadas para hoje
   const reunHoje=acoes.filter(a=>a.categoria==='reuniao_agendada'&&a.prazoISO&&new Date(a.prazoISO)>=hoje&&new Date(a.prazoISO)<amanha&&a.status!=='Cancelada');
@@ -3242,13 +3271,22 @@ var _wxCache=null;var _wxTs=0;
 function _wxCodeIcon(c){if(c===0)return'☀️';if(c<=2)return'🌤️';if(c===3)return'☁️';if(c<=48)return'🌫️';if(c<=55)return'🌦️';if(c<=65)return'🌧️';if(c<=75)return'❄️';if(c<=82)return'🌧️';return'⛈️';}
 function _wxCodeDesc(c){var m={0:'Céu limpo',1:'Principalmente limpo',2:'Parcialmente nublado',3:'Nublado',45:'Névoa',48:'Névoa com depósito',51:'Garoa leve',53:'Garoa moderada',55:'Garoa forte',61:'Chuva fraca',63:'Chuva moderada',65:'Chuva forte',71:'Neve fraca',73:'Neve moderada',75:'Neve forte',80:'Pancadas de chuva',81:'Chuvas fortes',82:'Chuvas muito fortes',95:'Tempestade',96:'Tempestade c/ granizo',99:'Tempestade c/ granizo forte'};return m[c]||'—';}
 function _wxApply(d){
-  var bar=document.getElementById('wxBar');if(!bar)return;
-  document.getElementById('wxIcon').textContent=_wxCodeIcon(d.code);
-  document.getElementById('wxTemp').textContent=Math.round(d.temp)+'°C';
-  document.getElementById('wxDesc').textContent=_wxCodeDesc(d.code);
-  document.getElementById('wxExtra').innerHTML='<span><i class="ti ti-droplet" style="font-size:11px"></i> '+d.hum+'%</span>'+'<span><i class="ti ti-wind" style="font-size:11px"></i> '+Math.round(d.wind)+' km/h</span>';
-  document.getElementById('wxCity').textContent=d.city;
-  bar.style.display='flex';
+  // Atualiza chip fixo da topbar (visível em todas as telas)
+  var tbWxIcon=document.getElementById('tbWxIcon');
+  var tbWxTemp=document.getElementById('tbWxTemp');
+  var tbWxDesc=document.getElementById('tbWxDesc');
+  var tbWxSep=document.getElementById('tbWxSep');
+  var tbCity=document.getElementById('tbCity');
+  var tbCitySep=document.getElementById('tbCitySep');
+  if(tbWxIcon){tbWxIcon.textContent=_wxCodeIcon(d.code);tbWxIcon.style.display='';}
+  if(tbWxTemp){tbWxTemp.textContent=Math.round(d.temp)+'°C';tbWxTemp.style.display='';}
+  if(tbWxDesc){tbWxDesc.textContent=_wxCodeDesc(d.code);tbWxDesc.style.display='';}
+  if(tbWxSep)tbWxSep.style.display='';
+  if(tbCity&&d.city){tbCity.textContent=d.city;tbCity.style.display='';if(tbCitySep)tbCitySep.style.display='';}
+  // Salva cidade detectada
+  if(d.city){localStorage.setItem('csm_cidade',d.city);localStorage.setItem('csm_cidade_ts',String(Date.now()));}
+  // wxBar no Dashboard — oculto agora que info está na topbar
+  var bar=document.getElementById('wxBar');if(bar)bar.style.display='none';
 }
 function _wxFetch(lat,lon,city){
   var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&timezone=America%2FSao_Paulo&forecast_days=1';
@@ -6447,8 +6485,60 @@ function downloadTemplate(){
 
 // ═══ CONFIG ═══
 function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cfgDias'))document.getElementById('cfgDias').value=cfg.alertaDiasSemContato||30;if(document.getElementById('cfgHS'))document.getElementById('cfgHS').value=cfg.alertaHSMinimo||50;if(document.getElementById('cfgNPS'))document.getElementById('cfgNPS').value=cfg.alertaNPSMinimo||20;if(document.getElementById('cfgRen'))document.getElementById('cfgRen').value=cfg.alertaDiasRenovacao||60;if(document.getElementById('cfgWebhook'))document.getElementById('cfgWebhook').value=cfg.webhookUrl||'';if(document.getElementById('cfgUF'))document.getElementById('cfgUF').value=cfg.uf||'';if(document.getElementById('cfgCidade'))document.getElementById('cfgCidade').value=cfg.cidade||'';if(document.getElementById('cfgAnthropicKey'))document.getElementById('cfgAnthropicKey').value=cfg.anthropicKey||localStorage.getItem('_anthropicKey')||'';if(document.getElementById('cfgAnthropicStatus'))document.getElementById('cfgAnthropicStatus').style.display='none';const stats=CS_DB.getStats();let total=0;Object.values(CS_DB.KEYS).forEach(k=>{const v=localStorage.getItem(k);if(v)total+=new Blob([v]).size});if(document.getElementById('dbInfo'))document.getElementById('dbInfo').innerHTML=`Banco de dados: ${stats.totalClientes} clientes · ${stats.reunioesTotal} reuniões · ${stats.npsTotal} pesquisas NPS · ${stats.acoesTotal} ações · ${(total/1024).toFixed(1)}KB usados de ~5MB disponíveis.`;
-  const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
+  const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}
+  renderUsuariosV3();}
 function salvarConfig(){const ak=(document.getElementById('cfgAnthropicKey')?.value||'').trim();if(ak)localStorage.setItem('_anthropicKey',ak);const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||'',anthropicKey:ak};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar();_updateTbClock();}
+
+function fazerLogoutV3(){if(!confirm('Deseja encerrar a sessão?\n\nOs dados salvos não serão apagados.'))return;location.reload();}
+
+// ═══ GESTÃO DE USUÁRIOS (V3 localStorage) ═══
+function _getUsuariosV3(){try{return JSON.parse(localStorage.getItem('csm_usuarios_v3')||'[]');}catch(e){return[];}}
+function _saveUsuariosV3(arr){localStorage.setItem('csm_usuarios_v3',JSON.stringify(arr));}
+function renderUsuariosV3(){
+  const lista=document.getElementById('v3UserList');if(!lista)return;
+  const users=_getUsuariosV3();
+  if(!users.length){lista.innerHTML='<div style="color:var(--gray2);font-size:12.5px;padding:10px 0">Nenhum usuário cadastrado. Clique em "Adicionar" para começar.</div>';return;}
+  lista.innerHTML=users.map((u,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray5)">
+    <div style="width:32px;height:32px;border-radius:50%;background:var(--redl);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${(u.nome||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+    <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${_escH(u.nome)}</div><div style="font-size:11px;color:var(--gray2)">${_escH(u.email||'')} · <span class="badge ${u.papel==='admin'?'b-impl':'b-ativo'}">${u.papel==='admin'?'Administrador':'Consultor CS'}</span></div></div>
+    <button class="btn-ghost" style="font-size:11px;padding:4px 9px" onclick="editarUsuarioV3(${i})"><i class="ti ti-edit"></i></button>
+    <button class="btn-ghost" style="font-size:11px;padding:4px 9px;color:var(--red);border-color:var(--red)" onclick="removerUsuarioV3(${i})"><i class="ti ti-trash"></i></button>
+  </div>`).join('');
+}
+function abrirNovoUsuarioV3(){
+  document.getElementById('v3uId').value='';
+  document.getElementById('v3uNome').value='';
+  document.getElementById('v3uEmail').value='';
+  document.getElementById('v3uPapel').value='consultor';
+  document.getElementById('v3uSenha').value='';
+  document.getElementById('v3UserModalTitulo').textContent='Novo Usuário';
+  openM('mV3Usuario');
+}
+function editarUsuarioV3(idx){
+  const u=_getUsuariosV3()[idx];if(!u)return;
+  document.getElementById('v3uId').value=idx;
+  document.getElementById('v3uNome').value=u.nome||'';
+  document.getElementById('v3uEmail').value=u.email||'';
+  document.getElementById('v3uPapel').value=u.papel||'consultor';
+  document.getElementById('v3uSenha').value='';
+  document.getElementById('v3UserModalTitulo').textContent='Editar Usuário';
+  openM('mV3Usuario');
+}
+function salvarUsuarioV3(){
+  const nome=document.getElementById('v3uNome').value.trim();
+  const email=document.getElementById('v3uEmail').value.trim();
+  const papel=document.getElementById('v3uPapel').value;
+  if(!nome){toast('Informe o nome do usuário.','err');return;}
+  const users=_getUsuariosV3();
+  const idx=document.getElementById('v3uId').value;
+  const obj={nome,email,papel,ativo:true};
+  if(idx!==''){users[parseInt(idx)]=obj;}else{users.push(obj);}
+  _saveUsuariosV3(users);closeM('mV3Usuario');renderUsuariosV3();toast('Usuário salvo!');
+}
+function removerUsuarioV3(idx){
+  if(!confirm('Remover este usuário?'))return;
+  const users=_getUsuariosV3();users.splice(idx,1);_saveUsuariosV3(users);renderUsuariosV3();toast('Usuário removido.');
+}
 async function testarWebhookV3(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}const cfg=CS_DB.getConfig();const hsMin=Number(cfg.alertaHSMinimo)||50;const diasMin=Number(cfg.alertaDiasSemContato)||30;const clientes=CS_DB.getClientes();const reunioes=CS_DB.getReunioesAll?CS_DB.getReunioesAll():[];const now=new Date();const alertas=[];for(const c of clientes){const reu=reunioes.filter(r=>r.clienteId===c.id);const ult=reu.sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];if(ult){const dias=Math.floor((now-new Date(ult.dataISO))/86400000);if(dias>=diasMin)alertas.push({tipo:'sem_contato',empresa:c.empresa,dias})}if(c.healthScore<hsMin)alertas.push({tipo:'hs_baixo',empresa:c.empresa,hs:c.healthScore})}if(!alertas.length){toast('Nenhum alerta ativo no momento.');return}try{await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sistema:'CS Manager v3 — Creare Sistemas',gerado_em:new Date().toISOString(),total_alertas:alertas.length,alertas})});toast(`Webhook disparado — ${alertas.length} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
 </script>
 <script>
@@ -6531,7 +6621,8 @@ function initApp(){
   _setDateDP('rData','rDataPk',new Date().toLocaleDateString('pt-BR'));
   _setDateDP('npsDataInput','npsDataPk',new Date().toLocaleDateString('pt-BR'));
   initNotificacoes();
-  _updateTbClock();setInterval(_updateTbClock,1000);_autoDetectCidade();
+  _updateTbClock();setInterval(_updateTbClock,1000);
+  try{renderWeather();}catch(e){} // clima na topbar desde o início
   // Keyboard shortcuts
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();const s=document.getElementById('globalSearchInput');if(s){s.focus();s.select();}}
