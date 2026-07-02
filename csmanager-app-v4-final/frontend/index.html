@@ -122,6 +122,10 @@ body{font-family:'Inter',sans-serif;font-size:13px;color:var(--black);background
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .kpi{background:var(--white);border:1px solid var(--gray4);border-radius:10px;padding:14px 15px;border-top:3px solid var(--gray4)}
 .kpi.red{border-top-color:var(--red)}.kpi.green{border-top-color:var(--green)}.kpi.yellow{border-top-color:var(--yellow)}.kpi.gray{border-top-color:var(--gray3)}.kpi.blue{border-top-color:var(--blue)}
+[data-tooltip]{position:relative}
+[data-tooltip]::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:11px;line-height:1.4;padding:6px 10px;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:999;max-width:240px;white-space:pre-wrap;text-align:center}
+[data-tooltip]:hover::after{opacity:1}
+.kpi[data-tooltip]::after{bottom:auto;top:calc(100% + 7px)}
 .kpi-lbl{font-size:10.5px;color:var(--gray2);margin-bottom:6px;display:flex;align-items:center;gap:4px}
 .kpi-val{font-size:23px;font-weight:700;color:var(--black);line-height:1}
 .kpi-sub{font-size:10.5px;margin-top:5px;color:var(--gray3)}
@@ -491,6 +495,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="alertas" onclick="nav(this,'alertas')"><i class="ti ti-bell"></i>Alertas<span class="nav-badge" id="nbAlertas">0</span></div>
     <div class="nav-sec">Gestão de Contas</div>
     <div class="nav-item" data-p="cliente360" onclick="nav(this,'cliente360')"><i class="ti ti-user-circle"></i>Dashboard do Cliente</div>
+    <div class="nav-item" data-p="plano-sucesso" onclick="nav(this,'plano-sucesso')"><i class="ti ti-target"></i>Plano de Sucesso</div>
     <div class="nav-item" data-p="grupos" onclick="nav(this,'grupos')"><i class="ti ti-building-community"></i>Grupos Econômicos</div>
     <div class="nav-item" data-p="onboarding" onclick="nav(this,'onboarding')"><i class="ti ti-rocket"></i>Onboarding</div>
     <div class="nav-item" data-p="churn" onclick="nav(this,'churn')"><i class="ti ti-trending-down"></i>Controle de Churn</div>
@@ -540,6 +545,16 @@ tr:hover td{background:#fafafa}
     </div>
 
     <div class="content">
+<!-- PLANO DE SUCESSO -->
+<div class="page" id="page-plano-sucesso">
+  <div class="ph">
+    <h2><i class="ti ti-target"></i>Plano de Sucesso</h2>
+    <select id="psCliente" onchange="renderPaginaPSV4()" style="font-size:12.5px;padding:6px 10px;min-width:220px"><option value="">Selecione um cliente...</option></select>
+  </div>
+  <div id="psContent">
+    <div class="empty-state"><i class="ti ti-target"></i><p>Selecione um cliente para ver ou montar o Plano de Sucesso.</p></div>
+  </div>
+</div>
 <!-- PAINEL DO DIA -->
 <div class="page" id="page-hoje">
   <div class="ph"><h2><i class="ti ti-sun"></i>Painel do Dia</h2><span id="hojeData" style="font-size:12.5px;color:var(--gray2)"></span></div>
@@ -583,18 +598,18 @@ tr:hover td{background:#fafafa}
   </div>
   <div class="flt-row">
     <select class="flt-sel" id="fltStatus" onchange="renderClientes()"><option value="">Todos status</option><option>Ativo</option><option>Implantação</option><option>Expansão</option><option>Em Risco</option></select>
-    <select class="flt-sel" id="fltTier" onchange="renderClientes()"><option value="">Todos tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
-    <select class="flt-sel" id="fltHS" onchange="renderClientes()"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
+    <select class="flt-sel" id="fltTier" onchange="renderClientes()" title="Tier A = alto valor (prioridade máxima) · Tier B = valor médio · Tier C = baixo valor"><option value="">Todos tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
+    <select class="flt-sel" id="fltHS" onchange="renderClientes()" title="Health Score: saúde da conta calculada com NPS, reuniões e ações. Saudável ≥70 · Atenção 40–69 · Crítico &lt;40"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
     <input class="flt-inp" id="fltQ" placeholder="Buscar empresa ou CNPJ..." oninput="renderClientes()">
   </div>
   <div class="tbl-card"><table><thead><tr>
     <th class="sortable" onclick="sortClientes('empresa')" data-col="empresa">Empresa <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
     <th>CNPJ</th><th>Segmento</th>
-    <th class="sortable" onclick="sortClientes('tier')" data-col="tier">Tier <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('tier')" data-col="tier" data-tooltip="Classificação estratégica do cliente.&#10;A = Alto valor / prioridade máxima&#10;B = Valor médio / atenção regular&#10;C = Baixo valor / atendimento básico">Tier <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
     <th class="sortable" onclick="sortClientes('status')" data-col="status">Status <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
-    <th class="sortable" onclick="sortClientes('healthScore')" data-col="healthScore">HS <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
-    <th class="sortable" onclick="sortClientes('ultimoNPS')" data-col="ultimoNPS">NPS <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
-    <th class="sortable" onclick="sortClientes('mrr')" data-col="mrr">MRR <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('healthScore')" data-col="healthScore" data-tooltip="Health Score — saúde da conta (0–100).&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico&#10;Calculado com NPS, reuniões, ações e onboarding.">HS <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('ultimoNPS')" data-col="ultimoNPS" data-tooltip="Net Promoter Score — última resposta do cliente.&#10;0–6 Detrator · 7–8 Neutro · 9–10 Promotor&#10;Fórmula: % Promotores − % Detratores">NPS <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
+    <th class="sortable" onclick="sortClientes('mrr')" data-col="mrr" data-tooltip="MRR — Receita Recorrente Mensal&#10;(Monthly Recurring Revenue).&#10;Valor mensal pago pelo cliente.">MRR <i class="ti ti-selector" style="font-size:10px;opacity:.5"></i></th>
     <th>CS</th><th>Última Reunião</th><th></th>
   </tr></thead>
   <tbody id="clienteTbody"></tbody></table></div>
@@ -731,6 +746,7 @@ tr:hover td{background:#fafafa}
     <div style="display:flex;gap:8px;align-items:flex-start">
       <textarea id="tlComentInput" placeholder="Registre uma observação, atualização rápida ou nota sobre o cliente..." style="flex:1;background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:9px 11px;font-size:12.5px;color:var(--black);outline:none;font-family:'Inter',sans-serif;resize:vertical;min-height:44px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adicionarComentarioTimeline()}"></textarea>
       <button class="btn-ghost" id="btnGravarAudio" style="flex-shrink:0;align-self:flex-start" onclick="toggleGravacaoAudio()" title="Gravar áudio"><i class="ti ti-microphone" id="iconGravar"></i></button>
+      <label class="btn-ghost" style="flex-shrink:0;align-self:flex-start;cursor:pointer" title="Enviar arquivo de áudio"><i class="ti ti-upload"></i><input type="file" id="tlAudioFile" accept="audio/*" style="display:none" onchange="tlHandleUpload(event)"></label>
       <button class="btn-primary" style="flex-shrink:0;align-self:flex-start" onclick="adicionarComentarioTimeline()"><i class="ti ti-send"></i>Registrar</button>
     </div>
     <div style="font-size:10.5px;color:var(--gray3);margin-top:6px">Pressione Enter para enviar, Shift+Enter para nova linha. Este comentário entra na timeline sem alterar Health Score ou NPS.</div>
@@ -1154,6 +1170,10 @@ tr:hover td{background:#fafafa}
   <div class="ph"><h2><i class="ti ti-arrows-right"></i>Pipeline de Renovação</h2>
     <button class="btn-ghost" onclick="renderPipeline()"><i class="ti ti-refresh"></i>Atualizar</button>
   </div>
+  <div style="background:var(--ybg);border:1px solid var(--gray4);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--ytxt);line-height:1.6">
+    <i class="ti ti-info-circle" style="color:var(--yellow);margin-right:6px"></i>
+    Clientes aparecem aqui automaticamente quando possuem data de renovação preenchida no cadastro. As colunas mostram o prazo restante: <strong>Vencidos</strong> (contrato expirado), <strong>Até 30 dias</strong> (urgente), <strong>31–60 dias</strong> (atenção) e <strong>61–90 dias</strong> (planejamento). Clique em qualquer card para editar o cliente.
+  </div>
   <div class="kpi-grid" id="pipelineKPIs"></div>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px" id="pipelineColunas"></div>
   <div class="card" style="margin-top:14px">
@@ -1172,6 +1192,10 @@ tr:hover td{background:#fafafa}
       <button class="btn-primary" onclick="openM('mNovoVoC')"><i class="ti ti-plus"></i>Novo Feedback</button>
     </div>
   </div>
+  <div style="background:var(--gbg);border:1px solid var(--gray4);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--gtxt);line-height:1.6">
+    <i class="ti ti-info-circle" style="color:var(--green);margin-right:6px"></i>
+    Registre e acompanhe feedbacks dos clientes sobre o produto ou serviço. Use <strong>"Importar das Reuniões"</strong> para capturar pontos citados nas atas, ou <strong>"Novo Feedback"</strong> para registrar manualmente. Cada card avança no pipeline: <em>Coletado → Analisado → Enviado ao Produto → Implementado</em>.
+  </div>
   <div class="kpi-grid" id="vocKPIs"></div>
   <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
     <select class="flt-sel" id="vocFltCliente" onchange="renderVoC()"><option value="">Todos os clientes</option></select>
@@ -1184,6 +1208,10 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-engajamento">
   <div class="ph"><h2><i class="ti ti-activity"></i>Métricas de Engajamento</h2>
     <select class="flt-sel" id="engFltCliente" onchange="renderEngajamento()" style="font-size:12.5px;padding:6px 10px"><option value="">Toda a carteira</option></select>
+  </div>
+  <div style="background:var(--bbg);border:1px solid var(--gray4);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--btxt);line-height:1.6">
+    <i class="ti ti-info-circle" style="color:var(--blue);margin-right:6px"></i>
+    Engajamento mede a intensidade do relacionamento com cada cliente: frequência de reuniões, respostas ao NPS, ações concluídas no prazo e presença no onboarding. <strong>Score Engajamento</strong> é calculado automaticamente (0–100) — quanto maior, mais ativo e satisfeito o cliente.
   </div>
   <div class="kpi-grid" id="engKPIs"></div>
 
@@ -1295,6 +1323,26 @@ tr:hover td{background:#fafafa}
 
 <!-- TOAST -->
 <div class="toast-wrap" id="toastWrap"></div>
+<!-- MODAL META DO PLANO DE SUCESSO -->
+<div class="modal-ov" id="mNovaMetaSP">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-ttl"><span><i class="ti ti-target"></i>Meta — Plano de Sucesso</span><span class="modal-close" onclick="closeM('mNovaMetaSP')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="mMetaSPClienteId">
+    <input type="hidden" id="mMetaSPIdx">
+    <div class="fg"><label>Título da meta <span class="req">*</span></label><input type="text" id="mMetaSPTitulo" placeholder='Ex: NPS ≥ 8 nos primeiros 90 dias'></div>
+    <div class="fg"><label>Indicador de sucesso</label><input type="text" id="mMetaSPIndicador" placeholder='Como medir? Ex: NPS mínimo 8 na pesquisa trimestral'></div>
+    <div class="fg"><label>Prazo</label><input type="text" id="mMetaSPPrazo" placeholder="DD/MM/AAAA" oninput="maskDataMeta(this)" maxlength="10"></div>
+    <div style="background:var(--bbg);border-radius:8px;padding:9px 12px;font-size:11.5px;color:var(--btxt);margin-bottom:12px;line-height:1.6">
+      <i class="ti ti-info-circle" style="color:var(--blue);margin-right:5px"></i>
+      Uma boa meta tem <strong>resultado claro</strong> no título, <strong>como medir</strong> no indicador e <strong>quando</strong> no prazo.
+    </div>
+    <div class="btn-row">
+      <button class="btn-ghost" onclick="closeM('mNovaMetaSP')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarMetaSPModalV4()"><i class="ti ti-device-floppy"></i>Salvar meta</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL GRUPO ECONÔMICO -->
 <div class="modal-ov" id="mGrupo">
   <div class="modal" style="max-width:440px">
@@ -1393,6 +1441,28 @@ tr:hover td{background:#fafafa}
         <button class="ai-btn" id="btnCopiar" style="display:none" onclick="navigator.clipboard.writeText(document.getElementById('aiContent').textContent).then(()=>toast('Resumo copiado!'))"><i class="ti ti-copy"></i>Copiar</button>
         <button class="ai-btn" id="btnEnviar" style="display:none"><i class="ti ti-send"></i>Enviar para Ops</button>
       </div>
+    </div>
+    <div class="sec-div"><i class="ti ti-microphone"></i>Gravações de áudio</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="btn-ghost" id="rBtnGravar" onclick="rToggleGravacao()"><i class="ti ti-microphone"></i>Gravar áudio</button>
+      <label class="btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-upload"></i>Upload de arquivo<input type="file" id="rAudioFile" accept="audio/*" style="display:none" onchange="rHandleUpload(event)"></label>
+    </div>
+    <div id="rRecPanel" style="display:none;background:var(--gray5);border:1px solid var(--gray4);border-radius:9px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--red);animation:pulseRec 1.2s infinite;flex-shrink:0"></div>
+        <span style="font-size:12.5px;font-weight:500">Gravando...</span>
+        <span id="rRecTime" style="font-size:12.5px;color:var(--gray2);font-family:monospace">00:00</span>
+        <button type="button" class="btn-ghost" style="margin-left:auto;padding:5px 12px" onclick="rPararGravacao()"><i class="ti ti-player-stop"></i>Parar</button>
+      </div>
+    </div>
+    <div id="rPreviewPanel" style="display:none;background:var(--bbg);border:1px solid #b5d4f4;border-radius:9px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <i class="ti ti-microphone" style="color:var(--blue);font-size:17px"></i>
+        <span style="font-size:12.5px;font-weight:500;color:var(--btxt)"><span id="rAudioLabel">Áudio pronto</span> — <span id="rAudioDur">00:00</span></span>
+        <button type="button" class="btn-ghost" style="margin-left:auto;padding:4px 10px" onclick="rDescartarAudio()"><i class="ti ti-trash"></i>Descartar</button>
+      </div>
+      <audio id="rAudioPlayer" controls style="width:100%;height:32px"></audio>
+      <div style="font-size:10.5px;color:var(--gray3);margin-top:7px">Será salvo vinculado a esta reunião ao clicar em "Salvar reunião".</div>
     </div>
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mReuniao')">Cancelar</button><button class="btn-primary" onclick="salvarReuniao()"><i class="ti ti-device-floppy"></i>Salvar reunião</button></div>
   </div>
@@ -1878,6 +1948,7 @@ function nav(el,p){
   if(p==='emails')renderEmailTemplates();
   if(p==='engajamento'){populateEngSelect();renderEngajamento();}
   if(p==='cliente360'){populateC360Select();renderCliente360();}
+  if(p==='plano-sucesso'){populatePSSelectV4();renderPaginaPSV4();}
   if(p==='grupos')renderGrupos();
   if(p==='relatorios')populateRelatoriosSelects();
   if(p==='agenda'){renderAgenda();setTimeout(()=>{try{renderAgendaMapa();}catch(e){}},100);}
@@ -2267,7 +2338,16 @@ async function salvarReuniao(){
   const partCliente=coletarParticipantes('rPartClienteList');
   const reu={clienteId:cid,empresa:cli?.empresa||'',tipo:document.getElementById('rTipo').value,data:new Date().toLocaleDateString('pt-BR'),dataISO:new Date().toISOString(),csat:csatBtn?parseInt(csatBtn.textContent):7,nps:npsBtn?parseInt(npsBtn.textContent):7,sentimento:sentBtn?sentBtn.textContent.replace(/[^\w\s]/g,'').trim():'Neutro',responsavel:CS_DB.getSession()?.nome||'Felipe Duarte',participantesCreare:partCreare,participantesCliente:partCliente,pontosPosi:document.getElementById('rPosi').value,problemasIdent:document.getElementById('rProb').value,melhorias:document.getElementById('rMel').value,proximaReuniao:document.getElementById('rProx').value,resumoIA:document.getElementById('aiContent').textContent};
   try{
-    await CS_DB.saveReuniao(reu);
+    const reuSalva=await CS_DB.saveReuniao(reu);
+    if(_rAudioBlob){
+      try{
+        const b64=await blobToBase64(_rAudioBlob);
+        const kb=(_rAudioBlob.size/1024).toFixed(0);
+        const m=String(Math.floor(_rAudioSeg/60)).padStart(2,'0'),s=String(_rAudioSeg%60).padStart(2,'0');
+        await CS_DB.salvarAudio(cid,b64,_rAudioSeg>0?`${m}:${s}`:'—',kb,reuSalva.id,`Gravação — ${reu.tipo}`);
+      }catch(ae){console.warn('Erro ao salvar áudio da reunião:',ae);}
+      rDescartarAudio();
+    }
     closeM('mReuniao');toast(`Reunião ${reu.tipo} salva! NPS, HS e Timeline atualizados.`);
     renderDashboard();renderReunioes();updateStatusBar();
     resetParticipantes();
@@ -2279,7 +2359,17 @@ function populateAcaoSelect(){const s=document.getElementById('acCliente');if(!s
 let kanbanMode=true;
 function toggleKanban(){kanbanMode=!kanbanMode;document.getElementById('kanbanView').style.display=kanbanMode?'flex':'none';document.getElementById('listaView').style.display=kanbanMode?'none':'block';document.getElementById('kanbanLbl').textContent=kanbanMode?'Lista':'Kanban';if(!kanbanMode)renderAcoesList()}
 function renderKanban(){
-  const ac=CS_DB.getAllAcoes();const cols=['Pendente','Em Andamento','Em Revisão','Concluído'];const heads=['Pendente','Em Andamento','Em Revisão','Concluído'];const headCls=['rh','gh','dh','xh'];
+  const ac=CS_DB.getAllAcoes();
+  if(!ac.length){
+    document.getElementById('kanbanView').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--gray3)">
+      <i class="ti ti-clipboard-list" style="font-size:38px;display:block;margin-bottom:12px;color:var(--gray4)"></i>
+      <p style="font-size:13px;font-weight:600;margin-bottom:6px">Nenhuma ação cadastrada ainda.</p>
+      <p style="font-size:12px;margin-bottom:14px">Crie ações para acompanhar tarefas e próximos passos com seus clientes.</p>
+      <button class="btn-primary" onclick="openM('mAcao')"><i class="ti ti-plus"></i>Nova ação</button>
+    </div>`;
+    return;
+  }
+  const cols=['Pendente','Em Andamento','Em Revisão','Concluído'];const heads=['Pendente','Em Andamento','Em Revisão','Concluído'];const headCls=['rh','gh','dh','xh'];
   const hoje=new Date();hoje.setHours(0,0,0,0);
   document.getElementById('kanbanView').innerHTML=cols.map((col,ci)=>{
     const items=ac.filter(a=>a.status===col);
@@ -2676,6 +2766,7 @@ let audioSegundos=0;
 let speechRecognitionInstance=null;
 let transcricaoCapturada='';
 let transcricaoAtiva=false;
+let _rAudioBlob=null,_rAudioSeg=0,_rMediaRec=null,_rTimerInt=null,_rAudioChunks=[];
 
 function speechApiDisponivel(){
   return ('webkitSpeechRecognition' in window)||('SpeechRecognition' in window);
@@ -2815,6 +2906,81 @@ async function reproduzirAudioSalvo(audioId){
   }catch(e){
     toast('Áudio não encontrado.','err');
   }
+}
+
+async function deletarAudioUI(audioId,btnEl){
+  if(!confirm('Excluir este áudio? A ação não pode ser desfeita.'))return;
+  try{
+    await CS_DB.deletarAudio(audioId);
+    btnEl.closest('.audio-item')?.remove();
+    toast('Áudio excluído.');
+  }catch(e){toast('Erro ao excluir áudio.','err');}
+}
+
+// ════════════════════════════════════════════════
+// ÁUDIO NO MODAL DE REUNIÃO
+// ════════════════════════════════════════════════
+async function rToggleGravacao(){
+  if(_rMediaRec&&_rMediaRec.state==='recording'){rPararGravacao();return;}
+  if(!navigator.mediaDevices?.getUserMedia){toast('Navegador sem suporte para gravação. Use Chrome/Edge.','err');return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    _rAudioChunks=[];_rMediaRec=new MediaRecorder(stream);
+    _rMediaRec.ondataavailable=e=>{if(e.data.size>0)_rAudioChunks.push(e.data);};
+    _rMediaRec.onstop=()=>{_rAudioBlob=new Blob(_rAudioChunks,{type:'audio/webm'});stream.getTracks().forEach(t=>t.stop());_rMostrarPreview('Gravação');};
+    _rMediaRec.start();_rAudioSeg=0;
+    document.getElementById('rRecPanel').style.display='block';
+    document.getElementById('rPreviewPanel').style.display='none';
+    document.getElementById('rBtnGravar').innerHTML='<i class="ti ti-player-stop"></i>Parar gravação';
+    _rTimerInt=setInterval(()=>{_rAudioSeg++;const m=String(Math.floor(_rAudioSeg/60)).padStart(2,'0'),s=String(_rAudioSeg%60).padStart(2,'0');document.getElementById('rRecTime').textContent=`${m}:${s}`;},1000);
+  }catch(e){toast('Não foi possível acessar o microfone. Verifique as permissões.','err');}
+}
+function rPararGravacao(){
+  if(_rMediaRec&&_rMediaRec.state==='recording')_rMediaRec.stop();
+  clearInterval(_rTimerInt);
+  document.getElementById('rRecPanel').style.display='none';
+  document.getElementById('rBtnGravar').innerHTML='<i class="ti ti-microphone"></i>Gravar áudio';
+}
+function _rMostrarPreview(label){
+  const url=URL.createObjectURL(_rAudioBlob);
+  document.getElementById('rAudioPlayer').src=url;
+  const m=String(Math.floor(_rAudioSeg/60)).padStart(2,'0'),s=String(_rAudioSeg%60).padStart(2,'0');
+  document.getElementById('rAudioDur').textContent=_rAudioSeg>0?`${m}:${s}`:'—';
+  document.getElementById('rAudioLabel').textContent=label;
+  document.getElementById('rPreviewPanel').style.display='block';
+}
+function rDescartarAudio(){
+  _rAudioBlob=null;_rAudioSeg=0;_rAudioChunks=[];
+  const p=document.getElementById('rAudioPlayer');if(p.src)URL.revokeObjectURL(p.src);p.src='';
+  document.getElementById('rPreviewPanel').style.display='none';
+  rPararGravacao();
+}
+function rHandleUpload(event){
+  const file=event.target.files?.[0];if(!file)return;
+  _rAudioBlob=file;_rAudioSeg=0;
+  const url=URL.createObjectURL(file);
+  document.getElementById('rAudioPlayer').src=url;
+  document.getElementById('rAudioLabel').textContent=file.name.replace(/\.[^.]+$/,'');
+  document.getElementById('rAudioDur').textContent='—';
+  document.getElementById('rPreviewPanel').style.display='block';
+  event.target.value='';
+}
+
+// Upload de arquivo na timeline (avulso, sem reunião)
+async function tlHandleUpload(event){
+  const file=event.target.files?.[0];if(!file)return;
+  const cid=document.getElementById('tlCliente')?.value;
+  if(!cid){toast('Selecione um cliente.','err');event.target.value='';return;}
+  try{
+    const b64=await blobToBase64(file);
+    const kb=(file.size/1024).toFixed(0);
+    const titulo=file.name.replace(/\.[^.]+$/,'');
+    const audioSalvo=await CS_DB.salvarAudio(cid,b64,'—',kb,null,titulo);
+    await CS_DB._addTimeline(cid,'comentario','Arquivo de áudio anexado',`🎵 <b>${titulo}</b> (${kb}KB) <button class="btn-ghost" style="padding:3px 9px;font-size:10.5px;margin-left:6px" onclick="reproduzirAudioSalvo('${audioSalvo.id}')"><i class="ti ti-play"></i> Reproduzir</button>`);
+    toast('Arquivo de áudio salvo!');
+    renderTimeline();updateStatusBar();
+  }catch(e){toast('Erro ao salvar arquivo de áudio.','err');}
+  event.target.value='';
 }
 
 
@@ -4393,10 +4559,10 @@ function renderCliente360(){
 
   document.getElementById('c360Content').innerHTML=`
     <div class="kpi-grid">
-      <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
-      <div class="kpi blue"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
-      <div class="kpi ${churnScore>=40?'red':'green'}"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnScore}%</div><div class="kpi-sub">${churnLb.label}</div></div>
-      <div class="kpi gray"><div class="kpi-lbl"><i class="ti ti-activity"></i>Engajamento</div><div class="kpi-val">${engScore}</div><div class="kpi-sub">${reu.length} reuniões totais</div></div>
+      <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}" data-tooltip="Saúde geral da conta (0–100).&#10;Calculado com NPS, reuniões, ações e onboarding.&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
+      <div class="kpi blue" data-tooltip="NPS consolidado deste cliente.&#10;Fórmula: % Promotores (9–10) − % Detratores (0–6).&#10;&lt;0 Crítico · 0–49 Neutro · 50–74 Bom · ≥75 Excelente"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
+      <div class="kpi ${churnScore>=40?'red':'green'}" data-tooltip="Probabilidade estimada de cancelamento (0–100%).&#10;Calculado com HS, NPS, inatividade e status.&#10;&lt;20% Baixo · 20–39% Médio · ≥40% Alto risco"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnScore}%</div><div class="kpi-sub">${churnLb.label}</div></div>
+      <div class="kpi gray" data-tooltip="Score de Engajamento (0–100).&#10;Mede frequência de contato, NPS e ações concluídas.&#10;≥70 Alto · 40–69 Médio · &lt;40 Baixo"><div class="kpi-lbl"><i class="ti ti-activity"></i>Engajamento</div><div class="kpi-val">${engScore}</div><div class="kpi-sub">${reu.length} reuniões totais</div></div>
     </div>
     <div class="two-col">
       <div class="card" style="margin-bottom:0">
@@ -4475,7 +4641,14 @@ function renderCliente360(){
           </div>`;
         }).join(''):'<div style="color:var(--gray2);padding:10px 0;font-size:12.5px">Nenhuma ata registrada para este cliente.</div>'}
       </div>`;
-    })()}`;
+    })()}
+    <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-target"></i>Plano de Sucesso</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+        <span style="font-size:12.5px;color:var(--gray2)">Gerencie metas e marcos do contrato deste cliente.</span>
+        <button class="btn-primary" style="font-size:11.5px;padding:5px 13px" onclick="irParaPlanoSucessoV4('${cid}')"><i class="ti ti-target"></i>Abrir Plano de Sucesso</button>
+      </div>
+    </div>`;
 
   setTimeout(()=>{
     const ctx=document.getElementById('c360NpsChart')?.getContext('2d');
@@ -4497,6 +4670,274 @@ function renderCliente360(){
       new Chart(ctx2,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>` HS: ${ctx.parsed.y}`}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
     }).catch(()=>{});
   },80);
+}
+
+// ════════════════════════════════════════════════
+// PLANO DE SUCESSO (cliente 360)
+// ════════════════════════════════════════════════
+function _guiaSPHtml(cid,guiaOpen){
+  const sug=[
+    {t:'NPS ≥ 8 nos primeiros 90 dias',i:'NPS mínimo 8 na pesquisa trimestral'},
+    {t:'Adoção ≥ 80% dos módulos contratados',i:'% módulos ativos no sistema'},
+    {t:'Zero chamados críticos em aberto',i:'Chamados P1/P2 = 0'},
+    {t:'Onboarding 100% concluído no prazo',i:'Todas as etapas finalizadas'},
+    {t:'Renovação confirmada antes do vencimento',i:'Contrato assinado ≥ 30 dias antes'},
+  ];
+  return`<div style="border:1px solid #c3d4f5;border-radius:12px;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bbg);cursor:pointer" onclick="toggleGuiaSP()">
+      <span style="font-size:13px;font-weight:700;color:var(--blue)"><i class="ti ti-book-2" style="margin-right:7px"></i>Como montar um Plano de Sucesso eficaz</span>
+      <span id="spGuiaToggle" style="font-size:11px;color:var(--btxt);display:flex;align-items:center;gap:5px;background:rgba(30,90,224,.12);padding:4px 12px;border-radius:20px;white-space:nowrap">
+        <i class="ti ${guiaOpen?'ti-chevron-up':'ti-chevron-down'}" style="font-size:12px"></i>${guiaOpen?'Ocultar guia':'Ver guia completo'}
+      </span>
+    </div>
+    <div id="spGuiaBody" style="display:${guiaOpen?'block':'none'}">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--gray4)">
+        <div style="padding:16px 18px;border-right:1px solid var(--gray4)">
+          <div style="font-size:10.5px;font-weight:700;color:var(--blue);margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-info-circle" style="margin-right:4px"></i>O que é?</div>
+          <p style="font-size:12px;color:var(--gray2);line-height:1.75;margin:0">Um <strong style="color:var(--black)">acordo formal</strong> entre o CS e o cliente definindo o que precisa acontecer para ele ter sucesso com o produto. Revisado a cada reunião.</p>
+        </div>
+        <div style="padding:16px 18px;border-right:1px solid var(--gray4)">
+          <div style="font-size:10.5px;font-weight:700;color:var(--green);margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-flag" style="margin-right:4px"></i>Marcos — datas-chave</div>
+          <div style="font-size:12px;color:var(--gray2);line-height:2">
+            <div><i class="ti ti-rocket" style="color:var(--blue);width:16px"></i> <strong style="color:var(--black)">Kickoff</strong> — reunião inaugural</div>
+            <div><i class="ti ti-circle-check" style="color:var(--green);width:16px"></i> <strong style="color:var(--black)">Go-live</strong> — produto em produção</div>
+            <div><i class="ti ti-star" style="color:var(--yellow);width:16px"></i> <strong style="color:var(--black)">1º NPS</strong> — 60–90 dias pós go-live</div>
+            <div><i class="ti ti-refresh" style="color:var(--red);width:16px"></i> <strong style="color:var(--black)">Renovação</strong> — 60 dias de antecedência</div>
+          </div>
+        </div>
+        <div style="padding:16px 18px">
+          <div style="font-size:10.5px;font-weight:700;color:#e07b00;margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-target" style="margin-right:4px"></i>Metas — resultados esperados</div>
+          <div style="font-size:12px;color:var(--gray2);line-height:1.75">
+            <div style="margin-bottom:5px"><strong style="color:var(--black)">Título</strong> — resultado esperado</div>
+            <div style="margin-bottom:5px"><strong style="color:var(--black)">Indicador</strong> — como medir</div>
+            <div style="margin-bottom:10px"><strong style="color:var(--black)">Prazo</strong> — quando atingir</div>
+            <div style="background:var(--gray5);border-radius:7px;padding:6px 10px;font-size:11px;color:var(--gray3);font-style:italic">"NPS ≥ 8 até 30/09/2025"</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px;background:var(--gray5)">
+        <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--black)"><i class="ti ti-sparkles" style="color:var(--green);margin-right:5px"></i>Metas sugeridas — adicione com um clique e edite o prazo depois</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          ${sug.map(s=>`<button class="btn-ghost" style="font-size:11px;padding:5px 12px;border-radius:20px" onclick="adicionarMetaSugerida('${cid}','${s.t.replace(/'/g,"\\'")}','${s.i.replace(/'/g,"\\'")}')"><i class="ti ti-plus" style="font-size:10px;margin-right:3px"></i>${s.t}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function toggleGuiaSP(){
+  const body=document.getElementById('spGuiaBody');const tog=document.getElementById('spGuiaToggle');if(!body)return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  if(tog)tog.innerHTML=`<i class="ti ${open?'ti-chevron-down':'ti-chevron-up'}" style="font-size:12px"></i>${open?'Ver guia completo':'Ocultar guia'}`;
+}
+function adicionarMetaSugerida(cid,titulo,indicador){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(plano.metas.some(m=>m.titulo===titulo)){toast('Esta meta já está no plano.','warn');return;}
+  plano.metas.push({titulo,prazo:'',indicador,concluida:false,criadaEm:new Date().toISOString()});
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucessoV4(cid);toast('Meta adicionada! Edite para definir o prazo.');
+}
+function renderPlanoSucessoV4(cid){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  const guiaEl=document.getElementById('spGuia');
+  const metasEl=document.getElementById('spMetas');
+  const marcosEl=document.getElementById('spMarcos');
+  if(guiaEl)guiaEl.innerHTML=_guiaSPHtml(cid,!plano.metas.length);
+  if(metasEl){
+    if(!plano.metas.length){metasEl.innerHTML='<div style="padding:20px 0;text-align:center"><i class="ti ti-target" style="display:block;font-size:32px;margin-bottom:10px;color:var(--gray4)"></i><div style="font-weight:600;font-size:13px;color:var(--black);margin-bottom:5px">Nenhuma meta definida ainda</div><div style="font-size:12px;color:var(--gray2)">Use as sugestões no guia acima ou clique em <strong>Nova meta</strong> para criar uma personalizada.</div></div>';}
+    else metasEl.innerHTML=plano.metas.map((m,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray4)">
+      <div style="width:32px;height:32px;border-radius:8px;background:${m.concluida?'var(--gbg)':'var(--bbg)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ${m.concluida?'ti-check':'ti-target'}" style="color:${m.concluida?'var(--green)':'var(--blue)'}"></i>
+      </div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12.5px;${m.concluida?'text-decoration:line-through;color:var(--gray2)':''}">${m.titulo}</div>
+        <div style="font-size:11px;color:var(--gray3)">${m.prazo||'Sem prazo definido'}${m.indicador?' · '+m.indicador:''}</div>
+      </div>
+      <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="editarMetaSPV4('${cid}',${i})"><i class="ti ti-edit"></i></button>
+      <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="toggleMetaSPV4('${cid}',${i})">${m.concluida?'Reabrir':'Concluir'}</button>
+      <button class="btn-ghost" style="padding:4px 8px;font-size:11px;color:var(--red)" onclick="removerMetaSPV4('${cid}',${i})"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+  }
+  if(marcosEl){
+    const marcos=[
+      {id:'kickoff',label:'Kickoff',icone:'ti-rocket',cor:'var(--blue)',bg:'var(--bbg)',bcor:'#c3d4f5',desc:'Reunião inaugural com o cliente. Apresente o time, o produto e alinhe as expectativas de entrega e suporte.',quando:'Registre na data da primeira reunião formal pós-assinatura'},
+      {id:'go_live',label:'Go-live',icone:'ti-circle-check',cor:'var(--green)',bg:'var(--gbg)',bcor:'#5dcaa5',desc:'O sistema entrou em produção. Todos os acessos foram configurados e os treinamentos básicos foram concluídos.',quando:'Registre quando o cliente começar a usar o produto ativamente'},
+      {id:'primeiro_nps',label:'1º NPS',icone:'ti-star',cor:'var(--yellow)',bg:'var(--ybg)',bcor:'#f5c842',desc:'Primeira pesquisa de satisfação coletada entre 60 e 90 dias após o go-live, enquanto a experiência ainda está fresca.',quando:'Registre ao enviar a pesquisa NPS ao cliente'},
+      {id:'renovacao',label:'Renovação',icone:'ti-refresh',cor:'var(--red)',bg:'var(--redl)',bcor:'#f5a5a5',desc:'Início da conversa de renovação contratual. Não deixe para os últimos 30 dias — antecipe o diálogo com o cliente.',quando:'Registre ao iniciar a negociação (mínimo 60 dias antes do vencimento)'},
+    ];
+    marcosEl.innerHTML=marcos.map((m,idx)=>{
+      const dt=plano.marcos?.[m.id];
+      const done=!!dt;
+      return`<div style="border:2px solid ${done?m.bcor:'var(--gray4)'};border-radius:12px;padding:16px;background:${done?m.bg:'#fff'};position:relative;display:flex;flex-direction:column">
+        ${done?`<div style="position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:${m.cor};display:flex;align-items:center;justify-content:center"><i class="ti ti-check" style="color:#fff;font-size:11px"></i></div>`:''}
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+          <div style="width:40px;height:40px;border-radius:10px;background:${done?m.cor:'var(--gray4)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="ti ${m.icone}" style="color:${done?'#fff':'var(--gray3)'};font-size:19px"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:${done?m.cor:'var(--black)'}">${m.label}</div>
+            <div style="font-size:10px;color:var(--gray3)">Passo ${idx+1} de 4</div>
+          </div>
+        </div>
+        <p style="font-size:11.5px;color:var(--gray2);line-height:1.6;margin:0 0 10px 0;flex:1">${m.desc}</p>
+        ${done
+          ?`<div style="font-size:11.5px;font-weight:600;color:${m.cor};display:flex;align-items:center;gap:5px"><i class="ti ti-calendar-check"></i>Registrado em ${dt}</div>`
+          :`<div style="font-size:10.5px;color:var(--gray3);margin-bottom:8px;font-style:italic;line-height:1.4">${m.quando}</div>
+           <span id="marcoBtnWrap_${m.id}"><button class="btn-ghost" style="font-size:11px;padding:5px 10px;width:100%;display:flex;justify-content:center;gap:5px" onclick="registrarMarcoSPV4('${cid}','${m.id}',this.parentElement)"><i class="ti ti-calendar-plus"></i>Registrar hoje</button></span>`
+        }
+      </div>`;
+    }).join('');
+  }
+}
+function abrirModalPlanoSucessoV4(cid){
+  document.getElementById('mMetaSPClienteId').value=cid;
+  document.getElementById('mMetaSPIdx').value='-1';
+  document.getElementById('mMetaSPTitulo').value='';
+  document.getElementById('mMetaSPPrazo').value='';
+  document.getElementById('mMetaSPIndicador').value='';
+  openM('mNovaMetaSP');
+  setTimeout(()=>document.getElementById('mMetaSPTitulo')?.focus(),80);
+}
+function salvarMetaSPModalV4(){
+  const cid=document.getElementById('mMetaSPClienteId').value;
+  const titulo=document.getElementById('mMetaSPTitulo').value.trim();
+  if(!titulo){toast('Informe o título da meta.','warn');return;}
+  const prazo=document.getElementById('mMetaSPPrazo').value.trim();
+  const indicador=document.getElementById('mMetaSPIndicador').value.trim();
+  const idx=parseInt(document.getElementById('mMetaSPIdx').value);
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(idx>=0&&plano.metas[idx]){plano.metas[idx].titulo=titulo;plano.metas[idx].prazo=prazo;plano.metas[idx].indicador=indicador;}
+  else plano.metas.push({titulo,prazo,indicador,concluida:false,criadaEm:new Date().toISOString()});
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  closeM('mNovaMetaSP');renderPlanoSucessoV4(cid);toast(idx>=0?'Meta atualizada!':'Meta adicionada!');
+}
+function editarMetaSPV4(cid,idx){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  const m=plano.metas[idx];if(!m)return;
+  document.getElementById('mMetaSPClienteId').value=cid;
+  document.getElementById('mMetaSPIdx').value=idx;
+  document.getElementById('mMetaSPTitulo').value=m.titulo;
+  document.getElementById('mMetaSPPrazo').value=m.prazo||'';
+  document.getElementById('mMetaSPIndicador').value=m.indicador||'';
+  openM('mNovaMetaSP');
+}
+function toggleMetaSPV4(cid,idx){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(plano.metas[idx])plano.metas[idx].concluida=!plano.metas[idx].concluida;
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));renderPlanoSucessoV4(cid);
+}
+function removerMetaSPV4(cid,idx){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  plano.metas.splice(idx,1);
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));renderPlanoSucessoV4(cid);toast('Meta removida.');
+}
+function registrarMarcoSPV4(cid,marcoId,wrapEl){
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(!plano.marcos)plano.marcos={};
+  plano.marcos[marcoId]=hoje;
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucessoV4(cid);toast('Marco registrado!');
+}
+function maskDataMeta(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5,9);el.value=v;}
+
+function populatePSSelectV4(){
+  const s=document.getElementById('psCliente');if(!s)return;
+  const cl=CS_DB.getClientes();
+  const cur=s.value;
+  s.innerHTML='<option value="">Selecione um cliente...</option>'+cl.map(c=>`<option value="${c.id}"${c.id===cur?' selected':''}>${c.empresa}</option>`).join('');
+}
+function irParaPlanoSucessoV4(cid){
+  nav(document.querySelector('[data-p=plano-sucesso]'),'plano-sucesso');
+  setTimeout(()=>{populatePSSelectV4();const s=document.getElementById('psCliente');if(s)s.value=cid;renderPaginaPSV4();},80);
+}
+function renderPaginaPSV4(){
+  const cid=document.getElementById('psCliente')?.value;
+  const el=document.getElementById('psContent');
+  if(!el)return;
+  if(!cid){
+    el.innerHTML='<div class="empty-state"><i class="ti ti-target"></i><p>Selecione um cliente para ver ou montar o Plano de Sucesso.</p></div>';
+    return;
+  }
+  const c=CS_DB.getClienteById(cid);
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  const metasTot=plano.metas.length;
+  const metasConc=plano.metas.filter(m=>m.concluida).length;
+  const pct=metasTot?Math.round(metasConc/metasTot*100):0;
+  const marcosLista=[
+    {id:'kickoff',label:'Kickoff',icone:'ti-rocket'},
+    {id:'go_live',label:'Go-live',icone:'ti-circle-check'},
+    {id:'primeiro_nps',label:'1º NPS',icone:'ti-star'},
+    {id:'renovacao',label:'Renovação',icone:'ti-refresh'},
+  ];
+  const marcosConc=marcosLista.filter(m=>plano.marcos?.[m.id]).length;
+  const reu=CS_DB.getReunioesCliente(cid).slice(0,4);
+  const ac=CS_DB.getAcoesCliente(cid).filter(a=>a.status!=='Concluído').slice(0,5);
+
+  el.innerHTML=`
+    <div class="kpi-grid" style="margin-bottom:14px">
+      <div class="kpi ${pct===100?'green':pct>=50?'blue':'gray'}">
+        <div class="kpi-lbl"><i class="ti ti-target"></i>Metas do plano</div>
+        <div class="kpi-val" style="color:${pct===100?'var(--green)':pct>=50?'var(--blue)':'var(--gray2)'}">${metasConc}/${metasTot||'0'}</div>
+        <div class="kpi-sub">${metasTot?pct+'% concluídas':'Nenhuma meta ainda'}</div>
+      </div>
+      <div class="kpi ${marcosConc===4?'green':marcosConc>=2?'blue':'gray'}">
+        <div class="kpi-lbl"><i class="ti ti-flag"></i>Marcos registrados</div>
+        <div class="kpi-val">${marcosConc}/4</div>
+        <div class="kpi-sub">${marcosConc===4?'Todos registrados':marcosConc===0?'Nenhum ainda':'Em andamento'}</div>
+      </div>
+      <div class="kpi ${(c?.healthScore||0)>=70?'green':(c?.healthScore||0)>=40?'yellow':'red'}" data-tooltip="Saúde geral da conta (0–100).&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico">
+        <div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div>
+        <div class="kpi-val" style="color:${hsColor(c?.healthScore||0)}">${c?.healthScore||'—'}</div>
+        <div class="kpi-sub">${(c?.healthScore||0)>=70?'Saudável':(c?.healthScore||0)>=40?'Atenção':'Crítico'}</div>
+      </div>
+      <div class="kpi blue clickable" onclick="irParaCliente360V4('${cid}')">
+        <div class="kpi-lbl"><i class="ti ti-user-circle"></i>Dashboard 360°<i class="ti ti-arrow-right" style="margin-left:auto;font-size:12px;color:var(--gray3)"></i></div>
+        <div class="kpi-val" style="font-size:14px;color:var(--blue)">${(c?.empresa||'').split(' ')[0]||'—'}</div>
+        <div class="kpi-sub">${c?.tier?'Tier '+c.tier:''} ${c?.responsavelCS?'· '+c.responsavelCS:''}</div>
+      </div>
+    </div>
+    <div id="spGuia" style="margin-bottom:14px"></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-ttl"><i class="ti ti-flag"></i>Marcos do contrato<span class="sub">${marcosConc} de 4 registrados</span></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="spMarcos"></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-ttl"><i class="ti ti-target"></i>Metas do plano<span class="sub">${metasConc}/${metasTot} concluídas</span>
+        <button class="btn-primary" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirModalPlanoSucessoV4('${cid}')"><i class="ti ti-plus"></i>Nova meta</button>
+      </div>
+      ${metasTot?`<div style="height:6px;background:var(--gray4);border-radius:3px;margin-bottom:12px;overflow:hidden"><div style="height:100%;background:${pct===100?'var(--green)':'var(--blue)'};width:${pct}%;border-radius:3px"></div></div>`:''}
+      <div id="spMetas"></div>
+    </div>
+    <div class="two-col">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-calendar"></i>Últimas reuniões
+          <button class="btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="openM('mReuniao');setTimeout(()=>{document.getElementById('rCliente').value='${cid}'},80)"><i class="ti ti-plus"></i>Registrar</button>
+        </div>
+        ${reu.length?reu.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray4);font-size:12.5px">
+          <div style="width:30px;height:30px;border-radius:8px;background:var(--bbg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-calendar" style="color:var(--blue)"></i></div>
+          <div style="flex:1"><div style="font-weight:600">${r.tipo||'Reunião'}</div><div style="font-size:11px;color:var(--gray2)">${r.data_iso?new Date(r.data_iso).toLocaleDateString('pt-BR'):r.data||'—'} · CSAT ${r.csat||'—'}/10 · NPS ${r.nps||'—'}/10</div></div>
+        </div>`).join(''):'<div style="color:var(--gray2);font-size:12.5px;padding:12px 0;text-align:center"><i class="ti ti-calendar-off" style="display:block;font-size:24px;margin-bottom:6px;color:var(--gray4)"></i>Nenhuma reunião registrada.</div>'}
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-clipboard-list"></i>Ações em aberto
+          <button class="btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="openM('mAcao');setTimeout(()=>{document.getElementById('acCliente').value='${cid}'},80)"><i class="ti ti-plus"></i>Nova ação</button>
+        </div>
+        ${ac.length?ac.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray4);font-size:12px">
+          <span style="font-size:9px;padding:2px 7px;border-radius:20px;background:${a.prioridade==='Alta'?'var(--redl)':a.prioridade==='Baixa'?'var(--gbg)':'var(--ybg)'};color:${a.prioridade==='Alta'?'var(--red)':a.prioridade==='Baixa'?'var(--gtxt)':'var(--ytxt)'};white-space:nowrap">${a.prioridade||'Média'}</span>
+          <span style="flex:1">${a.descricao}</span>
+          <span style="font-size:10px;color:var(--gray3);white-space:nowrap">${a.prazo||''}</span>
+        </div>`).join(''):'<div style="color:var(--gray2);font-size:12.5px;padding:12px 0;text-align:center"><i class="ti ti-circle-check" style="display:block;font-size:24px;margin-bottom:6px;color:var(--gray4)"></i>Nenhuma ação aberta.</div>'}
+      </div>
+    </div>`;
+
+  const guiaEl=document.getElementById('spGuia');
+  if(guiaEl)guiaEl.innerHTML=_guiaSPHtml(cid,!metasTot);
+  renderPlanoSucessoV4(cid);
+}
+function irParaCliente360V4(cid){
+  nav(document.querySelector('[data-p=cliente360]'),'cliente360');
+  setTimeout(()=>{const s=document.getElementById('c360Select');if(s){s.value=cid;renderCliente360();}},100);
 }
 
 // ════════════════════════════════════════════════
@@ -4676,10 +5117,10 @@ function renderEngajamento() {
 
   const kEl = document.getElementById('engKPIs');
   if (kEl) kEl.innerHTML = `
-    <div class="kpi blue"><div class="kpi-lbl">Score Engajamento Médio</div><div class="kpi-val" style="color:${engMed>=70?'var(--green)':engMed>=40?'var(--blue)':'var(--red)'}">${engMed}</div><div class="kpi-sub">carteira atual</div></div>
+    <div class="kpi blue" data-tooltip="Score de Engajamento (0–100): mede a&#10;intensidade do relacionamento com cada cliente.&#10;Considera reuniões, NPS, ações e onboarding.&#10;≥70 Alto · 40–69 Médio · &lt;40 Baixo"><div class="kpi-lbl">Score Engajamento Médio</div><div class="kpi-val" style="color:${engMed>=70?'var(--green)':engMed>=40?'var(--blue)':'var(--red)'}">${engMed}</div><div class="kpi-sub">carteira atual</div></div>
     <div class="kpi green"><div class="kpi-lbl">Reuniões este mês</div><div class="kpi-val">${reuMes}</div><div class="kpi-sub">${reu.length} total</div></div>
-    <div class="kpi blue"><div class="kpi-lbl">NPS respondidos este mês</div><div class="kpi-val">${npsMes}</div><div class="kpi-sub">${nps.length} total</div></div>
-    <div class="kpi green"><div class="kpi-lbl">Taxa de conclusão ações</div><div class="kpi-val" style="color:${txConc>=70?'var(--green)':'var(--yellow)'}">${txConc}%</div><div class="kpi-sub">${acConc}/${acTotal} concluídas</div></div>`;
+    <div class="kpi blue" data-tooltip="Quantidade de pesquisas NPS respondidas&#10;pelos clientes no mês atual."><div class="kpi-lbl">NPS respondidos este mês</div><div class="kpi-val">${npsMes}</div><div class="kpi-sub">${nps.length} total</div></div>
+    <div class="kpi green" data-tooltip="% de ações concluídas sobre o total cadastrado.&#10;Meta recomendada: acima de 70%."><div class="kpi-lbl">Taxa de conclusão ações</div><div class="kpi-val" style="color:${txConc>=70?'var(--green)':'var(--yellow)'}">${txConc}%</div><div class="kpi-sub">${acConc}/${acTotal} concluídas</div></div>`;
 
   // Métricas de ações
   const acoesEl = document.getElementById('engAcoesMetrics');
@@ -5233,10 +5674,10 @@ function renderPipeline(){
 
   var kEl=document.getElementById('pipelineKPIs');
   if(kEl)kEl.innerHTML=
-    '<div class="kpi red"><div class="kpi-lbl"><i class="ti ti-alert-circle"></i>Vencidos</div><div class="kpi-val">'+vencidos.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(vencidos))+' em risco</div></div>'+
-    '<div class="kpi red"><div class="kpi-lbl"><i class="ti ti-clock"></i>Até 30 dias</div><div class="kpi-val">'+d30.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d30))+' MRR</div></div>'+
-    '<div class="kpi yellow"><div class="kpi-lbl"><i class="ti ti-clock"></i>31–60 dias</div><div class="kpi-val">'+d60.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d60))+' MRR</div></div>'+
-    '<div class="kpi green"><div class="kpi-lbl"><i class="ti ti-calendar"></i>61–90 dias</div><div class="kpi-val">'+d90.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d90))+' MRR</div></div>';
+    '<div class="kpi red" data-tooltip="Contratos com data de renovação já vencida.&#10;Ação imediata necessária para evitar churn."><div class="kpi-lbl"><i class="ti ti-alert-circle"></i>Vencidos</div><div class="kpi-val">'+vencidos.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(vencidos))+' em risco</div></div>'+
+    '<div class="kpi red" data-tooltip="Contratos que vencem nos próximos 30 dias.&#10;Prioridade alta: entre em contato imediatamente."><div class="kpi-lbl"><i class="ti ti-clock"></i>Até 30 dias</div><div class="kpi-val">'+d30.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d30))+' MRR</div></div>'+
+    '<div class="kpi yellow" data-tooltip="Contratos que vencem em 31 a 60 dias.&#10;Iniciar conversas de renovação agora."><div class="kpi-lbl"><i class="ti ti-clock"></i>31–60 dias</div><div class="kpi-val">'+d60.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d60))+' MRR</div></div>'+
+    '<div class="kpi green" data-tooltip="Contratos que vencem em 61 a 90 dias.&#10;Planejamento: inclua nas reuniões do próximo mês."><div class="kpi-lbl"><i class="ti ti-calendar"></i>61–90 dias</div><div class="kpi-val">'+d90.length+'</div><div class="kpi-sub">'+fmtMRR(sumMRR(d90))+' MRR</div></div>';
 
   function colCard(c){
     var dias=c.diasR;var cor=dias<0?'var(--red)':dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
@@ -5258,11 +5699,17 @@ function renderPipeline(){
   }
 
   var colEl=document.getElementById('pipelineColunas');
-  if(colEl)colEl.innerHTML=
-    colHTML('Vencidos','var(--red)','ti-alert-circle',vencidos)+
-    colHTML('Até 30 dias','var(--red)','ti-flame',d30)+
-    colHTML('31–60 dias','var(--yellow)','ti-clock',d60)+
-    colHTML('61–90 dias','var(--green)','ti-calendar-check',d90);
+  if(colEl){
+    if(!comRenov.length){
+      colEl.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--gray3)"><i class="ti ti-calendar-off" style="font-size:36px;display:block;margin-bottom:10px;color:var(--gray4)"></i><p style="font-size:13px;margin-bottom:8px">Nenhum cliente com data de renovação cadastrada.</p><p style="font-size:12px">Edite um cliente e preencha o campo <strong>Data de Renovação</strong> para ele aparecer aqui.</p></div>';
+    }else{
+      colEl.innerHTML=
+        colHTML('Vencidos','var(--red)','ti-alert-circle',vencidos)+
+        colHTML('Até 30 dias','var(--red)','ti-flame',d30)+
+        colHTML('31–60 dias','var(--yellow)','ti-clock',d60)+
+        colHTML('61–90 dias','var(--green)','ti-calendar-check',d90);
+    }
+  }
 
   var tb=document.getElementById('pipelineTbody');
   if(tb)tb.innerHTML=comRenov.map(function(c){

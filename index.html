@@ -712,6 +712,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="alertas" onclick="nav(this,'alertas')"><i class="ti ti-bell"></i>Alertas<span class="nav-badge" id="nbAlertas">0</span></div>
     <div class="nav-sec">Gestão de Contas</div>
     <div class="nav-item" data-p="cliente360" onclick="nav(this,'cliente360')"><i class="ti ti-user-circle"></i>Dashboard do Cliente</div>
+    <div class="nav-item" data-p="plano-sucesso" onclick="nav(this,'plano-sucesso')"><i class="ti ti-target"></i>Plano de Sucesso</div>
     <div class="nav-item" data-p="grupos" onclick="nav(this,'grupos')"><i class="ti ti-building-community"></i>Grupos Econômicos</div>
     <div class="nav-item" data-p="onboarding" onclick="nav(this,'onboarding')"><i class="ti ti-rocket"></i>Onboarding</div>
     <div class="nav-item" data-p="churn" onclick="nav(this,'churn')"><i class="ti ti-trending-down"></i>Controle de Churn</div>
@@ -760,6 +761,16 @@ tr:hover td{background:#fafafa}
     </div>
 
     <div class="content">
+<!-- PLANO DE SUCESSO -->
+<div class="page" id="page-plano-sucesso">
+  <div class="ph">
+    <h2><i class="ti ti-target"></i>Plano de Sucesso</h2>
+    <select id="psCliente" onchange="renderPaginaPS()" style="font-size:12.5px;padding:6px 10px;min-width:220px"><option value="">Selecione um cliente...</option></select>
+  </div>
+  <div id="psContent">
+    <div class="empty-state"><i class="ti ti-target"></i><p>Selecione um cliente para ver ou montar o Plano de Sucesso.</p></div>
+  </div>
+</div>
 <!-- HOJE -->
 <div class="page" id="page-hoje">
   <div class="ph"><h2><i class="ti ti-sun"></i>Painel do Dia</h2><span id="hojeData" style="font-size:12.5px;color:var(--gray2)"></span></div>
@@ -821,8 +832,8 @@ tr:hover td{background:#fafafa}
   </div>
   <div class="flt-row">
     <select class="flt-sel" id="fltStatus" onchange="renderClientes()"><option value="">Todos status</option><option>Ativo</option><option>Implantação</option><option>Expansão</option><option>Em Risco</option></select>
-    <select class="flt-sel" id="fltTier" onchange="renderClientes()"><option value="">Todos tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
-    <select class="flt-sel" id="fltHS" onchange="renderClientes()"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
+    <select class="flt-sel" id="fltTier" onchange="renderClientes()" title="Tier A = alto valor (prioridade máxima) · Tier B = valor médio · Tier C = baixo valor"><option value="">Todos tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option></select>
+    <select class="flt-sel" id="fltHS" onchange="renderClientes()" title="Health Score: saúde da conta calculada com NPS, reuniões e ações. Saudável ≥70 · Atenção 40–69 · Crítico &lt;40"><option value="">Health Score</option><option value="alto">Saudável 70+</option><option value="medio">Atenção 40-69</option><option value="baixo">Crítico -40</option></select>
     <select class="flt-sel" id="fltRespCS" onchange="renderClientes()"><option value="">Todos CS</option></select>
     <input class="flt-inp" id="fltQ" placeholder="Buscar empresa ou CNPJ..." oninput="renderClientes()" style="flex:2">
   </div>
@@ -836,12 +847,12 @@ tr:hover td{background:#fafafa}
   <div class="tbl-card"><table><thead><tr>
     <th class="sortable" data-col="empresa" onclick="sortClientes('empresa')">Empresa</th>
     <th>CNPJ</th><th>Segmento</th>
-    <th class="sortable" data-col="tier" onclick="sortClientes('tier')">Tier</th>
+    <th class="sortable" data-col="tier" onclick="sortClientes('tier')" data-tooltip="Classificação estratégica do cliente.&#10;A = Alto valor / prioridade máxima&#10;B = Valor médio / atenção regular&#10;C = Baixo valor / atendimento básico">Tier</th>
     <th class="sortable" data-col="status" onclick="sortClientes('status')">Status</th>
-    <th class="sortable" data-col="healthScore" onclick="sortClientes('healthScore')">HS</th>
+    <th class="sortable" data-col="healthScore" onclick="sortClientes('healthScore')" data-tooltip="Health Score — saúde da conta (0–100).&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico&#10;Calculado com base em NPS, reuniões,&#10;ações em aberto e onboarding.">HS</th>
     <th>Tendência</th>
-    <th class="sortable" data-col="ultimoNPS" onclick="sortClientes('ultimoNPS')">NPS</th>
-    <th class="sortable" data-col="mrr" onclick="sortClientes('mrr')">MRR</th>
+    <th class="sortable" data-col="ultimoNPS" onclick="sortClientes('ultimoNPS')" data-tooltip="Net Promoter Score — última resposta do cliente.&#10;0–6 Detrator · 7–8 Neutro · 9–10 Promotor&#10;Fórmula: % Promotores − % Detratores">NPS</th>
+    <th class="sortable" data-col="mrr" onclick="sortClientes('mrr')" data-tooltip="MRR — Receita Recorrente Mensal&#10;(Monthly Recurring Revenue).&#10;Valor mensal pago pelo cliente.">MRR</th>
     <th>Próxima Ação</th>
     <th>CS</th><th>Última Reunião</th><th></th>
   </tr></thead>
@@ -1017,6 +1028,7 @@ tr:hover td{background:#fafafa}
     <div style="display:flex;gap:8px;align-items:flex-start">
       <textarea id="tlComentInput" placeholder="Registre uma observação, atualização rápida ou nota sobre o cliente..." style="flex:1;background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:9px 11px;font-size:12.5px;color:var(--black);outline:none;font-family:'Inter',sans-serif;resize:vertical;min-height:44px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adicionarComentarioTimeline()}"></textarea>
       <button class="btn-ghost" id="btnGravarAudio" style="flex-shrink:0;align-self:flex-start" onclick="toggleGravacaoAudio()" title="Gravar áudio"><i class="ti ti-microphone" id="iconGravar"></i></button>
+      <label class="btn-ghost" style="flex-shrink:0;align-self:flex-start;cursor:pointer" title="Enviar arquivo de áudio"><i class="ti ti-upload"></i><input type="file" id="tlAudioFile" accept="audio/*" style="display:none" onchange="tlHandleUpload(event)"></label>
       <button class="btn-primary" style="flex-shrink:0;align-self:flex-start" onclick="adicionarComentarioTimeline()"><i class="ti ti-send"></i>Registrar</button>
     </div>
     <div style="font-size:10.5px;color:var(--gray3);margin-top:6px">Pressione Enter para enviar, Shift+Enter para nova linha. Este comentário entra na timeline sem alterar Health Score ou NPS.</div>
@@ -1577,6 +1589,10 @@ tr:hover td{background:#fafafa}
   <div class="ph"><h2><i class="ti ti-activity"></i>Métricas de Engajamento</h2>
     <select class="flt-sel" id="engFltCliente" onchange="renderEngajamento()" style="font-size:12.5px;padding:6px 10px"><option value="">Toda a carteira</option></select>
   </div>
+  <div style="background:var(--bbg);border:1px solid var(--gray4);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--btxt);line-height:1.6">
+    <i class="ti ti-info-circle" style="color:var(--blue);margin-right:6px"></i>
+    Engajamento mede a intensidade do relacionamento com cada cliente: frequência de reuniões, respostas ao NPS, ações concluídas no prazo e presença no onboarding. <strong>Score Engajamento</strong> é calculado automaticamente (0–100) — quanto maior, mais ativo e satisfeito o cliente.
+  </div>
   <div class="kpi-grid" id="engKPIs"></div>
 
   <div class="two-col" style="margin-bottom:14px">
@@ -1616,6 +1632,10 @@ tr:hover td{background:#fafafa}
       <button class="btn-primary" onclick="openM('mNovoVoC')"><i class="ti ti-plus"></i>Novo Feedback</button>
     </div>
   </div>
+  <div style="background:var(--gbg);border:1px solid var(--gray4);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--gtxt);line-height:1.6">
+    <i class="ti ti-info-circle" style="color:var(--green);margin-right:6px"></i>
+    Registre e acompanhe feedbacks dos clientes sobre o produto ou serviço. Use <strong>"Importar das Reuniões"</strong> para capturar pontos citados nas atas, ou <strong>"Novo Feedback"</strong> para registrar manualmente. Cada card avança no pipeline: <em>Coletado → Analisado → Enviado ao Produto → Implementado</em>.
+  </div>
   <div class="kpi-grid" id="vocKPIs"></div>
   <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
     <select class="flt-sel" id="vocFltCliente" onchange="renderVoC()"><option value="">Todos os clientes</option></select>
@@ -1628,6 +1648,10 @@ tr:hover td{background:#fafafa}
 <div class="page" id="page-pipeline">
   <div class="ph"><h2><i class="ti ti-arrows-right"></i>Pipeline de Renovação</h2>
     <button class="btn-ghost" onclick="renderPipeline()"><i class="ti ti-refresh"></i>Atualizar</button>
+  </div>
+  <div style="background:var(--ybg);border:1px solid var(--gray4);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--ytxt);line-height:1.6">
+    <i class="ti ti-info-circle" style="color:var(--yellow);margin-right:6px"></i>
+    Clientes aparecem aqui automaticamente quando possuem data de renovação preenchida no cadastro. As colunas mostram o prazo restante: <strong>Vencidos</strong> (contrato expirado), <strong>Até 30 dias</strong> (urgente), <strong>31–60 dias</strong> (atenção) e <strong>61–90 dias</strong> (planejamento). Clique em qualquer card para editar o cliente.
   </div>
   <div class="kpi-grid" id="pipelineKPIs"></div>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:14px" id="pipelineColunas"></div>
@@ -1894,6 +1918,26 @@ tr:hover td{background:#fafafa}
         <button class="ai-btn primary" onclick="gerarIA()"><i class="ti ti-sparkles"></i>Gerar com IA</button>
         <button class="ai-btn" id="btnCopiar" style="display:none" onclick="navigator.clipboard.writeText(document.getElementById('aiContent').textContent).then(()=>toast('Resumo copiado!'))"><i class="ti ti-copy"></i>Copiar</button>
         <button class="ai-btn" id="btnEnviar" style="display:none"><i class="ti ti-send"></i>Enviar para Ops</button>
+      </div>
+    </div>
+    <!-- Áudio da reunião -->
+    <div class="fg" style="margin-top:4px">
+      <label>Áudio da reunião</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <button type="button" class="btn-ghost" id="rBtnGravar" onclick="rToggleGravacao()" style="display:flex;align-items:center;gap:6px"><i class="ti ti-microphone" id="rIconGravar"></i><span id="rBtnGravarTxt">Gravar</span></button>
+        <label class="btn-ghost" style="cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ti ti-upload"></i>Enviar arquivo<input type="file" id="rAudioFile" accept="audio/*" style="display:none" onchange="rHandleUpload(event)"></label>
+      </div>
+      <div id="rRecPanel" style="display:none;align-items:center;gap:10px;padding:8px 10px;background:var(--gbg);border-radius:8px;margin-bottom:8px">
+        <span style="width:10px;height:10px;border-radius:50%;background:#e74c3c;animation:pulse 1s infinite"></span>
+        <span id="rRecTimer" style="font-size:13px;font-weight:600;font-family:monospace">00:00</span>
+        <button type="button" class="btn-ghost" style="padding:4px 10px;font-size:12px" onclick="rPararGravacao()"><i class="ti ti-player-stop"></i>Parar</button>
+      </div>
+      <div id="rPreviewPanel" style="display:none;padding:10px;background:var(--gbg);border-radius:8px">
+        <audio id="rAudioPlayer" controls style="width:100%;margin-bottom:8px"></audio>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn-ghost" style="font-size:12px" onclick="rDescartarAudio()"><i class="ti ti-trash"></i>Descartar</button>
+          <span id="rAudioInfo" style="font-size:11px;color:var(--gray2);align-self:center"></span>
+        </div>
       </div>
     </div>
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mReuniao')">Cancelar</button><button class="btn-primary" onclick="salvarReuniao()"><i class="ti ti-device-floppy"></i>Salvar reunião</button></div>
@@ -2903,6 +2947,7 @@ function nav(el,p){
   if(p==='voc')renderVoC();
   if(p==='emails'){emailFiltrar(_emailFiltroAtivo||'');renderEmailTemplates();}
   if(p==='cliente360'){populateC360Select();renderCliente360();}
+  if(p==='plano-sucesso'){populatePSSelect();renderPaginaPS();}
   if(p==='grupos')renderGrupos();
   if(p==='hoje')renderHoje();
   if(p==='dashboard')renderDashboard();
@@ -4633,8 +4678,14 @@ function _resetMReuniao(){
   _editReuniaoId=null;
   const ttl=document.querySelector('#mReuniao .modal-ttl span:first-child');
   if(ttl)ttl.innerHTML='<i class="ti ti-calendar"></i>Registrar Reunião';
+  rDescartarAudio?.();
+  document.getElementById('rRecPanel').style.display='none';
+  document.getElementById('rIconGravar').className='ti ti-microphone';
+  document.getElementById('rBtnGravarTxt').textContent='Gravar';
+  if(_rMediaRec&&_rMediaRec.state==='recording')try{_rMediaRec.stop()}catch(e){}
+  clearInterval(_rTimerInt);
 }
-function salvarReuniao(){
+async function salvarReuniao(){
   const cid=document.getElementById('rCliente').value;
   if(!cid){toast('Selecione um cliente.','err');return;}
   const cli=CS_DB.getClienteById(cid);
@@ -4650,10 +4701,24 @@ function salvarReuniao(){
   if(reuId)reu.id=reuId;
   const isEdit=!!reuId;
   _resetMReuniao();
-  CS_DB.saveReuniao(reu);closeM('mReuniao');toast(`Reunião ${reu.tipo} ${isEdit?'atualizada':'salva'}! NPS, HS e Timeline atualizados.`);
+  const reuSalva=CS_DB.saveReuniao(reu);closeM('mReuniao');toast(`Reunião ${reu.tipo} ${isEdit?'atualizada':'salva'}! NPS, HS e Timeline atualizados.`);
   renderDashboard();renderReunioes();updateStatusBar();
   resetParticipantes();
   if(!isEdit)setTimeout(()=>_abrirProximoPasso(cid,cli?.empresa||'',reu.tipo),400);
+  if(_rAudioBlob){
+    try{
+      const base64=await blobToBase64(_rAudioBlob);
+      const m=String(Math.floor(_rAudioSeg/60)).padStart(2,'0');
+      const s=String(_rAudioSeg%60).padStart(2,'0');
+      const kb=(_rAudioBlob.size/1024).toFixed(0);
+      const audioId='audio_'+Date.now();
+      const audios=CS_DB.get('audios')||[];
+      audios.push({id:audioId,clienteId:cid,reuniaoId:reuSalva?.id||reu.id||null,titulo:`Gravação — ${reu.tipo}`,data:base64,duracao:`${m}:${s}`,criadoEm:new Date().toISOString(),tamanhoKB:parseInt(kb)});
+      CS_DB.set('audios',audios);
+      CS_DB._addTimeline(cid,'comentario',`Áudio vinculado à reunião: ${reu.tipo}`,`🎙️ Gravação de ${m}:${s} (${kb} KB) salva. <button class="btn-ghost" style="padding:3px 9px;font-size:10.5px;margin-left:6px" onclick="reproduzirAudioSalvo('${audioId}')"><i class="ti ti-play"></i> Reproduzir</button>`);
+      _rAudioBlob=null;_rAudioChunks=[];_rAudioSeg=0;
+    }catch(e){toast('Áudio não salvo: espaço insuficiente no banco local.','warn')}
+  }
 }
 
 // ═══ AÇÕES / KANBAN ═══
@@ -4661,7 +4726,17 @@ function populateAcaoSelect(){const s=document.getElementById('acCliente');if(!s
 let kanbanMode=true;
 function toggleKanban(){kanbanMode=!kanbanMode;document.getElementById('kanbanView').style.display=kanbanMode?'flex':'none';document.getElementById('listaView').style.display=kanbanMode?'none':'block';document.getElementById('kanbanLbl').textContent=kanbanMode?'Lista':'Kanban';if(!kanbanMode)renderAcoesList()}
 function renderKanban(){
-  const ac=CS_DB.getAllAcoes();const cols=['Pendente','Em Andamento','Em Revisão','Concluído'];const heads=['Pendente','Em Andamento','Em Revisão','Concluído'];const headCls=['rh','gh','dh','xh'];
+  const ac=CS_DB.getAllAcoes();
+  if(!ac.length){
+    document.getElementById('kanbanView').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--gray3)">
+      <i class="ti ti-clipboard-list" style="font-size:38px;display:block;margin-bottom:12px;color:var(--gray4)"></i>
+      <p style="font-size:13px;font-weight:600;margin-bottom:6px">Nenhuma ação cadastrada ainda.</p>
+      <p style="font-size:12px;margin-bottom:14px">Crie ações para acompanhar tarefas e próximos passos com seus clientes.</p>
+      <button class="btn-primary" onclick="openM('mAcao')"><i class="ti ti-plus"></i>Nova ação</button>
+    </div>`;
+    return;
+  }
+  const cols=['Pendente','Em Andamento','Em Revisão','Concluído'];const heads=['Pendente','Em Andamento','Em Revisão','Concluído'];const headCls=['rh','gh','dh','xh'];
   document.getElementById('kanbanView').innerHTML=cols.map((col,ci)=>{
     const items=ac.filter(a=>a.status===col);
     return`<div class="k-col" ondragover="event.preventDefault();this.classList.add('k-col-over')" ondragleave="this.classList.remove('k-col-over')" ondrop="dropAcaoNaColuna(event,'${col}',this)"><div class="k-col-h ${headCls[ci]}">${heads[ci]}<span class="k-cnt">${items.length}</span></div><div class="k-body">${items.map(a=>{
@@ -5650,7 +5725,115 @@ function reproduzirAudioSalvo(audioId){
   toast('Reproduzindo áudio de '+a.duracao+'...');
 }
 
+// ════════════════════════════════════════════════
+// ÁUDIO DA REUNIÃO (modal mReuniao)
+// ════════════════════════════════════════════════
+let _rAudioBlob=null,_rAudioSeg=0,_rMediaRec=null,_rTimerInt=null,_rAudioChunks=[];
 
+async function rToggleGravacao(){
+  if(_rMediaRec&&_rMediaRec.state==='recording'){rPararGravacao();return}
+  if(!navigator.mediaDevices?.getUserMedia){toast('Navegador não suporta gravação.','err');return}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    _rAudioChunks=[];
+    _rMediaRec=new MediaRecorder(stream);
+    _rMediaRec.ondataavailable=e=>{if(e.data.size>0)_rAudioChunks.push(e.data)};
+    _rMediaRec.onstop=()=>{
+      _rAudioBlob=new Blob(_rAudioChunks,{type:'audio/webm'});
+      stream.getTracks().forEach(t=>t.stop());
+      _rMostrarPreview();
+    };
+    _rMediaRec.start();
+    _rAudioSeg=0;
+    document.getElementById('rRecPanel').style.display='flex';
+    document.getElementById('rPreviewPanel').style.display='none';
+    document.getElementById('rRecTimer').textContent='00:00';
+    document.getElementById('rIconGravar').className='ti ti-microphone-off';
+    document.getElementById('rBtnGravarTxt').textContent='Parar';
+    _rTimerInt=setInterval(()=>{
+      _rAudioSeg++;
+      const m=String(Math.floor(_rAudioSeg/60)).padStart(2,'0');
+      const s=String(_rAudioSeg%60).padStart(2,'0');
+      document.getElementById('rRecTimer').textContent=`${m}:${s}`;
+    },1000);
+  }catch(e){toast('Não foi possível acessar o microfone.','err')}
+}
+
+function rPararGravacao(){
+  if(_rMediaRec&&_rMediaRec.state==='recording')_rMediaRec.stop();
+  clearInterval(_rTimerInt);
+  document.getElementById('rRecPanel').style.display='none';
+  document.getElementById('rIconGravar').className='ti ti-microphone';
+  document.getElementById('rBtnGravarTxt').textContent='Gravar';
+}
+
+function _rMostrarPreview(){
+  const url=URL.createObjectURL(_rAudioBlob);
+  document.getElementById('rAudioPlayer').src=url;
+  const m=String(Math.floor(_rAudioSeg/60)).padStart(2,'0');
+  const s=String(_rAudioSeg%60).padStart(2,'0');
+  const kb=(_rAudioBlob.size/1024).toFixed(0);
+  document.getElementById('rAudioInfo').textContent=`${m}:${s} — ${kb} KB`;
+  document.getElementById('rPreviewPanel').style.display='block';
+}
+
+function rDescartarAudio(){
+  _rAudioBlob=null;_rAudioChunks=[];_rAudioSeg=0;
+  const player=document.getElementById('rAudioPlayer');
+  if(player.src)URL.revokeObjectURL(player.src);
+  player.src='';
+  document.getElementById('rPreviewPanel').style.display='none';
+  document.getElementById('rAudioInfo').textContent='';
+}
+
+function rHandleUpload(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onloadend=()=>{
+    _rAudioBlob=file;
+    _rAudioSeg=0;
+    const player=document.getElementById('rAudioPlayer');
+    player.src=reader.result;
+    const kb=(file.size/1024).toFixed(0);
+    document.getElementById('rAudioInfo').textContent=`${file.name} — ${kb} KB`;
+    document.getElementById('rPreviewPanel').style.display='block';
+    document.getElementById('rRecPanel').style.display='none';
+  };
+  reader.readAsDataURL(file);
+  event.target.value='';
+}
+
+function tlHandleUpload(event){
+  const file=event.target.files[0];if(!file)return;
+  const cid=document.getElementById('tlCliente')?.value;
+  if(!cid){toast('Selecione um cliente.','err');event.target.value='';return}
+  const reader=new FileReader();
+  reader.onloadend=()=>{
+    try{
+      const dataUri=reader.result;
+      const kb=(file.size/1024).toFixed(0);
+      const audioId='audio_'+Date.now();
+      const audios=CS_DB.get('audios')||[];
+      audios.push({id:audioId,clienteId:cid,reuniaoId:null,titulo:file.name,data:dataUri,duracao:'--:--',criadoEm:new Date().toISOString(),tamanhoKB:parseInt(kb)});
+      CS_DB.set('audios',audios);
+      CS_DB._addTimeline(cid,'comentario',`Áudio enviado: ${file.name}`,`📎 Arquivo de áudio (${kb} KB) anexado. <button class="btn-ghost" style="padding:3px 9px;font-size:10.5px;margin-left:6px" onclick="reproduzirAudioSalvo('${audioId}')"><i class="ti ti-play"></i> Reproduzir</button>`);
+      toast('Arquivo de áudio salvo!');
+      renderTimeline();
+      updateStatusBar();
+    }catch(e){toast('Erro ao salvar arquivo de áudio.','err')}
+  };
+  reader.readAsDataURL(file);
+  event.target.value='';
+}
+
+function deletarAudioUI(audioId,btnEl){
+  confirmar('Remover este áudio permanentemente?',()=>{
+    const audios=(CS_DB.get('audios')||[]).filter(a=>a.id!==audioId);
+    CS_DB.set('audios',audios);
+    btnEl?.closest('.audio-item')?.remove();
+    toast('Áudio removido.');
+  },'Remover áudio','Remover');
+}
 
 // ═══ NPS ═══
 function _tratarDetrator(clienteId,empresa,nota,respondente,comentario){
@@ -7934,10 +8117,10 @@ function renderPipeline(){
 
   // KPIs
   document.getElementById('pipelineKPIs').innerHTML=`
-    <div class="kpi red"><div class="kpi-lbl"><i class="ti ti-alert-circle"></i>Vencidos</div><div class="kpi-val">${vencidos.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(vencidos))} em risco</div></div>
-    <div class="kpi red"><div class="kpi-lbl"><i class="ti ti-clock"></i>Até 30 dias</div><div class="kpi-val">${d30.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d30))} MRR</div></div>
-    <div class="kpi yellow"><div class="kpi-lbl"><i class="ti ti-clock"></i>31–60 dias</div><div class="kpi-val">${d60.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d60))} MRR</div></div>
-    <div class="kpi green"><div class="kpi-lbl"><i class="ti ti-calendar"></i>61–90 dias</div><div class="kpi-val">${d90.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d90))} MRR</div></div>`;
+    <div class="kpi red" data-tooltip="Contratos com data de renovação já vencida.\nAção imediata necessária para evitar churn."><div class="kpi-lbl"><i class="ti ti-alert-circle"></i>Vencidos</div><div class="kpi-val">${vencidos.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(vencidos))} em risco</div></div>
+    <div class="kpi red" data-tooltip="Contratos que vencem nos próximos 30 dias.\nPrioridade alta: entre em contato imediatamente."><div class="kpi-lbl"><i class="ti ti-clock"></i>Até 30 dias</div><div class="kpi-val">${d30.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d30))} MRR</div></div>
+    <div class="kpi yellow" data-tooltip="Contratos que vencem em 31 a 60 dias.\nIniciar conversas de renovação agora."><div class="kpi-lbl"><i class="ti ti-clock"></i>31–60 dias</div><div class="kpi-val">${d60.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d60))} MRR</div></div>
+    <div class="kpi green" data-tooltip="Contratos que vencem em 61 a 90 dias.\nPlanejamento: inclua nas reuniões do próximo mês."><div class="kpi-lbl"><i class="ti ti-calendar"></i>61–90 dias</div><div class="kpi-val">${d90.length}</div><div class="kpi-sub">${fmtMRR(sumMRR(d90))} MRR</div></div>`;
 
   function colCard(c){
     const dias=c.diasR;const cor=dias<0?'var(--red)':dias<=30?'var(--red)':dias<=60?'var(--yellow)':'var(--green)';
@@ -7959,11 +8142,19 @@ function renderPipeline(){
     </div>`;
   }
 
-  document.getElementById('pipelineColunas').innerHTML=
-    colHTML('Vencidos','var(--red)','ti-alert-circle',vencidos)+
-    colHTML('Até 30 dias','var(--red)','ti-flame',d30)+
-    colHTML('31–60 dias','var(--yellow)','ti-clock',d60)+
-    colHTML('61–90 dias','var(--green)','ti-calendar-check',d90);
+  if(!comRenov.length){
+    document.getElementById('pipelineColunas').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--gray3)">
+      <i class="ti ti-calendar-off" style="font-size:36px;display:block;margin-bottom:10px;color:var(--gray4)"></i>
+      <p style="font-size:13px;margin-bottom:8px">Nenhum cliente com data de renovação cadastrada.</p>
+      <p style="font-size:12px">Edite um cliente e preencha o campo <strong>Data de Renovação</strong> para ele aparecer aqui.</p>
+    </div>`;
+  }else{
+    document.getElementById('pipelineColunas').innerHTML=
+      colHTML('Vencidos','var(--red)','ti-alert-circle',vencidos)+
+      colHTML('Até 30 dias','var(--red)','ti-flame',d30)+
+      colHTML('31–60 dias','var(--yellow)','ti-clock',d60)+
+      colHTML('61–90 dias','var(--green)','ti-calendar-check',d90);
+  }
 
   // Tabela completa
   document.getElementById('pipelineTbody').innerHTML=comRenov.map(c=>{
@@ -8129,14 +8320,14 @@ function renderCliente360(){
   document.getElementById('c360Content').innerHTML=`
     <div class="flt-row" style="margin-bottom:14px">
       <button class="tl-filter-btn active" data-c360t="geral" onclick="trocarAbaC360('geral',this)"><i class="ti ti-layout-dashboard"></i>Visão Geral</button>
-      <button class="tl-filter-btn" data-c360t="plano" onclick="trocarAbaC360('plano',this)"><i class="ti ti-target"></i>Plano de Sucesso</button>
+      <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="irParaPlanoSucesso('${cid}')"><i class="ti ti-target"></i>Plano de Sucesso</button>
     </div>
     <div id="c360AbaGeral">
     <div class="kpi-grid">
-      <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
-      <div class="kpi blue"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
-      <div class="kpi ${churnScore>=40?'red':'green'}"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnScore}%</div><div class="kpi-sub">${churnLb.label}</div></div>
-      <div class="kpi gray"><div class="kpi-lbl"><i class="ti ti-activity"></i>Engajamento</div><div class="kpi-val">${engScore}</div><div class="kpi-sub">${reu.length} reuniões totais</div></div>
+      <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}" data-tooltip="Saúde geral da conta (0–100).&#10;Calculado com NPS, reuniões, ações e onboarding.&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
+      <div class="kpi blue" data-tooltip="NPS consolidado deste cliente.&#10;Fórmula: % Promotores (9–10) − % Detratores (0–6).&#10;&lt;0 Crítico · 0–49 Neutro · 50–74 Bom · ≥75 Excelente"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
+      <div class="kpi ${churnScore>=40?'red':'green'}" data-tooltip="Probabilidade estimada de cancelamento (0–100%).&#10;Calculado com HS, NPS, inatividade e status.&#10;&lt;20% Baixo · 20–39% Médio · ≥40% Alto risco"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnScore}%</div><div class="kpi-sub">${churnLb.label}</div></div>
+      <div class="kpi gray" data-tooltip="Score de Engajamento (0–100).&#10;Mede frequência de contato, NPS e ações concluídas.&#10;≥70 Alto · 40–69 Médio · &lt;40 Baixo"><div class="kpi-lbl"><i class="ti ti-activity"></i>Engajamento</div><div class="kpi-val">${engScore}</div><div class="kpi-sub">${reu.length} reuniões totais</div></div>
     </div>
     <div class="two-col">
       <div class="card" style="margin-bottom:0">
@@ -8207,18 +8398,7 @@ function renderCliente360(){
       ${(()=>{const atasCliente=(CS_DB.get('atas')||[]).filter(a=>a.clienteId===cid||a.empresa===c.empresa).sort((a,b)=>new Date(b.criadoEm||0)-new Date(a.criadoEm||0));return atasCliente.length?atasCliente.map(ata=>`<div onclick="verAta('${ata.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray4);cursor:pointer" onmouseover="this.style.background='var(--gray6)'" onmouseout="this.style.background=''"><div style="flex-shrink:0;width:32px;height:32px;border-radius:6px;background:var(--bbg);display:flex;align-items:center;justify-content:center;color:var(--blue)"><i class="ti ti-notes" style="font-size:14px"></i></div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escH(ata.titulo||'Sem título')}</div><div style="font-size:11px;color:var(--gray2)">${_escH(ata.tipo||'Reunião')} · ${ata.data||''}</div></div><i class="ti ti-chevron-right" style="color:var(--gray3);font-size:14px"></i></div>`).join(''):'<div style="color:var(--gray2);padding:10px 0;font-size:12.5px">Nenhuma ata registrada para este cliente.</div>';})()}
     </div>
     </div><!-- /c360AbaGeral -->
-    <div id="c360AbaPlano" style="display:none">
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-ttl"><i class="ti ti-target"></i>Plano de Sucesso — ${c.empresa}<span class="sub">metas e marcos do contrato</span>
-          <button class="btn-primary" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirModalPlanoSucesso('${cid}')"><i class="ti ti-plus"></i>Nova meta</button>
-        </div>
-        <div id="spMetas"></div>
-      </div>
-      <div class="card">
-        <div class="card-ttl"><i class="ti ti-flag"></i>Marcos do contrato</div>
-        <div id="spMarcos"></div>
-      </div>
-    </div>`;
+    `;
 
   setTimeout(()=>{
     const ctx=document.getElementById('c360NpsChart')?.getContext('2d');
@@ -8276,18 +8456,77 @@ function trocarAbaC360(aba,btn){
   document.querySelectorAll('[data-c360t]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('c360AbaGeral').style.display=aba==='geral'?'':'none';
-  document.getElementById('c360AbaPlano').style.display=aba==='plano'?'':'none';
-  if(aba==='plano'){
-    const cid=document.getElementById('c360Select')?.value;
-    renderPlanoSucesso(cid);
-  }
+}
+function _guiaSPHtml(cid,guiaOpen){
+  const sug=[
+    {t:'NPS ≥ 8 nos primeiros 90 dias',i:'NPS mínimo 8 na pesquisa trimestral'},
+    {t:'Adoção ≥ 80% dos módulos contratados',i:'% módulos ativos no sistema'},
+    {t:'Zero chamados críticos em aberto',i:'Chamados P1/P2 = 0'},
+    {t:'Onboarding 100% concluído no prazo',i:'Todas as etapas finalizadas'},
+    {t:'Renovação confirmada antes do vencimento',i:'Contrato assinado ≥ 30 dias antes'},
+  ];
+  return`<div style="border:1px solid #c3d4f5;border-radius:12px;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--bbg);cursor:pointer" onclick="toggleGuiaSP()">
+      <span style="font-size:13px;font-weight:700;color:var(--blue)"><i class="ti ti-book-2" style="margin-right:7px"></i>Como montar um Plano de Sucesso eficaz</span>
+      <span id="spGuiaToggle" style="font-size:11px;color:var(--btxt);display:flex;align-items:center;gap:5px;background:rgba(30,90,224,.12);padding:4px 12px;border-radius:20px;white-space:nowrap">
+        <i class="ti ${guiaOpen?'ti-chevron-up':'ti-chevron-down'}" style="font-size:12px"></i>${guiaOpen?'Ocultar guia':'Ver guia completo'}
+      </span>
+    </div>
+    <div id="spGuiaBody" style="display:${guiaOpen?'block':'none'}">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--gray4)">
+        <div style="padding:16px 18px;border-right:1px solid var(--gray4)">
+          <div style="font-size:10.5px;font-weight:700;color:var(--blue);margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-info-circle" style="margin-right:4px"></i>O que é?</div>
+          <p style="font-size:12px;color:var(--gray2);line-height:1.75;margin:0">Um <strong style="color:var(--black)">acordo formal</strong> entre o CS e o cliente definindo o que precisa acontecer para ele ter sucesso com o produto. Revisado a cada reunião.</p>
+        </div>
+        <div style="padding:16px 18px;border-right:1px solid var(--gray4)">
+          <div style="font-size:10.5px;font-weight:700;color:var(--green);margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-flag" style="margin-right:4px"></i>Marcos — datas-chave</div>
+          <div style="font-size:12px;color:var(--gray2);line-height:2">
+            <div><i class="ti ti-rocket" style="color:var(--blue);width:16px"></i> <strong style="color:var(--black)">Kickoff</strong> — reunião inaugural</div>
+            <div><i class="ti ti-circle-check" style="color:var(--green);width:16px"></i> <strong style="color:var(--black)">Go-live</strong> — produto em produção</div>
+            <div><i class="ti ti-star" style="color:var(--yellow);width:16px"></i> <strong style="color:var(--black)">1º NPS</strong> — 60–90 dias pós go-live</div>
+            <div><i class="ti ti-refresh" style="color:var(--red);width:16px"></i> <strong style="color:var(--black)">Renovação</strong> — 60 dias de antecedência</div>
+          </div>
+        </div>
+        <div style="padding:16px 18px">
+          <div style="font-size:10.5px;font-weight:700;color:#e07b00;margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px"><i class="ti ti-target" style="margin-right:4px"></i>Metas — resultados esperados</div>
+          <div style="font-size:12px;color:var(--gray2);line-height:1.75">
+            <div style="margin-bottom:5px"><strong style="color:var(--black)">Título</strong> — resultado esperado</div>
+            <div style="margin-bottom:5px"><strong style="color:var(--black)">Indicador</strong> — como medir</div>
+            <div style="margin-bottom:10px"><strong style="color:var(--black)">Prazo</strong> — quando atingir</div>
+            <div style="background:var(--gray5);border-radius:7px;padding:6px 10px;font-size:11px;color:var(--gray3);font-style:italic">"NPS ≥ 8 até 30/09/2025"</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 18px;background:var(--gray5)">
+        <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--black)"><i class="ti ti-sparkles" style="color:var(--green);margin-right:5px"></i>Metas sugeridas — adicione com um clique e edite o prazo depois</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          ${sug.map(s=>`<button class="btn-ghost" style="font-size:11px;padding:5px 12px;border-radius:20px" onclick="adicionarMetaSugerida('${cid}','${s.t.replace(/'/g,"\\'")}','${s.i.replace(/'/g,"\\'")}')"><i class="ti ti-plus" style="font-size:10px;margin-right:3px"></i>${s.t}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function toggleGuiaSP(){
+  const body=document.getElementById('spGuiaBody');const tog=document.getElementById('spGuiaToggle');if(!body)return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  if(tog)tog.innerHTML=`<i class="ti ${open?'ti-chevron-down':'ti-chevron-up'}" style="font-size:12px"></i>${open?'Ver guia':'Ocultar'}`;
+}
+function adicionarMetaSugerida(cid,titulo,indicador){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(plano.metas.some(m=>m.titulo===titulo)){toast('Esta meta já está no plano.','warn');return;}
+  plano.metas.push({titulo,prazo:'',indicador,concluida:false,criadaEm:new Date().toISOString()});
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucesso(cid);toast('Meta adicionada! Edite para definir o prazo.');
 }
 function renderPlanoSucesso(cid){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":[]}');
   const metasEl=document.getElementById('spMetas');
   const marcosEl=document.getElementById('spMarcos');
+  const guiaEl=document.getElementById('spGuia');
+  if(guiaEl)guiaEl.innerHTML=_guiaSPHtml(cid,!plano.metas.length);
   if(metasEl){
-    if(!plano.metas.length){metasEl.innerHTML='<div style="color:var(--gray2);font-size:12.5px;padding:14px 0;text-align:center"><i class="ti ti-target" style="display:block;font-size:28px;margin-bottom:8px;color:var(--gray4)"></i>Nenhuma meta cadastrada ainda. Clique em "Nova meta" para começar.</div>';}
+    if(!plano.metas.length){metasEl.innerHTML='<div style="padding:20px 0;text-align:center"><i class="ti ti-target" style="display:block;font-size:32px;margin-bottom:10px;color:var(--gray4)"></i><div style="font-weight:600;font-size:13px;color:var(--black);margin-bottom:5px">Nenhuma meta definida ainda</div><div style="font-size:12px;color:var(--gray2)">Use as sugestões no guia acima ou clique em <strong>Nova meta</strong> para criar uma personalizada.</div></div>';}
     else metasEl.innerHTML=plano.metas.map((m,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray4)">
       <div style="width:36px;height:36px;border-radius:8px;background:${m.concluida?'var(--gbg)':'var(--bbg)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <i class="ti ${m.concluida?'ti-check':'ti-target'}" style="color:${m.concluida?'var(--green)':'var(--blue)'}"></i>
@@ -8303,18 +8542,33 @@ function renderPlanoSucesso(cid){
   }
   if(marcosEl){
     const marcos=[
-      {id:'kickoff',label:'Kickoff',icone:'ti-rocket'},
-      {id:'go_live',label:'Go-live',icone:'ti-circle-check'},
-      {id:'primeiro_nps',label:'1º NPS',icone:'ti-star'},
-      {id:'renovacao',label:'Renovação',icone:'ti-refresh'},
+      {id:'kickoff',label:'Kickoff',icone:'ti-rocket',cor:'var(--blue)',bg:'var(--bbg)',bcor:'#c3d4f5',desc:'Reunião inaugural com o cliente. Apresente o time, o produto e alinhe as expectativas de entrega e suporte.',quando:'Registre na data da primeira reunião formal pós-assinatura'},
+      {id:'go_live',label:'Go-live',icone:'ti-circle-check',cor:'var(--green)',bg:'var(--gbg)',bcor:'#5dcaa5',desc:'O sistema entrou em produção. Todos os acessos foram configurados e os treinamentos básicos foram concluídos.',quando:'Registre quando o cliente começar a usar o produto ativamente'},
+      {id:'primeiro_nps',label:'1º NPS',icone:'ti-star',cor:'var(--yellow)',bg:'var(--ybg)',bcor:'#f5c842',desc:'Primeira pesquisa de satisfação coletada entre 60 e 90 dias após o go-live, enquanto a experiência ainda está fresca.',quando:'Registre ao enviar a pesquisa NPS ao cliente'},
+      {id:'renovacao',label:'Renovação',icone:'ti-refresh',cor:'var(--red)',bg:'var(--redl)',bcor:'#f5a5a5',desc:'Início da conversa de renovação contratual. Não deixe para os últimos 30 dias — antecipe o diálogo com o cliente.',quando:'Registre ao iniciar a negociação (mínimo 60 dias antes do vencimento)'},
     ];
-    marcosEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:8px 0">
-      ${marcos.map(m=>{const dt=plano.marcos?.[m.id];return`<div style="text-align:center;padding:14px 8px;background:${dt?'var(--gbg)':'var(--gray5)'};border-radius:10px;border:1px solid ${dt?'#5dcaa5':'var(--gray4)'}">
-        <i class="ti ${m.icone}" style="font-size:22px;color:${dt?'var(--green)':'var(--gray3)'}"></i>
-        <div style="font-size:11.5px;font-weight:600;margin:6px 0 4px">${m.label}</div>
-        ${dt?`<div style="font-size:10.5px;color:var(--gray2)">${dt}</div>`:`<span id="marcoBtnWrap_${m.id}"><button class="btn-ghost" style="font-size:10px;padding:3px 7px;margin-top:3px" onclick="registrarMarcoSP('${cid}','${m.id}',this.parentElement)">Registrar</button></span>`}
-      </div>`}).join('')}
-    </div>`;
+    marcosEl.innerHTML=marcos.map((m,idx)=>{
+      const dt=plano.marcos?.[m.id];
+      const done=!!dt;
+      return`<div style="border:2px solid ${done?m.bcor:'var(--gray4)'};border-radius:12px;padding:16px;background:${done?m.bg:'#fff'};position:relative;display:flex;flex-direction:column;gap:0">
+        ${done?`<div style="position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:${m.cor};display:flex;align-items:center;justify-content:center"><i class="ti ti-check" style="color:#fff;font-size:11px"></i></div>`:''}
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+          <div style="width:40px;height:40px;border-radius:10px;background:${done?m.cor:'var(--gray4)'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="ti ${m.icone}" style="color:${done?'#fff':'var(--gray3)'};font-size:19px"></i>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:${done?m.cor:'var(--black)'}">${m.label}</div>
+            <div style="font-size:10px;color:var(--gray3)">Passo ${idx+1} de 4</div>
+          </div>
+        </div>
+        <p style="font-size:11.5px;color:var(--gray2);line-height:1.6;margin:0 0 10px 0;flex:1">${m.desc}</p>
+        ${done
+          ?`<div style="font-size:11.5px;font-weight:600;color:${m.cor};display:flex;align-items:center;gap:5px"><i class="ti ti-calendar-check"></i>Registrado em ${dt}</div>`
+          :`<div style="font-size:10.5px;color:var(--gray3);margin-bottom:8px;font-style:italic;line-height:1.4">${m.quando}</div>
+           <span id="marcoBtnWrap_${m.id}"><button class="btn-ghost" style="font-size:11px;padding:5px 10px;width:100%;display:flex;justify-content:center;gap:5px" onclick="registrarMarcoSP('${cid}','${m.id}',this.parentElement)"><i class="ti ti-calendar-plus"></i>Registrar hoje</button></span>`
+        }
+      </div>`;
+    }).join('');
   }
 }
 function abrirModalPlanoSucesso(cid){
@@ -8380,7 +8634,129 @@ function confirmarMarcoSP(cid,marco){
   plano.marcos[marco]=data;
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
   renderPlanoSucesso(cid);
+  renderPaginaPS();
   toast('Marco registrado!','ok');
+}
+
+// ── Página standalone do Plano de Sucesso ─────────────────────
+function populatePSSelect(){
+  const s=document.getElementById('psCliente');if(!s)return;
+  const cl=CS_DB.getClientes();
+  const cur=s.value;
+  s.innerHTML='<option value="">Selecione um cliente...</option>'+cl.map(c=>`<option value="${c.id}"${c.id===cur?' selected':''}>${c.empresa}</option>`).join('');
+}
+
+function irParaPlanoSucesso(cid){
+  nav(document.querySelector('[data-p=plano-sucesso]'),'plano-sucesso');
+  setTimeout(()=>{
+    populatePSSelect();
+    const s=document.getElementById('psCliente');if(s)s.value=cid;
+    renderPaginaPS();
+  },80);
+}
+
+function renderPaginaPS(){
+  const cid=document.getElementById('psCliente')?.value;
+  const el=document.getElementById('psContent');
+  if(!el)return;
+  if(!cid){
+    el.innerHTML='<div class="empty-state"><i class="ti ti-target"></i><p>Selecione um cliente para ver ou montar o Plano de Sucesso.</p></div>';
+    return;
+  }
+  const c=CS_DB.getClienteById(cid);
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  const metasTot=plano.metas.length;
+  const metasConc=plano.metas.filter(m=>m.concluida).length;
+  const pct=metasTot?Math.round(metasConc/metasTot*100):0;
+  const marcosLista=[
+    {id:'kickoff',label:'Kickoff',icone:'ti-rocket',desc:'Reunião inaugural'},
+    {id:'go_live',label:'Go-live',icone:'ti-circle-check',desc:'Entrada em produção'},
+    {id:'primeiro_nps',label:'1º NPS',icone:'ti-star',desc:'Primeira pesquisa (~90d)'},
+    {id:'renovacao',label:'Renovação',icone:'ti-refresh',desc:'Negociação de renovação'},
+  ];
+  const marcosConc=marcosLista.filter(m=>plano.marcos?.[m.id]).length;
+  // últimas reuniões
+  const reu=CS_DB.getReunioesCliente(cid).slice(0,4);
+  // ações abertas
+  const ac=CS_DB.getAcoesCliente(cid).filter(a=>a.status!=='Concluído').slice(0,5);
+
+  el.innerHTML=`
+    <!-- Progresso -->
+    <div class="kpi-grid" style="margin-bottom:14px">
+      <div class="kpi ${pct===100?'green':pct>=50?'blue':'gray'}">
+        <div class="kpi-lbl"><i class="ti ti-target"></i>Metas do plano</div>
+        <div class="kpi-val" style="color:${pct===100?'var(--green)':pct>=50?'var(--blue)':'var(--gray2)'}">${metasConc}/${metasTot}</div>
+        <div class="kpi-sub">${metasTot?pct+'% concluídas':'Nenhuma meta ainda'}</div>
+      </div>
+      <div class="kpi ${marcosConc===4?'green':marcosConc>=2?'blue':'gray'}">
+        <div class="kpi-lbl"><i class="ti ti-flag"></i>Marcos registrados</div>
+        <div class="kpi-val">${marcosConc}/4</div>
+        <div class="kpi-sub">${marcosConc===4?'Todos registrados':marcosConc===0?'Nenhum ainda':'Em andamento'}</div>
+      </div>
+      <div class="kpi ${c?.healthScore>=70?'green':c?.healthScore>=40?'yellow':'red'}" data-tooltip="Saúde geral da conta (0–100).&#10;Calculado com NPS, reuniões, ações e onboarding.">
+        <div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div>
+        <div class="kpi-val" style="color:${hsColor(c?.healthScore||0)}">${c?.healthScore||'—'}</div>
+        <div class="kpi-sub">${c?.healthScore>=70?'Saudável':c?.healthScore>=40?'Atenção':'Crítico'}</div>
+      </div>
+      <div class="kpi blue" style="cursor:pointer" onclick="irParaCliente360('${cid}')">
+        <div class="kpi-lbl"><i class="ti ti-user-circle"></i>Dashboard 360°<i class="ti ti-arrow-right" style="margin-left:auto;font-size:12px;color:var(--gray3)"></i></div>
+        <div class="kpi-val" style="font-size:14px;color:var(--blue)">${c?.empresa?.split(' ')[0]||'—'}</div>
+        <div class="kpi-sub">${c?.tier?'Tier '+c.tier:''} ${c?.responsavelCS?'· '+c.responsavelCS:''}</div>
+      </div>
+    </div>
+
+    <!-- Guia -->
+    <div id="spGuia" style="margin-bottom:14px"></div>
+
+    <!-- Marcos -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-ttl"><i class="ti ti-flag"></i>Marcos do contrato
+        <span class="sub">${marcosConc} de 4 registrados</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="spMarcos"></div>
+    </div>
+
+    <!-- Metas -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-ttl"><i class="ti ti-target"></i>Metas do plano
+        <span class="sub">${metasConc}/${metasTot} concluídas</span>
+        <button class="btn-primary" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirModalPlanoSucesso('${cid}')"><i class="ti ti-plus"></i>Nova meta</button>
+      </div>
+      ${metasTot?`<div style="height:6px;background:var(--gray4);border-radius:3px;margin-bottom:12px;overflow:hidden"><div style="height:100%;background:${pct===100?'var(--green)':'var(--blue)'};width:${pct}%;border-radius:3px;transition:width .4s"></div></div>`:''}
+      <div id="spMetas"></div>
+    </div>
+
+    <div class="two-col">
+      <!-- Últimas reuniões -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-calendar"></i>Últimas reuniões
+          <button class="btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="openM('mReuniao');setTimeout(()=>{document.getElementById('rCliente').value='${cid}'},80)"><i class="ti ti-plus"></i>Registrar</button>
+        </div>
+        ${reu.length?reu.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray4);font-size:12.5px">
+          <div style="width:30px;height:30px;border-radius:8px;background:var(--bbg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-calendar" style="color:var(--blue)"></i></div>
+          <div style="flex:1">
+            <div style="font-weight:600">${r.tipo}</div>
+            <div style="font-size:11px;color:var(--gray2)">${r.data} · CSAT ${r.csat}/10 · NPS ${r.nps}/10</div>
+          </div>
+        </div>`).join(''):'<div style="color:var(--gray2);font-size:12.5px;padding:12px 0;text-align:center"><i class="ti ti-calendar-off" style="display:block;font-size:24px;margin-bottom:6px;color:var(--gray4)"></i>Nenhuma reunião registrada ainda.</div>'}
+      </div>
+      <!-- Ações abertas -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-ttl"><i class="ti ti-clipboard-list"></i>Ações em aberto
+          <button class="btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="openM('mAcao');setTimeout(()=>{document.getElementById('acCliente').value='${cid}'},80)"><i class="ti ti-plus"></i>Nova ação</button>
+        </div>
+        ${ac.length?ac.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray4);font-size:12px">
+          <span style="font-size:9px;padding:2px 7px;border-radius:20px;background:${a.prioridade==='Alta'?'var(--redl)':a.prioridade==='Baixa'?'var(--gbg)':'var(--ybg)'};color:${a.prioridade==='Alta'?'var(--red)':a.prioridade==='Baixa'?'var(--gtxt)':'var(--ytxt)'};white-space:nowrap">${a.prioridade||'Média'}</span>
+          <span style="flex:1">${a.descricao}</span>
+          <span style="font-size:10px;color:var(--gray3);white-space:nowrap">${a.prazo||''}</span>
+        </div>`).join(''):'<div style="color:var(--gray2);font-size:12.5px;padding:12px 0;text-align:center"><i class="ti ti-circle-check" style="display:block;font-size:24px;margin-bottom:6px;color:var(--gray4)"></i>Nenhuma ação aberta.</div>'}
+      </div>
+    </div>`;
+
+  // Preenche guia e marcos/metas via função existente
+  const guiaEl=document.getElementById('spGuia');
+  if(guiaEl)guiaEl.innerHTML=_guiaSPHtml(cid,!metasTot);
+  renderPlanoSucesso(cid);
 }
 </script>
 <script>
@@ -9127,10 +9503,10 @@ function renderEngajamento() {
 
   const kEl = document.getElementById('engKPIs');
   if (kEl) kEl.innerHTML = `
-    <div class="kpi blue"><div class="kpi-lbl">Score Engajamento Médio</div><div class="kpi-val" style="color:${engMed>=70?'var(--green)':engMed>=40?'var(--blue)':'var(--red)'}">${engMed}</div><div class="kpi-sub">carteira atual</div></div>
+    <div class="kpi blue" data-tooltip="Score de Engajamento (0–100): mede a&#10;intensidade do relacionamento com cada cliente.&#10;Considera reuniões, NPS, ações e onboarding.&#10;≥70 Alto · 40–69 Médio · &lt;40 Baixo"><div class="kpi-lbl">Score Engajamento Médio</div><div class="kpi-val" style="color:${engMed>=70?'var(--green)':engMed>=40?'var(--blue)':'var(--red)'}">${engMed}</div><div class="kpi-sub">carteira atual</div></div>
     <div class="kpi green"><div class="kpi-lbl">Reuniões este mês</div><div class="kpi-val">${reuMes}</div><div class="kpi-sub">${reu.length} total</div></div>
-    <div class="kpi blue"><div class="kpi-lbl">NPS respondidos este mês</div><div class="kpi-val">${npsMes}</div><div class="kpi-sub">${nps.length} total</div></div>
-    <div class="kpi green"><div class="kpi-lbl">Taxa de conclusão ações</div><div class="kpi-val" style="color:${txConc>=70?'var(--green)':'var(--yellow)'}">${txConc}%</div><div class="kpi-sub">${acConc}/${acTotal} concluídas</div></div>`;
+    <div class="kpi blue" data-tooltip="Quantidade de pesquisas NPS respondidas&#10;pelos clientes no mês atual."><div class="kpi-lbl">NPS respondidos este mês</div><div class="kpi-val">${npsMes}</div><div class="kpi-sub">${nps.length} total</div></div>
+    <div class="kpi green" data-tooltip="% de ações concluídas sobre o total cadastrado.&#10;Meta recomendada: acima de 70%."><div class="kpi-lbl">Taxa de conclusão ações</div><div class="kpi-val" style="color:${txConc>=70?'var(--green)':'var(--yellow)'}">${txConc}%</div><div class="kpi-sub">${acConc}/${acTotal} concluídas</div></div>`;
 
   // Métricas de ações
   const acoesEl = document.getElementById('engAcoesMetrics');
