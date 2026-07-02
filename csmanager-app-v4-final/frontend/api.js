@@ -159,7 +159,9 @@ const CS_DB = {
       prioridade: a.prioridade, status: a.status, progresso: a.progresso, responsavel: a.responsavel,
       prazo: a.prazo, prazoISO: a.prazo_iso, comentarios: a.comentarios, categoria: a.categoria,
       reuniaoTipo: a.reuniao_tipo, reuniaoData: a.reuniao_data, reuniaoHora: a.reuniao_hora,
-      reuniaoPauta: a.reuniao_pauta, log: a.log || [], criadoEm: a.criado_em, criadoPor: a.criado_por,
+      reuniaoPauta: a.reuniao_pauta, modalidade: a.modalidade, reuniaoEndereco: a.reuniao_endereco,
+      lat: a.lat ? parseFloat(a.lat) : null, lng: a.lng ? parseFloat(a.lng) : null,
+      log: a.log || [], criadoEm: a.criado_em, criadoPor: a.criado_por,
       ultimaAlteracaoEm: a.ultima_alteracao_em, ultimaAlteracaoPor: a.ultima_alteracao_por,
     };
   },

@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -564,6 +566,10 @@ tr:hover td{background:#fafafa}
     <tbody id="dashTbody"></tbody></table>
   </div>
   <div style="margin-top:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="dashRanking"></div>
+  <div style="margin-top:14px" class="card">
+    <div class="card-ttl"><i class="ti ti-map-pin"></i>Mapa da Carteira<span id="dashMapSub" style="font-size:11px;font-weight:400;color:var(--gray2);margin-left:8px"></span></div>
+    <div id="dashMapDiv" style="height:360px;border-radius:8px;overflow:hidden;background:var(--gray5)"></div>
+  </div>
 </div>
 
 <!-- CLIENTES -->
@@ -1227,6 +1233,8 @@ tr:hover td{background:#fafafa}
       <button class="btn-ghost" onclick="agendaIrHoje()"><i class="ti ti-home"></i>Hoje</button>
     </div>
   </div>
+  <div id="agendaMapDiv" style="height:300px;border-radius:8px;border:1px solid var(--gray4);overflow:hidden;background:var(--gray5);margin-bottom:14px;display:none"></div>
+  <div id="agendaMapEmpty" style="display:flex;height:300px;border-radius:8px;background:var(--gray5);border:1px dashed var(--gray4);flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--gray3);margin-bottom:14px"><i class="ti ti-map-search" style="font-size:36px"></i><p style="font-size:12px">Nenhuma reunião agendada no momento.</p></div>
   <div id="agendaContent"></div>
 </div>
 
@@ -1848,6 +1856,7 @@ const PICONS={dashboard:'ti-layout-dashboard',hoje:'ti-sun',clientes:'ti-buildin
 
 // ═══ NAV ═══
 function nav(el,p){
+  if(p==='config'){const _s=CS_DB.getSession();if(_s&&_s.papel==='consultor'){toast('Configurações disponíveis apenas para administradores.','warn');return;}}
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
@@ -1871,7 +1880,7 @@ function nav(el,p){
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='grupos')renderGrupos();
   if(p==='relatorios')populateRelatoriosSelects();
-  if(p==='agenda')renderAgenda();
+  if(p==='agenda'){renderAgenda();setTimeout(()=>{try{renderAgendaMapa();}catch(e){}},100);}
   if(p==='usuarios')renderUsuarios();
 }
 function openM(id){
@@ -1934,6 +1943,132 @@ async function registrarBackup(){
 }
 
 // ═══ DASHBOARD ═══
+// ═══ MAPA DE CLIENTES ═══
+const _BR_UF_COORDS={
+  AC:[-9.97,-67.81],AL:[-9.67,-35.74],AM:[-3.10,-60.02],AP:[0.03,-51.07],
+  BA:[-12.97,-38.50],CE:[-3.72,-38.54],DF:[-15.78,-47.93],ES:[-20.32,-40.34],
+  GO:[-16.69,-49.25],MA:[-2.53,-44.30],MG:[-19.92,-43.94],MS:[-20.44,-54.65],
+  MT:[-15.60,-56.10],PA:[-1.46,-48.50],PB:[-7.12,-34.87],PE:[-8.05,-34.88],
+  PI:[-5.09,-42.80],PR:[-25.43,-49.27],RJ:[-22.91,-43.18],RN:[-5.79,-35.21],
+  RO:[-8.76,-63.90],RR:[2.82,-60.67],RS:[-30.03,-51.23],SC:[-27.60,-48.55],
+  SE:[-10.91,-37.07],SP:[-23.55,-46.63],TO:[-10.18,-48.33]
+};
+const _BR_CIDADE_COORDS={
+  'São Paulo|SP':[-23.550,-46.634],'Rio de Janeiro|RJ':[-22.906,-43.182],
+  'Belo Horizonte|MG':[-19.921,-43.938],'Porto Alegre|RS':[-30.031,-51.230],
+  'Curitiba|PR':[-25.429,-49.271],'Salvador|BA':[-12.972,-38.502],
+  'Fortaleza|CE':[-3.717,-38.543],'Manaus|AM':[-3.103,-60.025],
+  'Recife|PE':[-8.054,-34.881],'Belém|PA':[-1.456,-48.503],
+  'Goiânia|GO':[-16.686,-49.265],'Itabira|MG':[-19.619,-43.228],
+  'Três Lagoas|MS':[-20.786,-51.702],'Brasília|DF':[-15.780,-47.929],
+  'Campo Grande|MS':[-20.469,-54.620],'Joinville|SC':[-26.303,-48.846],
+  'Florianópolis|SC':[-27.597,-48.549],'São Luís|MA':[-2.527,-44.304],
+  'Natal|RN':[-5.793,-35.211],'Teresina|PI':[-5.092,-42.803],
+  'Londrina|PR':[-23.311,-51.162],'Maringá|PR':[-23.426,-51.938],
+  'Santos|SP':[-23.960,-46.334],'Campinas|SP':[-22.905,-47.061],
+  'Ribeirão Preto|SP':[-21.169,-47.810],'São José dos Campos|SP':[-23.179,-45.887],
+  'Sorocaba|SP':[-23.501,-47.459],'Uberlândia|MG':[-18.913,-48.276],
+  'Juiz de Fora|MG':[-21.764,-43.350],'Contagem|MG':[-19.932,-44.053],
+  'Vitória|ES':[-20.319,-40.338],'Niterói|RJ':[-22.884,-43.104],
+  'Caxias do Sul|RS':[-29.168,-51.180],'Pelotas|RS':[-31.773,-52.342],
+  'Maceió|AL':[-9.666,-35.735],'Aracaju|SE':[-10.911,-37.072],
+  'Cuiabá|MT':[-15.601,-56.098],'Porto Velho|RO':[-8.761,-63.900],
+  'Macapá|AP':[0.034,-51.066],'Boa Vista|RR':[2.820,-60.673],
+  'Palmas|TO':[-10.184,-48.333],'Bauru|SP':[-22.315,-49.072],
+  'Guarulhos|SP':[-23.462,-46.533],'Campinas|SP':[-22.905,-47.061],
+  'Canoas|RS':[-29.918,-51.184],'Macaé|RJ':[-22.372,-41.787]
+};
+var _geoCityCache=null;
+function _getGeoCityCache(){if(!_geoCityCache){try{_geoCityCache=JSON.parse(localStorage.getItem('_csm_geo_city')||'{}');}catch(e){_geoCityCache={};}}return _geoCityCache;}
+function _saveGeoCityCache(){try{localStorage.setItem('_csm_geo_city',JSON.stringify(_geoCityCache));}catch(e){}}
+function _getClienteCoords(c){
+  const cidade=(c.cidade||'').trim();const uf=(c.uf||'').trim().toUpperCase();
+  if(!cidade&&!uf)return null;
+  const key=cidade+'|'+uf;
+  if(_BR_CIDADE_COORDS[key])return _BR_CIDADE_COORDS[key];
+  const _strip=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const norm=_strip(cidade);
+  for(const[k,v]of Object.entries(_BR_CIDADE_COORDS)){const[kC,kU]=k.split('|');if(kU===uf&&_strip(kC)===norm){_BR_CIDADE_COORDS[key]=v;return v;}}
+  const cache=_getGeoCityCache();
+  if(cache[key])return cache[key];
+  if(cidade&&!cache[key+'_pending']){
+    cache[key+'_pending']=true;
+    fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&limit=1&q='+encodeURIComponent(cidade+(uf?', '+uf:'')+', Brasil'),{headers:{'Accept-Language':'pt-BR'}})
+      .then(r=>r.json()).then(data=>{
+        if(data&&data[0]){const coords=[parseFloat(data[0].lat),parseFloat(data[0].lon)];cache[key]=coords;delete cache[key+'_pending'];_saveGeoCityCache();if(_clienteMap)renderDashMap();if(window._agdMap)renderAgendaMapa();}
+      }).catch(()=>{delete cache[key+'_pending'];});
+  }
+  if(_BR_UF_COORDS[uf])return[..._BR_UF_COORDS[uf]];
+  return null;
+}
+let _clienteMap=null,_clienteMapPending=false;
+function _dashMapInit(){
+  _clienteMapPending=false;
+  const div=document.getElementById('dashMapDiv');if(!div)return;
+  if(div._leaflet_id){try{if(_clienteMap)_clienteMap.remove();else L.map(div).remove();}catch(_){}div._leaflet_id=undefined;}
+  _clienteMap=null;
+  if(typeof L==='undefined')return;
+  const cl=CS_DB.getClientes();
+  try{_clienteMap=L.map(div,{center:[-15,-50],zoom:4,zoomControl:true,attributionControl:true,preferCanvas:true});}catch(e){return;}
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>'}).addTo(_clienteMap);
+  const markers=[];
+  cl.forEach(c=>{
+    const coords=_getClienteCoords(c);if(!coords)return;
+    const hs=c.healthScore||70;const cor=hs>=70?'#22c55e':hs>=40?'#f59e0b':'#ef4444';const sz=13;
+    const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);cursor:pointer"></div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-(sz/2+4)]});
+    const popup=`<div style="font-family:'Inter',sans-serif;min-width:160px;padding:2px 0"><div style="font-weight:700;font-size:13px;margin-bottom:3px">${c.empresa}</div><div style="font-size:11.5px;color:#666;margin-bottom:4px">${c.cidade||''}${c.uf?', '+c.uf:''}</div><div style="display:flex;gap:10px;font-size:11.5px"><span>HS <b style="color:${cor}">${hs}</b></span><span>MRR <b>${c.mrr||'—'}</b></span></div><div style="font-size:11px;color:#888;margin-top:3px">${c.status||''} · ${c.tier||''}</div></div>`;
+    const mk=L.marker(coords,{icon}).bindPopup(popup,{maxWidth:230});mk.addTo(_clienteMap);markers.push(mk);
+  });
+  const sub=document.getElementById('dashMapSub');
+  const semCoords=cl.filter(c=>!_getClienteCoords(c)).length;
+  if(sub)sub.textContent=`${markers.length} cliente${markers.length!==1?'s':''} mapeado${markers.length!==1?'s':''}${semCoords?' · '+semCoords+' sem localização':''}`;
+  if(markers.length>1){const g=L.featureGroup(markers);_clienteMap.fitBounds(g.getBounds().pad(0.3));}
+  else if(markers.length===1){_clienteMap.setView(markers[0].getLatLng(),7);}
+  [250,600,1200].forEach(t=>setTimeout(()=>{if(_clienteMap)_clienteMap.invalidateSize();},t));
+}
+function renderDashMap(){
+  if(typeof L==='undefined')return;
+  if(!document.getElementById('dashMapDiv'))return;
+  if(_clienteMap){try{_clienteMap.remove();}catch(_){}_clienteMap=null;}
+  _clienteMapPending=true;
+  setTimeout(()=>{if(!_clienteMapPending)return;requestAnimationFrame(()=>_dashMapInit());},200);
+}
+function renderAgendaMapa(){
+  var mapDiv=document.getElementById('agendaMapDiv');
+  var emptyDiv=document.getElementById('agendaMapEmpty');
+  if(!mapDiv||typeof L==='undefined'){if(emptyDiv)emptyDiv.style.display='flex';if(mapDiv)mapDiv.style.display='none';return;}
+  var acoes=CS_DB.getAllAcoes().filter(function(a){return a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada';});
+  var pontos=[];
+  acoes.forEach(function(a){
+    var lat=a.lat,lng=a.lng,aprox=false;
+    if(!lat||!lng){var cli=a.clienteId?CS_DB.getClienteById(a.clienteId):null;if(cli){var cc=_getClienteCoords(cli);if(cc){lat=cc[0];lng=cc[1];aprox=true;}}}
+    if(lat&&lng)pontos.push({r:a,lat:lat,lng:lng,aprox:aprox});
+  });
+  if(!pontos.length){
+    if(window._agdMap){try{window._agdMap.remove();}catch(e){}window._agdMap=null;}
+    mapDiv.style.display='none';
+    if(emptyDiv){emptyDiv.style.display='flex';emptyDiv.innerHTML='<i class="ti ti-map-pin-off" style="font-size:34px"></i><div style="font-size:12px;text-align:center;line-height:1.6;padding:0 24px">'+(acoes.length?'Clientes sem cidade cadastrada.<br>Preencha <b style="color:var(--green)">Cidade e UF</b> no cadastro do cliente para aparecer no mapa.':'Nenhuma reunião agendada no momento.')+'</div>';}
+    return;
+  }
+  mapDiv.style.display='block';if(emptyDiv)emptyDiv.style.display='none';
+  if(window._agdMap){try{window._agdMap.remove();}catch(e){}window._agdMap=null;}
+  requestAnimationFrame(function(){
+    try{window._agdMap=L.map('agendaMapDiv',{scrollWheelZoom:false}).setView([-15.788,-47.879],5);}catch(e){return;}
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>'}).addTo(window._agdMap);
+    var bounds=[];
+    pontos.forEach(function(p){
+      var a=p.r;var isPres=a.modalidade==='presencial';
+      var cor=isPres?(p.aprox?'#f97316':'#ef4444'):'#3b82f6';var sz=p.aprox?10:14;var borda=p.aprox?'1.5px dashed #fff':'2.5px solid #fff';
+      var icon=L.divIcon({className:'',html:'<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+cor+';border:'+borda+';box-shadow:0 2px 5px rgba(0,0,0,.4)"></div>',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-(sz/2+4)]});
+      var tipoIcon=isPres?'🏢':'💻';
+      var aproxAviso=p.aprox?'<div style="font-size:10px;color:#f97316;margin-top:3px">📍 Posição aproximada (cidade do cliente)</div>':'';
+      var pop='<div style="font-family:Inter,sans-serif;min-width:170px"><div style="font-weight:700;font-size:13px;margin-bottom:2px">'+tipoIcon+' '+(a.empresa||'—')+'</div><div style="font-size:11.5px;color:#555">'+(a.reuniaoData||'')+(a.reuniaoHora?' às '+a.reuniaoHora:'')+'</div><div style="font-size:11px;color:#888;margin-top:2px">'+(a.reuniaoTipo||'')+(isPres?' · Presencial':' · Online')+'</div>'+aproxAviso+'</div>';
+      L.marker([p.lat,p.lng],{icon:icon}).bindPopup(pop,{maxWidth:240}).addTo(window._agdMap);bounds.push([p.lat,p.lng]);
+    });
+    if(bounds.length)window._agdMap.fitBounds(bounds,{padding:[40,40]});
+    [250,600,1200].forEach(function(t){setTimeout(function(){if(window._agdMap)window._agdMap.invalidateSize();},t);});
+  });
+}
 function renderDashboard(){
   const cl=CS_DB.getClientes();const npsAll=CS_DB.getAllNPS();const ac=CS_DB.getAllAcoes();
   const npsCalc=CS_DB.calcNPS(npsAll);
@@ -1976,6 +2111,7 @@ function renderDashboard(){
   <div class="rank-card"><div class="rank-hdr" style="color:var(--green)"><i class="ti ti-trophy"></i>Top MRR</div>${top5MRR.map((c,i)=>`<div class="rank-row" onclick="abrirEditar('${c.id}')"><span class="rank-pos">#${i+1}</span><span style="flex:1;font-weight:${i===0?700:400}">${c.empresa.split(' ')[0]}</span><span style="color:var(--green);font-weight:600">${c.mrr||'—'}</span></div>`).join('')}</div>
   <div class="rank-card"><div class="rank-hdr" style="color:var(--red)"><i class="ti ti-trending-down"></i>HS mais baixo</div>${top5HS.map((c,i)=>`<div class="rank-row" onclick="abrirEditar('${c.id}')"><span class="rank-pos">#${i+1}</span><span style="flex:1">${c.empresa.split(' ')[0]}</span><span class="hs-pill ${hsCls(c.healthScore)}">${c.healthScore}</span></div>`).join('')}</div>
   <div class="rank-card"><div class="rank-hdr" style="color:var(--yellow)"><i class="ti ti-clock"></i>Sem contato há mais tempo</div>${top5Sem.map((c,i)=>`<div class="rank-row" onclick="abrirEditar('${c.id}')"><span class="rank-pos">#${i+1}</span><span style="flex:1">${c.empresa.split(' ')[0]}</span><span style="color:${c.dias>45?'var(--red)':'var(--yellow)';};font-size:11.5px">${c.dias===9999?'Sem reunião':c.dias+'d'}</span></div>`).join('')}</div>`;
+  renderDashMap();
 }
 
 // ═══ CLIENTES ═══
@@ -4832,12 +4968,13 @@ async function renderUsuarios(){
     _usuariosCache=usuarios;
     const portfolio={};
     clientes.forEach(c=>{if(c.responsavelCS)portfolio[c.responsavelCS]=(portfolio[c.responsavelCS]||0)+1;});
-    const total=usuarios.length,ativos=usuarios.filter(u=>u.ativo).length,admins=usuarios.filter(u=>u.papel==='admin').length,consultores=usuarios.filter(u=>u.papel==='consultor').length;
+    const total=usuarios.length,ativos=usuarios.filter(u=>u.ativo).length,admins=usuarios.filter(u=>u.papel==='admin').length,gerenciais=usuarios.filter(u=>u.papel==='gerencial').length,consultores=usuarios.filter(u=>u.papel==='consultor').length;
     const kpiEl=document.getElementById('usuariosKpi');
     if(kpiEl)kpiEl.innerHTML=`
       <div class="kpi-card"><div class="kpi-lbl">Total</div><div class="kpi-val">${total}</div></div>
       <div class="kpi-card"><div class="kpi-lbl">Ativos</div><div class="kpi-val" style="color:var(--green)">${ativos}</div></div>
       <div class="kpi-card"><div class="kpi-lbl">Admins</div><div class="kpi-val">${admins}</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Gerenciais</div><div class="kpi-val" style="color:var(--blue)">${gerenciais}</div></div>
       <div class="kpi-card"><div class="kpi-lbl">Consultores</div><div class="kpi-val">${consultores}</div></div>`;
     const sess=CS_DB.getSession();
     el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">${
