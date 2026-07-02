@@ -1326,9 +1326,10 @@ tr:hover td{background:#fafafa}
 <!-- MODAL META DO PLANO DE SUCESSO -->
 <!-- MODAL PRIMEIROS 90 DIAS -->
 <div class="modal-ov" id="mP90">
-  <div class="modal" style="max-width:480px">
+  <div class="modal" style="max-width:580px">
     <div class="modal-ttl"><span><i class="ti ti-calendar-time"></i>Registro — Primeiros 90 Dias</span><span class="modal-close" onclick="closeM('mP90')"><i class="ti ti-x"></i></span></div>
     <input type="hidden" id="p90Cid">
+    <input type="hidden" id="p90ComoFoi">
     <div class="form-g2">
       <div class="fg"><label>Data</label><input type="date" id="p90DataInput"></div>
       <div class="fg"><label>Tipo de registro</label>
@@ -1336,6 +1337,30 @@ tr:hover td{background:#fafafa}
           <option>Contato inicial</option><option>Check-in 30 dias</option><option>Check-in 60 dias</option>
           <option>Check-in 90 dias</option><option>Treinamento</option><option>Ajuste de configuração</option>
           <option>Problema relatado</option><option>Entrega de funcionalidade</option><option>Visita presencial</option><option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin:16px 0 0">
+      <label style="font-size:11.5px;font-weight:600;color:var(--gray2);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:9px">Como foi?</label>
+      <div id="p90ComoFoiGroup" style="display:flex;gap:7px;flex-wrap:wrap">
+        <button type="button" class="p90-pill" data-val="Excelente" onclick="selP90ComoFoiV4('Excelente')" style="background:var(--gray5);border:1.5px solid var(--gray4);border-radius:20px;padding:6px 15px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--gray2);font-weight:400"><i class="ti ti-mood-happy"></i>Excelente</button>
+        <button type="button" class="p90-pill" data-val="Positivo" onclick="selP90ComoFoiV4('Positivo')" style="background:var(--gray5);border:1.5px solid var(--gray4);border-radius:20px;padding:6px 15px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--gray2);font-weight:400"><i class="ti ti-thumb-up"></i>Positivo</button>
+        <button type="button" class="p90-pill" data-val="Neutro" onclick="selP90ComoFoiV4('Neutro')" style="background:var(--gray5);border:1.5px solid var(--gray4);border-radius:20px;padding:6px 15px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--gray2);font-weight:400"><i class="ti ti-minus"></i>Neutro</button>
+        <button type="button" class="p90-pill" data-val="Com obstáculos" onclick="selP90ComoFoiV4('Com obstáculos')" style="background:var(--gray5);border:1.5px solid var(--gray4);border-radius:20px;padding:6px 15px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--gray2);font-weight:400"><i class="ti ti-alert-triangle"></i>Com obstáculos</button>
+        <button type="button" class="p90-pill" data-val="Crítico" onclick="selP90ComoFoiV4('Crítico')" style="background:var(--gray5);border:1.5px solid var(--gray4);border-radius:20px;padding:6px 15px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--gray2);font-weight:400"><i class="ti ti-alert-circle"></i>Crítico</button>
+      </div>
+    </div>
+    <div class="form-g2" style="margin-top:14px">
+      <div class="fg"><label>Engajamento do cliente</label>
+        <select id="p90Engajamento">
+          <option value="">— selecione —</option>
+          <option>Alto</option><option>Moderado</option><option>Baixo</option><option>Resistente</option>
+        </select>
+      </div>
+      <div class="fg"><label>Adoção do sistema</label>
+        <select id="p90Adocao">
+          <option value="">— selecione —</option>
+          <option>Usando ativamente</option><option>Usando parcialmente</option><option>Pouco uso</option><option>Sem uso</option>
         </select>
       </div>
       <div class="fg form-full"><label>Descrição <span class="req">*</span></label><textarea id="p90Desc" rows="3" placeholder="O que aconteceu? Qual foi o resultado obtido?"></textarea></div>
@@ -5038,28 +5063,55 @@ function renderP90V4(cid,plano){
     </div>`
   :`<div style="background:var(--ybg);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--ytxt);display:flex;align-items:center;gap:8px"><i class="ti ti-info-circle"></i>Registre o <strong>Kickoff</strong> nos marcos acima para iniciar o contador dos 90 dias.</div>`;
   const tipoIcon={'Contato inicial':'ti-phone','Check-in 30 dias':'ti-calendar-check','Check-in 60 dias':'ti-calendar-check','Check-in 90 dias':'ti-calendar-check','Treinamento':'ti-school','Ajuste de configuração':'ti-settings','Problema relatado':'ti-alert-triangle','Entrega de funcionalidade':'ti-gift','Visita presencial':'ti-building','Outro':'ti-notes'};
+  const comoFoiColor={Excelente:'var(--green)',Positivo:'var(--blue)',Neutro:'var(--gray2)','Com obstáculos':'var(--ytxt)',Crítico:'var(--red)'};
+  const comoFoiBg={Excelente:'var(--gbg)',Positivo:'var(--bbg)',Neutro:'var(--gray5)','Com obstáculos':'var(--ybg)',Crítico:'var(--redl)'};
+  const comoFoiIcon={Excelente:'ti-mood-happy',Positivo:'ti-thumb-up',Neutro:'ti-minus','Com obstáculos':'ti-alert-triangle',Crítico:'ti-alert-circle'};
+  const engBadge=(v)=>{if(!v)return'';const c=v==='Alto'?'var(--green)':v==='Moderado'?'var(--blue)':v==='Baixo'?'var(--ytxt)':'var(--red)';const bg=v==='Alto'?'var(--gbg)':v==='Moderado'?'var(--bbg)':v==='Baixo'?'var(--ybg)':'var(--redl)';return`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${bg};color:${c};white-space:nowrap"><i class="ti ti-users" style="font-size:10px"></i> ${v}</span>`;};
+  const adoBadge=(v)=>{if(!v)return'';const c=v==='Usando ativamente'?'var(--green)':v==='Usando parcialmente'?'var(--blue)':v==='Pouco uso'?'var(--ytxt)':'var(--red)';const bg=v==='Usando ativamente'?'var(--gbg)':v==='Usando parcialmente'?'var(--bbg)':v==='Pouco uso'?'var(--ybg)':'var(--redl)';return`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${bg};color:${c};white-space:nowrap"><i class="ti ti-device-desktop" style="font-size:10px"></i> ${v}</span>`;};
   const entriesHtml=registros.length
     ?[...registros].sort((a,b)=>new Date(b.dataISO||0)-new Date(a.dataISO||0)).map(r=>`
-      <div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--gray4)">
-        <div style="width:34px;height:34px;border-radius:9px;background:var(--bbg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${tipoIcon[r.tipo]||'ti-notes'}" style="color:var(--blue);font-size:15px"></i></div>
+      <div style="display:flex;gap:11px;padding:12px 0;border-bottom:1px solid var(--gray4)">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--bbg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${tipoIcon[r.tipo]||'ti-notes'}" style="color:var(--blue);font-size:15px"></i></div>
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px">
             <span style="font-size:12.5px;font-weight:600">${r.tipo}</span>
             <span style="font-size:10.5px;color:var(--gray3)">${r.data}</span>
             ${r.responsavel?`<span style="font-size:10.5px;color:var(--gray3)">· ${r.responsavel}</span>`:''}
           </div>
+          ${(r.comoFoi||r.engajamento||r.adocao)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+            ${r.comoFoi?`<span style="font-size:10px;padding:2px 9px;border-radius:20px;background:${comoFoiBg[r.comoFoi]||'var(--bbg)'};color:${comoFoiColor[r.comoFoi]||'var(--blue)'};display:flex;align-items:center;gap:4px;font-weight:600"><i class="ti ${comoFoiIcon[r.comoFoi]||'ti-circle'}" style="font-size:10px"></i>${r.comoFoi}</span>`:''}
+            ${engBadge(r.engajamento)}
+            ${adoBadge(r.adocao)}
+          </div>`:''}
           <div style="font-size:12px;color:var(--gray2);line-height:1.5">${r.descricao}</div>
-          ${r.proxPasso?`<div style="font-size:11px;color:var(--blue);margin-top:4px;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-right" style="font-size:11px"></i>${r.proxPasso}</div>`:''}
+          ${r.proxPasso?`<div style="font-size:11px;color:var(--blue);margin-top:5px;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-right" style="font-size:11px"></i>${r.proxPasso}</div>`:''}
         </div>
         <button class="btn-ghost" style="padding:4px 7px;font-size:11px;color:var(--red);flex-shrink:0;align-self:flex-start" onclick="removerRegistroP90V4('${cid}','${r.id}')"><i class="ti ti-trash"></i></button>
       </div>`).join('')
     :`<div style="text-align:center;padding:18px 0;color:var(--gray3);font-size:12.5px"><i class="ti ti-notes" style="display:block;font-size:28px;margin-bottom:8px;color:var(--gray4)"></i>Documente cada contato, treinamento e entrega dos primeiros 90 dias.</div>`;
   el.innerHTML=progressHtml+entriesHtml;
 }
+function selP90ComoFoiV4(val){
+  document.getElementById('p90ComoFoi').value=val;
+  const colors={Excelente:'var(--green)',Positivo:'var(--blue)',Neutro:'var(--gray2)','Com obstáculos':'var(--ytxt)',Crítico:'var(--red)'};
+  const bgs={Excelente:'var(--gbg)',Positivo:'var(--bbg)',Neutro:'var(--gray4)','Com obstáculos':'var(--ybg)',Crítico:'var(--redl)'};
+  const borders={Excelente:'#5dcaa5',Positivo:'var(--blue)',Neutro:'var(--gray3)','Com obstáculos':'#f5c842',Crítico:'var(--red)'};
+  document.querySelectorAll('#p90ComoFoiGroup .p90-pill').forEach(b=>{
+    const sel=b.dataset.val===val;
+    b.style.background=sel?(bgs[val]||'var(--bbg)'):'var(--gray5)';
+    b.style.color=sel?(colors[val]||'var(--blue)'):'var(--gray2)';
+    b.style.borderColor=sel?(borders[val]||'var(--blue)'):'var(--gray4)';
+    b.style.fontWeight=sel?'600':'400';
+  });
+}
 function abrirModalP90V4(cid){
   document.getElementById('p90Cid').value=cid;
   document.getElementById('p90DataInput').value=new Date().toISOString().slice(0,10);
   document.getElementById('p90Tipo').selectedIndex=0;
+  document.getElementById('p90ComoFoi').value='';
+  document.getElementById('p90Engajamento').selectedIndex=0;
+  document.getElementById('p90Adocao').selectedIndex=0;
+  document.querySelectorAll('#p90ComoFoiGroup .p90-pill').forEach(b=>{b.style.background='var(--gray5)';b.style.color='var(--gray2)';b.style.borderColor='var(--gray4)';b.style.fontWeight='400';});
   document.getElementById('p90Desc').value='';
   document.getElementById('p90Resp').value=CS_DB.getSession()?.nome||'';
   document.getElementById('p90Prox').value='';
@@ -5075,7 +5127,7 @@ function salvarRegistroP90V4(){
   const dataBR=`${d}/${m}/${y}`;
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
   if(!plano.primeiros90)plano.primeiros90=[];
-  plano.primeiros90.push({id:'p90_'+Date.now(),data:dataBR,dataISO:new Date(parseInt(y),parseInt(m)-1,parseInt(d)).toISOString(),tipo:document.getElementById('p90Tipo').value,descricao:document.getElementById('p90Desc').value.trim(),responsavel:document.getElementById('p90Resp').value.trim(),proxPasso:document.getElementById('p90Prox').value.trim()});
+  plano.primeiros90.push({id:'p90_'+Date.now(),data:dataBR,dataISO:new Date(parseInt(y),parseInt(m)-1,parseInt(d)).toISOString(),tipo:document.getElementById('p90Tipo').value,comoFoi:document.getElementById('p90ComoFoi').value,engajamento:document.getElementById('p90Engajamento').value,adocao:document.getElementById('p90Adocao').value,descricao:document.getElementById('p90Desc').value.trim(),responsavel:document.getElementById('p90Resp').value.trim(),proxPasso:document.getElementById('p90Prox').value.trim()});
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
   closeM('mP90');
   renderP90V4(cid,plano);
