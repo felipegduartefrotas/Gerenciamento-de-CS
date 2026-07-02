@@ -1722,11 +1722,17 @@ tr:hover td{background:#fafafa}
       <div id="agendaResumoList" style="max-height:320px;overflow-y:auto"></div>
     </div>
     <div class="card" style="margin:0;overflow:hidden">
-      <div class="card-ttl" style="margin-bottom:12px"><i class="ti ti-map-2"></i>Mapa · Reuniões Presenciais</div>
+      <div class="card-ttl" style="margin-bottom:8px"><i class="ti ti-map-2"></i>Mapa · Reuniões Agendadas
+        <span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:400;color:var(--gray2);align-items:center">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span>Presencial</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#3b82f6;display:inline-block;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span>Online</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:#f97316;display:inline-block;border:1.5px dashed #fff;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span>Aprox.</span>
+        </span>
+      </div>
       <div id="agendaMapDiv" style="height:300px;border-radius:8px;border:1px solid var(--gray4);overflow:hidden;background:var(--gray5);display:none"></div>
       <div id="agendaMapEmpty" style="display:flex;height:300px;border-radius:8px;background:var(--gray5);border:1px dashed var(--gray4);flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--gray3)">
         <i class="ti ti-map-pin-off" style="font-size:34px"></i>
-        <div style="font-size:12px;text-align:center;line-height:1.6;padding:0 24px">Nenhuma reunião presencial com endereço cadastrado.<br>Ao agendar uma reunião <b style="color:var(--green)">Presencial</b>, informe o endereço para ela aparecer aqui.</div>
+        <div style="font-size:12px;text-align:center;line-height:1.6;padding:0 24px">Nenhuma reunião agendada encontrada.</div>
       </div>
     </div>
   </div>
@@ -4017,55 +4023,68 @@ function renderAgendaMapa(){
     return;
   }
   var acoes=CS_DB.get('acoes')||[];
-  var todasPres=acoes.filter(function(a){
-    return a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada'&&a.modalidade==='presencial';
+  var todas=acoes.filter(function(a){
+    return a.categoria==='reuniao_agendada'&&a.status!=='Concluído'&&a.status!=='Cancelada';
   });
-  var comCoords=todasPres.filter(function(a){return a.lat&&a.lng;});
-  var semCoords=todasPres.filter(function(a){return(!a.lat||!a.lng)&&a.reuniaoEndereco;});
-  if(semCoords.length){
-    semCoords.forEach(function(a,i){setTimeout(function(){_geocodificarEAtualizar(a.id,a.reuniaoEndereco);},i*1500);});
-  }
-  if(!comCoords.length){
+  // Dispara geocodificação para presenciais com endereço ainda sem coords
+  todas.filter(function(a){return a.modalidade==='presencial'&&a.reuniaoEndereco&&!a.lat;})
+    .forEach(function(a,i){setTimeout(function(){_geocodificarEAtualizar(a.id,a.reuniaoEndereco);},i*1500);});
+  // Resolve coords: 1º geocodificado exato, 2º cidade do cliente (aproximado)
+  var pontos=[];
+  todas.forEach(function(a){
+    var lat=a.lat,lng=a.lng,aprox=false;
+    if(!lat||!lng){
+      var cli=a.clienteId?CS_DB.getClienteById(a.clienteId):null;
+      if(cli){var cc=_getClienteCoords(cli);if(cc){lat=cc[0];lng=cc[1];aprox=true;}}
+    }
+    if(lat&&lng)pontos.push({r:a,lat:lat,lng:lng,aprox:aprox});
+  });
+  if(!pontos.length){
     if(window._agdMap){try{window._agdMap.remove();}catch(e){}window._agdMap=null;}
     mapDiv.style.display='none';
     if(emptyDiv){
       emptyDiv.style.display='flex';
-      var _emsg='';
-      if(semCoords.length){
-        _emsg='Localizando endereços das reuniões...<br>O mapa será exibido em instantes.';
-      }else if(todasPres.length){
-        _emsg='Reuniões presenciais sem endereço.<br>Use <b style="color:var(--green)">Editar dados da reunião</b> para adicionar o endereço.';
-      }else{
-        _emsg='Nenhuma reunião presencial com endereço cadastrado.<br>Ao agendar uma reunião <b style="color:var(--green)">Presencial</b>, informe o endereço para ela aparecer aqui.';
-      }
       emptyDiv.innerHTML='<i class="ti ti-map-pin-off" style="font-size:34px"></i>'
-        +'<div style="font-size:12px;text-align:center;line-height:1.6;padding:0 24px">'+_emsg+'</div>';
+        +'<div style="font-size:12px;text-align:center;line-height:1.6;padding:0 24px">'
+        +(todas.length
+          ?'Clientes das reuniões sem cidade cadastrada.<br>Preencha <b style="color:var(--green)">Cidade e UF</b> no cadastro do cliente para aparecer no mapa.'
+          :'Nenhuma reunião agendada no momento.')
+        +'</div>';
     }
     return;
   }
   mapDiv.style.display='block';
   if(emptyDiv)emptyDiv.style.display='none';
-  // Destrói instância anterior se existir para evitar "container already initialized"
-  if(window._agdMap){
-    try{window._agdMap.remove();}catch(e){}
-    window._agdMap=null;
-  }
-  // Reinicializa sempre limpo — garante tamanho correto após animação de entrada
+  if(window._agdMap){try{window._agdMap.remove();}catch(e){}window._agdMap=null;}
   requestAnimationFrame(function(){
     try{
       window._agdMap=L.map('agendaMapDiv',{scrollWheelZoom:false}).setView([-15.788,-47.879],5);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>'}).addTo(window._agdMap);
     }catch(e){return;}
     var bounds=[];
-    comCoords.forEach(function(a){
-      var pop='<b>'+(a.empresa||'—')+'</b><br>'+(a.reuniaoData||'')+(a.reuniaoHora?' às '+a.reuniaoHora:'')+'<br><i>'+a.reuniaoTipo+'</i>';
-      L.marker([a.lat,a.lng]).bindPopup(pop).addTo(window._agdMap);
-      bounds.push([a.lat,a.lng]);
+    pontos.forEach(function(p){
+      var a=p.r;
+      var isPres=a.modalidade==='presencial';
+      // vermelho=presencial exato, laranja=presencial aprox, azul=online
+      var cor=isPres?(p.aprox?'#f97316':'#ef4444'):'#3b82f6';
+      var sz=p.aprox?10:14;
+      var borda=p.aprox?'1.5px dashed #fff':'2.5px solid #fff';
+      var icon=L.divIcon({
+        className:'',
+        html:'<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+cor+';border:'+borda+';box-shadow:0 2px 5px rgba(0,0,0,.4)"></div>',
+        iconSize:[sz,sz],iconAnchor:[sz/2,sz/2],popupAnchor:[0,-(sz/2+4)]
+      });
+      var tipoIcon=isPres?'🏢':'💻';
+      var aproxAviso=p.aprox?'<div style="font-size:10px;color:#f97316;margin-top:3px">📍 Posição aproximada (cidade do cliente)</div>':'';
+      var pop='<div style="font-family:Inter,sans-serif;min-width:170px">'
+        +'<div style="font-weight:700;font-size:13px;margin-bottom:2px">'+tipoIcon+' '+(a.empresa||'—')+'</div>'
+        +'<div style="font-size:11.5px;color:#555">'+(a.reuniaoData||'')+(a.reuniaoHora?' às '+a.reuniaoHora:'')+'</div>'
+        +'<div style="font-size:11px;color:#888;margin-top:2px">'+(a.reuniaoTipo||'')+(isPres?' · Presencial':' · Online')+'</div>'
+        +aproxAviso+'</div>';
+      L.marker([p.lat,p.lng],{icon:icon}).bindPopup(pop,{maxWidth:240}).addTo(window._agdMap);
+      bounds.push([p.lat,p.lng]);
     });
-    if(bounds.length){
-      window._agdMap.fitBounds(bounds,{padding:[30,30]});
-    }
-    // invalidateSize em cascata para cobrir transição CSS
+    if(bounds.length)window._agdMap.fitBounds(bounds,{padding:[40,40]});
     [250,600,1200].forEach(function(t){setTimeout(function(){if(window._agdMap)window._agdMap.invalidateSize();},t);});
   });
 }
