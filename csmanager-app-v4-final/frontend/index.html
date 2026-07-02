@@ -463,7 +463,7 @@ tr:hover td{background:#fafafa}
       <div class="lb-cs"><i class="ti ti-users"></i> Customer Success Manager</div>
     </div>
     <div class="lb-field"><label>E-mail</label><input type="text" id="lEmail" placeholder="seu@email.com.br" onkeydown="if(event.key==='Enter')document.getElementById('lSenha').focus()"></div>
-    <div class="lb-field"><label>Senha</label><input type="password" id="lSenha" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="lb-field"><label>Senha</label><div style="position:relative"><input type="password" id="lSenha" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding-right:42px;box-sizing:border-box"><button type="button" onclick="const i=document.getElementById('lSenha');const b=this;i.type=i.type==='password'?'text':'password';b.querySelector('i').className='ti '+(i.type==='password'?'ti-eye':'ti-eye-off')" style="position:absolute;right:0;top:0;height:100%;width:40px;background:none;border:none;cursor:pointer;color:#888;display:flex;align-items:center;justify-content:center" title="Mostrar/ocultar senha"><i class="ti ti-eye"></i></button></div></div>
     <div id="lErro" style="display:none;color:var(--red);font-size:12px;margin-bottom:10px"></div>
     <button class="lb-btn" id="lBtn" onclick="doLogin()"><i class="ti ti-login"></i> Entrar no sistema</button>
     <div class="lb-hint">CS Manager v4.0 — Creare Sistemas</div>

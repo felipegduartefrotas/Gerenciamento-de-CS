@@ -679,7 +679,7 @@ tr:hover td{background:#fafafa}
       <div class="lb-cs"><i class="ti ti-users"></i> Customer Success Manager</div>
     </div>
     <div class="lb-field"><label>E-mail</label><input type="email" id="lEmail" placeholder="seu@email.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('lSenha').focus()"></div>
-    <div class="lb-field"><label>Senha</label><input type="password" id="lSenha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="lb-field"><label>Senha</label><div style="position:relative"><input type="password" id="lSenha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding-right:42px;box-sizing:border-box"><button type="button" onclick="const i=document.getElementById('lSenha');const b=this;i.type=i.type==='password'?'text':'password';b.querySelector('i').className='ti '+(i.type==='password'?'ti-eye':'ti-eye-off')" style="position:absolute;right:0;top:0;height:100%;width:40px;background:none;border:none;cursor:pointer;color:#888;display:flex;align-items:center;justify-content:center" title="Mostrar/ocultar senha"><i class="ti ti-eye"></i></button></div></div>
     <div id="lErro" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:7px;padding:9px 12px;font-size:12px;color:#dc2626;text-align:center;margin-bottom:4px"></div>
     <button class="lb-btn" onclick="doLogin()"><i class="ti ti-login"></i> Entrar no sistema</button>
     <div id="lHintLegado" style="display:none;font-size:11px;color:#888;text-align:center;margin-top:4px">Modo inicial — cadastre usuários em Configurações para ativar o login individual.</div>
