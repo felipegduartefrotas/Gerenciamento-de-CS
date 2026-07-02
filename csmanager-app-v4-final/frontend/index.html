@@ -5537,8 +5537,8 @@ function irParaCliente360(clienteId) {
   const el = document.querySelector('[data-p=cliente360]');
   nav(el, 'cliente360');
   setTimeout(() => {
-    const sel = document.getElementById('selC360');
-    if (sel) { sel.value = clienteId; sel.dispatchEvent(new Event('change')); }
+    const sel = document.getElementById('c360Select');
+    if (sel) { sel.value = clienteId; renderCliente360(); }
   }, 150);
 }
 
