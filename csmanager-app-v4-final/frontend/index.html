@@ -891,6 +891,7 @@ tr:hover td{background:#fafafa}
 <!-- ALERTAS -->
 <div class="page" id="page-alertas">
   <div class="ph"><h2><i class="ti ti-bell"></i>Central de Alertas</h2><span id="alertasCount" style="font-size:12.5px;color:var(--gray2)">0 alertas</span></div>
+  <div id="alertasStats"></div>
   <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap" id="alertasFiltros">
     <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px;background:var(--red);color:#fff;border-color:var(--red)" data-cat="" onclick="filtrarAlertas('')">Todos</button>
     <button class="btn-ghost" style="font-size:11.5px;padding:4px 10px;border-radius:20px" data-cat="sem_contato" onclick="filtrarAlertas('sem_contato')"><i class="ti ti-clock"></i> Sem contato</button>
@@ -3181,6 +3182,58 @@ async function salvarNPS(){
 // ═══ ALERTAS ═══
 let alertasAtuais=[];
 let _alertaFiltroAtual='';
+
+function _renderAlertasStatsV4(){
+  const urgentes=alertasAtuais.filter(a=>a.tipo==='danger').length;
+  const atencao=alertasAtuais.filter(a=>a.tipo==='warn').length;
+  const total=alertasAtuais.length;
+  const el=document.getElementById('alertasStats');if(!el)return;
+  const _scrollToList=()=>setTimeout(()=>document.getElementById('alertasList')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+  const _filtrarEScrollar=(cat)=>{filtrarAlertas(cat);_scrollToList();};
+  const _atalhosCat=[
+    {cats:['sem_contato','sem_reuniao'],label:'Sem contato há 30d+',ic:'ti-clock',cor:'var(--blue)',bg:'var(--bbg)',acao:'Agendar reunião',aFn:`nav(document.querySelector('[data-p=reunioes]'),'reunioes');setTimeout(()=>openM('mReuniao'),120)`},
+    {cats:['hs_baixo'],label:'Health Score baixo',ic:'ti-heart-rate-monitor',cor:'var(--yellow)',bg:'var(--ybg)',acao:'Ver Dashboard 360',aFn:`nav(document.querySelector('[data-p=cliente360]'),'cliente360')`},
+    {cats:['nps_critico','nps_queda'],label:'NPS crítico / queda',ic:'ti-star-off',cor:'#8b5cf6',bg:'#f0eafa',acao:'Registrar NPS',aFn:`openM('mNPS')`},
+    {cats:['churn_critico','churn_alto'],label:'Risco de churn',ic:'ti-trending-down',cor:'var(--red)',bg:'var(--redl)',acao:'Ver Churn',aFn:`nav(document.querySelector('[data-p=churn]'),'churn')`},
+    {cats:['renovacao','vencido'],label:'Renovação próxima',ic:'ti-calendar-exclamation',cor:'var(--ytxt)',bg:'var(--ybg)',acao:'Ver Pipeline',aFn:`nav(document.querySelector('[data-p=pipeline]'),'pipeline')`},
+    {cats:['acoes_atrasadas'],label:'Ações atrasadas',ic:'ti-clipboard-x',cor:'var(--red)',bg:'var(--redl)',acao:'Ver Planos',aFn:`nav(document.querySelector('[data-p=planos]'),'planos')`},
+  ].map(g=>({...g,count:alertasAtuais.filter(a=>g.cats.includes(a.categoria)).length})).filter(g=>g.count>0);
+  el.innerHTML=`
+  <div class="kpi-grid" style="margin-bottom:10px">
+    <div class="kpi red" style="cursor:pointer" onclick="filtrarAlertas('danger');_scrollToListV4()" title="Ver apenas urgentes">
+      <div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Urgentes<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
+      <div class="kpi-val" style="color:var(--red)">${urgentes}</div>
+      <div class="kpi-sub">clique para tratar</div>
+    </div>
+    <div class="kpi yellow" style="cursor:pointer" onclick="filtrarAlertas('warn');_scrollToListV4()" title="Ver apenas atenção">
+      <div class="kpi-lbl"><i class="ti ti-bell"></i>Atenção<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
+      <div class="kpi-val" style="color:var(--yellow)">${atencao}</div>
+      <div class="kpi-sub">clique para ver</div>
+    </div>
+    <div class="kpi" style="cursor:pointer" onclick="filtrarAlertas('');_scrollToListV4()" title="Ver todos os alertas">
+      <div class="kpi-lbl"><i class="ti ti-inbox"></i>Total Abertos<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
+      <div class="kpi-val">${total}</div>
+      <div class="kpi-sub">clique para ver todos</div>
+    </div>
+  </div>
+  ${_atalhosCat.length?`<div style="margin-bottom:14px;padding:12px 14px;background:var(--gray6);border-radius:10px;border:1px solid var(--gray4)">
+    <div style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px"><i class="ti ti-bolt"></i> Ações Rápidas por Categoria</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:8px">
+    ${_atalhosCat.map(g=>`<div style="background:var(--white);border:1px solid var(--gray4);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:30px;height:30px;border-radius:8px;background:${g.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${g.ic}" style="color:${g.cor};font-size:13px"></i></div>
+        <div><div style="font-size:12px;font-weight:600;line-height:1.3">${g.label}</div><div style="font-size:10.5px;color:var(--gray3)">${g.count} alerta${g.count>1?'s':''}</div></div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="btn-ghost" style="flex:1;font-size:10.5px;padding:5px 4px;justify-content:center;text-align:center" onclick="_filtrarEScrollar('${g.cats[0]}')"><i class="ti ti-list"></i>Ver</button>
+        <button class="btn-primary" style="flex:2;font-size:10.5px;padding:5px 6px;justify-content:center;text-align:center" onclick="${g.aFn}"><i class="ti ti-bolt"></i>${g.acao}</button>
+      </div>
+    </div>`).join('')}
+    </div>
+  </div>`:''}`;
+}
+function _scrollToListV4(){setTimeout(()=>document.getElementById('alertasList')?.scrollIntoView({behavior:'smooth',block:'start'}),80);}
+
 function filtrarAlertas(cat){
   _alertaFiltroAtual=cat;
   document.querySelectorAll('#alertasFiltros button').forEach(b=>{const isActive=b.dataset.cat===cat;b.style.background=isActive?'var(--red)':'';b.style.color=isActive?'#fff':'';b.style.borderColor=isActive?'var(--red)':''});
@@ -3199,7 +3252,9 @@ function _renderAlertasList(){
 async function renderAlertas(){
   const al=await CS_DB._gerarAlertas();
   alertasAtuais=al;
-  document.getElementById('alertasCount').textContent=`${al.length} alertas ativos`;
+  const nUrg=al.filter(a=>a.tipo==='danger').length;
+  document.getElementById('alertasCount').textContent=`${al.length} aberto${al.length!==1?'s':''}${nUrg?' · '+nUrg+' urgentes':''}`;
+  _renderAlertasStatsV4();
   _renderAlertasList();
   // Notificação nativa para alertas críticos novos
   dispararNotificacaoAlertas(al);

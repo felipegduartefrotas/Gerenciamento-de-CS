@@ -3935,19 +3935,20 @@ function _renderAlertasStats(){
       <div class="kpi-sub">${fechados.length} tratados</div>
     </div>
   </div>
-  ${_atalhosCat.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:var(--gray6);border-radius:10px;border:1px solid var(--gray4)">
-    <span style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:.04em;width:100%;margin-bottom:2px"><i class="ti ti-bolt"></i> Ações Rápidas por Categoria</span>
-    ${_atalhosCat.map(g=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--gray4);border-radius:10px;padding:8px 12px;flex:1;min-width:180px">
-      <div style="width:32px;height:32px;border-radius:8px;background:${g.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${g.ic}" style="color:${g.cor};font-size:14px"></i></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600">${g.label}</div>
-        <div style="font-size:10.5px;color:var(--gray3)">${g.count} alerta${g.count>1?'s':''}</div>
+  ${_atalhosCat.length?`<div style="margin-bottom:14px;padding:12px 14px;background:var(--gray6);border-radius:10px;border:1px solid var(--gray4)">
+    <div style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px"><i class="ti ti-bolt"></i> Ações Rápidas por Categoria</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:8px">
+    ${_atalhosCat.map(g=>`<div style="background:var(--white);border:1px solid var(--gray4);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:30px;height:30px;border-radius:8px;background:${g.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${g.ic}" style="color:${g.cor};font-size:13px"></i></div>
+        <div><div style="font-size:12px;font-weight:600;line-height:1.3">${g.label}</div><div style="font-size:10.5px;color:var(--gray3)">${g.count} alerta${g.count>1?'s':''}</div></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-        <button class="btn-ghost" style="font-size:10.5px;padding:3px 8px;white-space:nowrap" onclick="_filtrarEScrollar('${g.cats[0]}')"><i class="ti ti-list"></i>Ver</button>
-        <button class="btn-primary" style="font-size:10.5px;padding:3px 8px;white-space:nowrap" onclick="${g.aFn}"><i class="ti ti-bolt"></i>${g.acao}</button>
+      <div style="display:flex;gap:5px">
+        <button class="btn-ghost" style="flex:1;font-size:10.5px;padding:5px 4px;justify-content:center;text-align:center" onclick="_filtrarEScrollar('${g.cats[0]}')"><i class="ti ti-list"></i>Ver</button>
+        <button class="btn-primary" style="flex:2;font-size:10.5px;padding:5px 6px;justify-content:center;text-align:center" onclick="${g.aFn}"><i class="ti ti-bolt"></i>${g.acao}</button>
       </div>
     </div>`).join('')}
+    </div>
   </div>`:''}
   <div class="two-col" style="margin-bottom:14px">
     <div class="card" style="margin-bottom:0">
