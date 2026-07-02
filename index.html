@@ -2534,6 +2534,36 @@ tr:hover td{background:#fafafa}
 </div>
 
 <!-- MODAL NOVA ATA ESTRUTURADA -->
+<!-- MODAL DOCUMENTO CLIENTE -->
+<div class="modal-ov" id="mNovoDocCliente">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-ttl"><span><i class="ti ti-file-upload"></i>Adicionar Documento</span><span class="modal-close" onclick="closeM('mNovoDocCliente')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="docCid">
+    <div class="form-g2">
+      <div class="fg"><label>Categoria</label>
+        <select id="docCategoria">
+          <option>Contrato</option><option>Proposta Comercial</option><option>Aditivo / Renovação</option>
+          <option>Ata de Reunião</option><option>Relatório</option><option>Treinamento</option>
+          <option>Apresentação</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="fg"><label>Data do documento</label><input type="date" id="docData"></div>
+      <div class="fg form-full">
+        <label>Arquivo <span class="req">*</span></label>
+        <label for="docFile" id="docDropZone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:2px dashed var(--gray4);border-radius:10px;padding:24px 16px;cursor:pointer;background:var(--gray6);transition:border-color .2s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--gray4)'">
+          <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--gray3)"></i>
+          <span style="font-size:13px;color:var(--gray2)">Clique ou arraste o arquivo aqui</span>
+          <span style="font-size:11px;color:var(--gray3)">PDF, Word, Excel, PowerPoint, imagens — máx. 5MB</span>
+          <input type="file" id="docFile" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.txt,.zip" onchange="onDocFileSelected()">
+        </label>
+        <div id="docFileInfo" style="margin-top:7px;font-size:12.5px"></div>
+      </div>
+      <div class="fg form-full"><label>Observação</label><input type="text" id="docNota" placeholder="Ex: Versão assinada, válido até dez/2026..."></div>
+    </div>
+    <div class="btn-row"><button class="btn-ghost" onclick="closeM('mNovoDocCliente')">Cancelar</button><button class="btn-primary" id="docSalvarBtn" onclick="salvarDocCliente()"><i class="ti ti-device-floppy"></i>Salvar</button></div>
+  </div>
+</div>
+
 <div class="modal-ov" id="mNovaAta">
   <div class="modal" style="max-width:740px;max-height:92vh;overflow-y:auto">
     <div class="modal-ttl" style="position:sticky;top:0;background:var(--white);z-index:1;padding-bottom:12px;border-bottom:1px solid var(--gray4);margin-bottom:14px">
@@ -8484,6 +8514,12 @@ function renderCliente360(){
       </div>
       ${(()=>{const atasCliente=(CS_DB.get('atas')||[]).filter(a=>a.clienteId===cid||a.empresa===c.empresa).sort((a,b)=>new Date(b.criadoEm||0)-new Date(a.criadoEm||0));return atasCliente.length?atasCliente.map(ata=>`<div onclick="verAta('${ata.id}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray4);cursor:pointer" onmouseover="this.style.background='var(--gray6)'" onmouseout="this.style.background=''"><div style="flex-shrink:0;width:32px;height:32px;border-radius:6px;background:var(--bbg);display:flex;align-items:center;justify-content:center;color:var(--blue)"><i class="ti ti-notes" style="font-size:14px"></i></div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escH(ata.titulo||'Sem título')}</div><div style="font-size:11px;color:var(--gray2)">${_escH(ata.tipo||'Reunião')} · ${ata.data||''}</div></div><i class="ti ti-chevron-right" style="color:var(--gray3);font-size:14px"></i></div>`).join(''):'<div style="color:var(--gray2);padding:10px 0;font-size:12.5px">Nenhuma ata registrada para este cliente.</div>';})()}
     </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-folder"></i>Documentos<span class="sub" id="c360DocsCount"></span>
+        <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirUploadDoc('${cid}')"><i class="ti ti-upload"></i>Adicionar</button>
+      </div>
+      <div id="spDocsCliente"></div>
+    </div>
     </div><!-- /c360AbaGeral -->
     `;
 
@@ -8536,7 +8572,122 @@ function renderCliente360(){
         {label:'Meta saudável (70)',data:scores.map(()=>70),borderColor:'rgba(29,158,117,.6)',backgroundColor:'transparent',tension:0,fill:false,borderWidth:1.5,pointRadius:0,pointHoverRadius:0,borderDash:[6,4]}
       ]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{display:true,labels:{font:{size:10},color:'var(--gray2)',boxWidth:10,usePointStyle:true,padding:8}},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>' '+ctx.dataset.label+': '+ctx.parsed.y}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
     }
+    renderDocsCliente(cid);
   },80);
+}
+
+// ════════════════════════════════════════════════
+// DOCUMENTOS DO CLIENTE
+// ════════════════════════════════════════════════
+function _docIcone(nome){
+  const ext=(nome||'').split('.').pop().toLowerCase();
+  if(ext==='pdf')return{ico:'ti-file-type-pdf',cor:'#e74c3c',bg:'#fdecea'};
+  if(['doc','docx'].includes(ext))return{ico:'ti-file-word',cor:'#2b579a',bg:'#eaf0fb'};
+  if(['xls','xlsx'].includes(ext))return{ico:'ti-file-spreadsheet',cor:'#217346',bg:'#eafaf1'};
+  if(['ppt','pptx'].includes(ext))return{ico:'ti-file-presentation',cor:'#d04423',bg:'#fdf0ed'};
+  if(['png','jpg','jpeg','gif','webp'].includes(ext))return{ico:'ti-photo',cor:'#8e44ad',bg:'#f5eef8'};
+  return{ico:'ti-file-description',cor:'var(--gray2)',bg:'var(--gray5)'};
+}
+function _docCategoriaBadge(cat){
+  const m={Contrato:{bg:'var(--bbg)',c:'var(--blue)'},'Proposta Comercial':{bg:'var(--gbg)',c:'var(--gtxt)'},'Aditivo / Renovação':{bg:'var(--ybg)',c:'var(--ytxt)'},'Ata de Reunião':{bg:'var(--gray5)',c:'var(--gray2)'},Relatório:{bg:'#f0eafa',c:'#8e44ad'},Treinamento:{bg:'var(--bbg)',c:'var(--blue)'},Apresentação:{bg:'#fff3cd',c:'#856404'},Outro:{bg:'var(--gray5)',c:'var(--gray3)'}};
+  const s=m[cat]||{bg:'var(--gray5)',c:'var(--gray2)'};
+  return`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${s.bg};color:${s.c};white-space:nowrap">${cat}</span>`;
+}
+function renderDocsCliente(cid){
+  const el=document.getElementById('spDocsCliente');
+  const countEl=document.getElementById('c360DocsCount');
+  if(!el)return;
+  const docs=JSON.parse(localStorage.getItem('cs_docs_'+cid)||'[]').sort((a,b)=>new Date(b.criadoEm||0)-new Date(a.criadoEm||0));
+  if(countEl)countEl.textContent=docs.length?`${docs.length} arquivo(s)`:'';
+  if(!docs.length){
+    el.innerHTML=`<div style="text-align:center;padding:22px 0;color:var(--gray3);font-size:12.5px"><i class="ti ti-folder-open" style="display:block;font-size:30px;margin-bottom:8px;color:var(--gray4)"></i>Nenhum documento adicionado ainda.<br><span style="font-size:11.5px">Adicione contratos, propostas e outros arquivos importantes.</span></div>`;
+    return;
+  }
+  el.innerHTML=docs.map(d=>{
+    const ic=_docIcone(d.nome);
+    const kb=d.tamanhoKB;
+    const sz=kb>1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
+    return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray4)">
+      <div style="width:38px;height:38px;border-radius:9px;background:${ic.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${ic.ico}" style="font-size:18px;color:${ic.cor}"></i></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px">${d.nome}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          ${_docCategoriaBadge(d.categoria)}
+          <span style="font-size:10.5px;color:var(--gray3)">${d.data||''}</span>
+          <span style="font-size:10.5px;color:var(--gray3)">${sz}</span>
+          ${d.nota?`<span style="font-size:10.5px;color:var(--gray2);font-style:italic">· ${d.nota}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn-ghost" style="padding:5px 9px;font-size:11.5px" onclick="downloadDocCliente('${cid}','${d.id}')" title="Baixar"><i class="ti ti-download"></i></button>
+        <button class="btn-ghost" style="padding:5px 9px;font-size:11.5px;color:var(--red)" onclick="removerDocCliente('${cid}','${d.id}')" title="Remover"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function abrirUploadDoc(cid){
+  document.getElementById('docCid').value=cid;
+  document.getElementById('docCategoria').selectedIndex=0;
+  document.getElementById('docData').value=new Date().toISOString().slice(0,10);
+  document.getElementById('docFile').value='';
+  document.getElementById('docFileInfo').innerHTML='';
+  document.getElementById('docNota').value='';
+  openM('mNovoDocCliente');
+}
+function onDocFileSelected(){
+  const file=document.getElementById('docFile').files[0];
+  const infoEl=document.getElementById('docFileInfo');
+  if(!file){infoEl.innerHTML='';return;}
+  const kb=Math.round(file.size/1024);
+  if(kb>5120){infoEl.innerHTML=`<span style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Arquivo muito grande (${(kb/1024).toFixed(1)}MB). Recomendado até 5MB.</span>`;return;}
+  const sz=kb>1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
+  const ic=_docIcone(file.name);
+  infoEl.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--gbg);border-radius:8px"><i class="ti ${ic.ico}" style="color:${ic.cor};font-size:16px"></i><span style="font-size:12.5px;font-weight:600;color:var(--gtxt)">${file.name}</span><span style="font-size:11px;color:var(--gray3);margin-left:auto">${sz}</span></div>`;
+}
+function salvarDocCliente(){
+  const cid=document.getElementById('docCid').value;
+  const file=document.getElementById('docFile').files[0];
+  if(!file){toast('Selecione um arquivo.','warn');return;}
+  const kb=Math.round(file.size/1024);
+  if(kb>5120){toast('Arquivo muito grande. Máximo 5MB.','warn');return;}
+  const btn=document.getElementById('docSalvarBtn');
+  if(btn)btn.disabled=true;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const docs=JSON.parse(localStorage.getItem('cs_docs_'+cid)||'[]');
+    const dateVal=document.getElementById('docData').value;
+    const[y,m,d]=dateVal?dateVal.split('-'):['','',''];
+    const cat=document.getElementById('docCategoria').value;
+    docs.push({id:'doc_'+Date.now(),nome:file.name,categoria:cat,tamanhoKB:kb,tipo:file.type,base64:e.target.result,data:dateVal?`${d}/${m}/${y}`:new Date().toLocaleDateString('pt-BR'),nota:document.getElementById('docNota').value.trim(),criadoEm:new Date().toISOString()});
+    localStorage.setItem('cs_docs_'+cid,JSON.stringify(docs));
+    CS_DB._addTimeline(cid,'sistema',`Documento adicionado: ${file.name}`,`Categoria: ${cat} · ${kb>1024?(kb/1024).toFixed(1)+'MB':kb+'KB'}`);
+    if(btn)btn.disabled=false;
+    closeM('mNovoDocCliente');
+    renderDocsCliente(cid);
+    toast('Documento salvo na pasta do cliente!');
+  };
+  reader.onerror=()=>{if(btn)btn.disabled=false;toast('Erro ao ler o arquivo.','err');};
+  reader.readAsDataURL(file);
+}
+function downloadDocCliente(cid,docId){
+  const docs=JSON.parse(localStorage.getItem('cs_docs_'+cid)||'[]');
+  const doc=docs.find(d=>d.id===docId);
+  if(!doc){toast('Documento não encontrado.','warn');return;}
+  const a=document.createElement('a');
+  a.href=doc.base64;
+  a.download=doc.nome;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+function removerDocCliente(cid,docId){
+  const docs=JSON.parse(localStorage.getItem('cs_docs_'+cid)||'[]');
+  const doc=docs.find(d=>d.id===docId);
+  if(!doc)return;
+  const filtered=docs.filter(d=>d.id!==docId);
+  localStorage.setItem('cs_docs_'+cid,JSON.stringify(filtered));
+  renderDocsCliente(cid);
+  toast('Documento removido.');
 }
 
 function trocarAbaC360(aba,btn){
