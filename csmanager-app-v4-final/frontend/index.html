@@ -4924,12 +4924,13 @@ function _filtrarClientesPorSessao(){
   if(!sess||sess.papel==='admin'||sess.papel==='gerencial')return;
   CS_DB._cache.clientes=CS_DB._cache.clientes.filter(c=>c.responsavelCS===sess.nome);
 }
-function fazerLogout(){
-  if(!confirm('Deseja encerrar sua sessão?'))return;
+async function fazerLogout(){
+  // Auto-salva configurações antes de sair
+  try{await salvarConfig();}catch(e){}
+  if(!confirm('Deseja sair?'))return;
   CS_DB.clearSession();
   document.getElementById('app').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
-  // Limpar campos de login
   const li=document.getElementById('lEmail'),lp=document.getElementById('lSenha');
   if(li)li.value='';if(lp)lp.value='';
 }

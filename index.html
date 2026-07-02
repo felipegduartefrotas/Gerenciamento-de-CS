@@ -6498,7 +6498,9 @@ function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cf
 function salvarConfig(){const ak=(document.getElementById('cfgAnthropicKey')?.value||'').trim();if(ak)localStorage.setItem('_anthropicKey',ak);const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||'',uf:document.getElementById('cfgUF')?.value||'',cidade:document.getElementById('cfgCidade')?.value||'',anthropicKey:ak};CS_DB.saveConfig(cfg);toast('Configurações salvas!');CS_DB._gerarAlertas();updateStatusBar();_updateTbClock();}
 
 function fazerLogoutV3(){
-  if(!confirm('Deseja encerrar a sessão?\n\nOs dados salvos não serão apagados.'))return;
+  // Auto-salva configurações antes de sair
+  try{salvarConfig();}catch(e){}
+  if(!confirm('Deseja sair?'))return;
   sessionStorage.removeItem('csm_sessao_v3');
   CS_DB.clearSession();
   location.reload();
