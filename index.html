@@ -3902,8 +3902,6 @@ function _renderAlertasStats(){
     {label:'Reuniões',cats:['reuniao_hoje','reuniao_atrasada'],cor:'rgba(26,111,219,.6)'},
   ].map(g=>({...g,count:alertasAtuais.filter(a=>g.cats.includes(a.categoria)).length})).filter(g=>g.count>0);
   const el=document.getElementById('alertasStats');if(!el)return;
-  const _scrollToList=()=>setTimeout(()=>document.getElementById('alertasList')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
-  const _filtrarEScrollar=(cat)=>{filtrarAlertas(cat);_scrollToList();};
   const _atalhosCat=[
     {cats:['sem_contato','sem_reuniao'],label:'Sem contato há 30d+',ic:'ti-clock',cor:'var(--blue)',bg:'var(--bbg)',acao:'Agendar reunião',aFn:`nav(document.querySelector('[data-p=reunioes]'),'reunioes');setTimeout(()=>openM('mReuniao'),120)`},
     {cats:['hs_baixo'],label:'Health Score baixo',ic:'ti-heart-rate-monitor',cor:'var(--yellow)',bg:'var(--ybg)',acao:'Ver Dashboard 360',aFn:`nav(document.querySelector('[data-p=cliente360]'),'cliente360')`},
@@ -3914,17 +3912,17 @@ function _renderAlertasStats(){
   ].map(g=>({...g,count:alertasAtuais.filter(a=>g.cats.includes(a.categoria)).length})).filter(g=>g.count>0);
   el.innerHTML=`
   <div class="kpi-grid" style="margin-bottom:10px">
-    <div class="kpi red" style="cursor:pointer" onclick="filtrarAlertas('danger');${`_scrollToList()`}" title="Ver apenas urgentes">
+    <div class="kpi red" style="cursor:pointer" onclick="filtrarAlertas('danger');document.getElementById('alertasList').scrollIntoView({behavior:'smooth',block:'start'})" title="Ver apenas urgentes">
       <div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Urgentes<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
       <div class="kpi-val" style="color:var(--red)">${urgentes}</div>
       <div class="kpi-sub">clique para tratar</div>
     </div>
-    <div class="kpi yellow" style="cursor:pointer" onclick="filtrarAlertas('warn');${`_scrollToList()`}" title="Ver apenas atenção">
+    <div class="kpi yellow" style="cursor:pointer" onclick="filtrarAlertas('warn');document.getElementById('alertasList').scrollIntoView({behavior:'smooth',block:'start'})" title="Ver apenas atenção">
       <div class="kpi-lbl"><i class="ti ti-bell"></i>Atenção<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
       <div class="kpi-val" style="color:var(--yellow)">${atencao}</div>
       <div class="kpi-sub">clique para ver</div>
     </div>
-    <div class="kpi" style="cursor:pointer" onclick="filtrarAlertas('');${`_scrollToList()`}" title="Ver todos os alertas">
+    <div class="kpi" style="cursor:pointer" onclick="filtrarAlertas('');document.getElementById('alertasList').scrollIntoView({behavior:'smooth',block:'start'})" title="Ver todos os alertas">
       <div class="kpi-lbl"><i class="ti ti-inbox"></i>Total Abertos<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
       <div class="kpi-val">${total}</div>
       <div class="kpi-sub">clique para ver todos</div>
@@ -3944,7 +3942,7 @@ function _renderAlertasStats(){
         <div><div style="font-size:12px;font-weight:600;line-height:1.3">${g.label}</div><div style="font-size:10.5px;color:var(--gray3)">${g.count} alerta${g.count>1?'s':''}</div></div>
       </div>
       <div style="display:flex;gap:5px">
-        <button class="btn-ghost" style="flex:1;font-size:10.5px;padding:5px 4px;justify-content:center;text-align:center" onclick="_filtrarEScrollar('${g.cats[0]}')"><i class="ti ti-list"></i>Ver</button>
+        <button class="btn-ghost" style="flex:1;font-size:10.5px;padding:5px 4px;justify-content:center;text-align:center" onclick="filtrarAlertas('${g.cats[0]}');document.getElementById('alertasList').scrollIntoView({behavior:'smooth',block:'start'})"><i class="ti ti-list"></i>Ver</button>
         <button class="btn-primary" style="flex:2;font-size:10.5px;padding:5px 6px;justify-content:center;text-align:center" onclick="${g.aFn}"><i class="ti ti-bolt"></i>${g.acao}</button>
       </div>
     </div>`).join('')}
