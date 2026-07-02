@@ -1531,15 +1531,27 @@ tr:hover td{background:#fafafa}
 
 <!-- MODAL NOVO ONBOARDING -->
 <div class="modal-ov" id="mNovoOnboarding">
-  <div class="modal">
+  <div class="modal" style="max-width:620px">
     <div class="modal-ttl"><span><i class="ti ti-rocket"></i>Iniciar Onboarding</span><span class="modal-close" onclick="closeM('mNovoOnboarding')"><i class="ti ti-x"></i></span></div>
     <div class="form-g2">
       <div class="fg"><label>Cliente *</label><select id="obCliente"></select></div>
       <div class="fg" style="position:relative"><label>Data de kickoff</label><div class="iw"><input type="text" id="obDataKickoff" placeholder="DD/MM/AAAA" oninput="_textToDP('obDataKickoff','obKickoffPk')"><button class="ib-search" type="button" onclick="_openDP('obKickoffPk')" title="Calendário"><i class="ti ti-calendar"></i></button></div><input type="date" id="obKickoffPk" style="position:absolute;opacity:0;width:1px;height:1px;top:36px;left:0;pointer-events:none" onchange="_dpToText('obDataKickoff','obKickoffPk')"></div>
       <div class="fg" style="position:relative"><label>Prazo de implantação</label><div class="iw"><input type="text" id="obPrazoImpl" placeholder="DD/MM/AAAA" oninput="_textToDP('obPrazoImpl','obPrazoPk')"><button class="ib-search" type="button" onclick="_openDP('obPrazoPk')" title="Calendário"><i class="ti ti-calendar"></i></button></div><input type="date" id="obPrazoPk" style="position:absolute;opacity:0;width:1px;height:1px;top:36px;left:0;pointer-events:none" onchange="_dpToText('obPrazoImpl','obPrazoPk')"></div>
       <div class="fg"><label>Responsável CS</label><select id="obRespCS"><option>Felipe Duarte</option><option>Ana Lima</option><option>Pedro Costa</option></select></div>
+      <div class="fg"><label>Contato principal do cliente</label><input type="text" id="obContato" placeholder="Nome do ponto focal no cliente"></div>
+      <div class="fg"><label>E-mail ou WhatsApp</label><input type="text" id="obContatoInfo" placeholder="email@empresa.com ou (51) 9xxxx-xxxx"></div>
+      <div class="fg"><label>Nº de usuários</label><input type="number" id="obNumUsuarios" placeholder="Ex: 25" min="1" style="width:100%"></div>
+      <div class="fg"><label>Complexidade</label>
+        <select id="obComplexidade">
+          <option value="">— selecione —</option>
+          <option value="Baixa">Baixa — implantação simples, poucos módulos</option>
+          <option value="Média">Média — múltiplos módulos ou integrações</option>
+          <option value="Alta">Alta — grande escala ou customizações</option>
+        </select>
+      </div>
       <div class="fg form-full"><label>Escopo contratado</label><input type="text" id="obEscopo" placeholder="Ex: 120 veículos, Telemetria + Videomonitoramento"></div>
-      <div class="fg form-full"><label>Observações iniciais</label><textarea id="obObs" placeholder="Particularidades, riscos identificados no kickoff..."></textarea></div>
+      <div class="fg form-full"><label>Riscos identificados</label><input type="text" id="obRiscos" placeholder="Ex: equipe do cliente reduzida, integração com ERP legado..."></div>
+      <div class="fg form-full"><label>Observações iniciais</label><textarea id="obObs" rows="2" placeholder="Particularidades e alinhamentos feitos no kickoff..."></textarea></div>
     </div>
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mNovoOnboarding')">Cancelar</button><button class="btn-primary" onclick="salvarOnboarding()"><i class="ti ti-rocket"></i>Iniciar</button></div>
   </div>
@@ -7307,7 +7319,12 @@ function salvarOnboarding() {
     id: 'ob_' + Date.now(), clienteId: cid, empresa: cli.empresa,
     kickoff, prazoImpl: document.getElementById('obPrazoImpl').value,
     responsavel: document.getElementById('obRespCS').value,
+    contato: document.getElementById('obContato').value.trim(),
+    contatoInfo: document.getElementById('obContatoInfo').value.trim(),
+    numUsuarios: document.getElementById('obNumUsuarios').value,
+    complexidade: document.getElementById('obComplexidade').value,
     escopo: document.getElementById('obEscopo').value,
+    riscos: document.getElementById('obRiscos').value.trim(),
     obs: document.getElementById('obObs').value,
     criadoEm: new Date().toISOString(), status: 'em-andamento',
     steps: OB_STEPS_TEMPLATE.map(s => ({ ...s, concluido: false, dataConc: null }))
@@ -7378,7 +7395,19 @@ function renderObCliente() {
   const aLabels = Object.keys(areas);
   const aPcts = aLabels.map(a => Math.round(areas[a].done/areas[a].total*100));
 
+  const complexCor={Baixa:'var(--green)',Média:'var(--blue)',Alta:'var(--red)'};
+  const complexBg={Baixa:'var(--gbg)',Média:'var(--bbg)',Alta:'var(--redl)'};
   cont.innerHTML = `
+    ${(ob.contato||ob.complexidade||ob.numUsuarios||ob.riscos)?`
+    <div class="card" style="margin-bottom:14px;padding:14px 18px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 20px">
+        ${ob.contato?`<div><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-user"></i> Contato</div><div style="font-size:13px;font-weight:600">${ob.contato}</div>${ob.contatoInfo?`<div style="font-size:11.5px;color:var(--blue)">${ob.contatoInfo}</div>`:''}</div>`:''}
+        ${ob.numUsuarios?`<div><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-users"></i> Usuários</div><div style="font-size:13px;font-weight:600">${ob.numUsuarios}</div></div>`:''}
+        ${ob.complexidade?`<div><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-gauge"></i> Complexidade</div><span style="font-size:12px;padding:3px 11px;border-radius:20px;font-weight:600;background:${complexBg[ob.complexidade]||'var(--gray5)'};color:${complexCor[ob.complexidade]||'var(--gray2)'}">${ob.complexidade}</span></div>`:''}
+        ${ob.escopo?`<div style="grid-column:1/-1"><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-file-text"></i> Escopo</div><div style="font-size:12.5px">${ob.escopo}</div></div>`:''}
+        ${ob.riscos?`<div style="grid-column:1/-1"><div style="font-size:10.5px;color:var(--red);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-alert-triangle"></i> Riscos</div><div style="font-size:12.5px;color:var(--gray2)">${ob.riscos}</div></div>`:''}
+      </div>
+    </div>`:''}
     <div class="kpi-grid" style="margin-bottom:14px">
       <div class="kpi ${pct>=100?'green':pct>=60?'blue':'yellow'}">
         <div class="kpi-lbl">Progresso</div>
