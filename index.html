@@ -1869,6 +1869,28 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- MODAL PRIMEIROS 90 DIAS -->
+<div class="modal-ov" id="mP90">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-ttl"><span><i class="ti ti-calendar-time"></i>Registro — Primeiros 90 Dias</span><span class="modal-close" onclick="closeM('mP90')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="p90Cid">
+    <div class="form-g2">
+      <div class="fg"><label>Data</label><input type="date" id="p90DataInput"></div>
+      <div class="fg"><label>Tipo de registro</label>
+        <select id="p90Tipo">
+          <option>Contato inicial</option><option>Check-in 30 dias</option><option>Check-in 60 dias</option>
+          <option>Check-in 90 dias</option><option>Treinamento</option><option>Ajuste de configuração</option>
+          <option>Problema relatado</option><option>Entrega de funcionalidade</option><option>Visita presencial</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="fg form-full"><label>Descrição <span class="req">*</span></label><textarea id="p90Desc" rows="3" placeholder="O que aconteceu? Qual foi o resultado obtido?"></textarea></div>
+      <div class="fg"><label>Responsável CS</label><input type="text" id="p90Resp" placeholder="Nome do responsável"></div>
+      <div class="fg"><label>Próximo passo</label><input type="text" id="p90Prox" placeholder="O que será feito a seguir?"></div>
+    </div>
+    <div class="btn-row"><button class="btn-ghost" onclick="closeM('mP90')">Cancelar</button><button class="btn-primary" onclick="salvarRegistroP90()"><i class="ti ti-device-floppy"></i>Salvar registro</button></div>
+  </div>
+</div>
+
 <!-- MODAL REUNIÃO -->
 <div class="modal-ov" id="mReuniao">
   <div class="modal">
@@ -8675,6 +8697,107 @@ function confirmarMarcoSP(cid,marco){
 }
 
 // ── Página standalone do Plano de Sucesso ─────────────────────
+// ── Primeiros 90 Dias ─────────────────────────────────────────
+function renderP90(cid,plano){
+  const el=document.getElementById('spP90');
+  const subEl=document.getElementById('p90Sub');
+  if(!el)return;
+  const registros=plano.primeiros90||[];
+  let daysElapsed=null;
+  if(plano.marcos?.kickoff){
+    const[d,m,y]=plano.marcos.kickoff.split('/');
+    const kickoffDate=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+    daysElapsed=Math.floor((new Date()-kickoffDate)/86400000);
+  }
+  const pct=daysElapsed!==null?Math.min(100,Math.round(daysElapsed/90*100)):0;
+  const done90=daysElapsed!==null&&daysElapsed>=90;
+  const cor=done90?'var(--green)':'var(--blue)';
+  if(subEl){
+    if(daysElapsed===null){subEl.textContent='Registre o Kickoff para iniciar o contador';subEl.style.color='var(--gray3)';}
+    else if(done90){subEl.textContent=`Período concluído — ${daysElapsed} dias`;subEl.style.color='var(--green)';}
+    else{subEl.textContent=`Dia ${daysElapsed} de 90`;subEl.style.color=daysElapsed>70?'var(--red)':'var(--blue)';}
+  }
+  const progressHtml=daysElapsed!==null?`
+    <div style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--gray3);margin-bottom:5px">
+        <span><i class="ti ti-rocket" style="color:var(--blue)"></i> Kickoff ${plano.marcos.kickoff}</span>
+        <span style="position:relative;left:-8px">30d</span>
+        <span style="position:relative;left:-4px">60d</span>
+        <span><i class="ti ti-star" style="color:var(--yellow)"></i> 90d — 1º NPS</span>
+      </div>
+      <div style="position:relative;height:10px;background:var(--gray4);border-radius:5px;overflow:hidden;margin-bottom:10px">
+        <div style="height:100%;width:${pct}%;background:${cor};border-radius:5px;transition:width .5s"></div>
+        <div style="position:absolute;top:0;left:calc(33.3% - 1px);width:2px;height:100%;background:rgba(255,255,255,.6)"></div>
+        <div style="position:absolute;top:0;left:calc(66.6% - 1px);width:2px;height:100%;background:rgba(255,255,255,.6)"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        ${[{d:30,l:'Check-in 30d'},{d:60,l:'Check-in 60d'},{d:90,l:'Check-in 90d'}].map(cp=>{
+          const cpDone=daysElapsed>=cp.d;
+          const near=!cpDone&&daysElapsed>=cp.d-7;
+          return`<span style="font-size:11px;padding:3px 11px;border-radius:20px;display:flex;align-items:center;gap:4px;background:${cpDone?'var(--gbg)':near?'var(--ybg)':'var(--gray5)'};color:${cpDone?'var(--gtxt)':near?'var(--ytxt)':'var(--gray3)'}">
+            <i class="ti ${cpDone?'ti-check':'ti-clock'}"></i>${cp.l}
+          </span>`;
+        }).join('')}
+        <span style="margin-left:auto;font-size:12px;font-weight:700;color:${cor}">${pct}%</span>
+      </div>
+    </div>`
+  :`<div style="background:var(--ybg);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--ytxt);display:flex;align-items:center;gap:8px">
+      <i class="ti ti-info-circle"></i>Registre o <strong>Kickoff</strong> nos marcos acima para iniciar o contador dos 90 dias.
+    </div>`;
+  const tipoIcon={'Contato inicial':'ti-phone','Check-in 30 dias':'ti-calendar-check','Check-in 60 dias':'ti-calendar-check','Check-in 90 dias':'ti-calendar-check','Treinamento':'ti-school','Ajuste de configuração':'ti-settings','Problema relatado':'ti-alert-triangle','Entrega de funcionalidade':'ti-gift','Visita presencial':'ti-building','Outro':'ti-notes'};
+  const entriesHtml=registros.length
+    ?[...registros].sort((a,b)=>new Date(b.dataISO||0)-new Date(a.dataISO||0)).map(r=>`
+      <div style="display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--gray4)">
+        <div style="width:34px;height:34px;border-radius:9px;background:var(--bbg);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${tipoIcon[r.tipo]||'ti-notes'}" style="color:var(--blue);font-size:15px"></i></div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="font-size:12.5px;font-weight:600">${r.tipo}</span>
+            <span style="font-size:10.5px;color:var(--gray3)">${r.data}</span>
+            ${r.responsavel?`<span style="font-size:10.5px;color:var(--gray3)">· ${r.responsavel}</span>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--gray2);line-height:1.5">${r.descricao}</div>
+          ${r.proxPasso?`<div style="font-size:11px;color:var(--blue);margin-top:4px;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-right" style="font-size:11px"></i>${r.proxPasso}</div>`:''}
+        </div>
+        <button class="btn-ghost" style="padding:4px 7px;font-size:11px;color:var(--red);flex-shrink:0;align-self:flex-start" onclick="removerRegistroP90('${cid}','${r.id}')"><i class="ti ti-trash"></i></button>
+      </div>`).join('')
+    :`<div style="text-align:center;padding:18px 0;color:var(--gray3);font-size:12.5px">
+        <i class="ti ti-notes" style="display:block;font-size:28px;margin-bottom:8px;color:var(--gray4)"></i>
+        Documente cada contato, treinamento e entrega dos primeiros 90 dias.
+      </div>`;
+  el.innerHTML=progressHtml+entriesHtml;
+}
+function abrirModalP90(cid){
+  document.getElementById('p90Cid').value=cid;
+  document.getElementById('p90DataInput').value=new Date().toISOString().slice(0,10);
+  document.getElementById('p90Tipo').selectedIndex=0;
+  document.getElementById('p90Desc').value='';
+  document.getElementById('p90Resp').value=CS_DB.getSession()?.nome||'';
+  document.getElementById('p90Prox').value='';
+  openM('mP90');
+  setTimeout(()=>document.getElementById('p90Desc')?.focus(),80);
+}
+function salvarRegistroP90(){
+  const cid=document.getElementById('p90Cid').value;
+  const desc=document.getElementById('p90Desc').value.trim();
+  if(!desc){toast('Preencha a descrição do registro.','warn');return;}
+  const dateVal=document.getElementById('p90DataInput').value||new Date().toISOString().slice(0,10);
+  const[y,m,d]=dateVal.split('-');
+  const dataBR=`${d}/${m}/${y}`;
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(!plano.primeiros90)plano.primeiros90=[];
+  plano.primeiros90.push({id:'p90_'+Date.now(),data:dataBR,dataISO:new Date(parseInt(y),parseInt(m)-1,parseInt(d)).toISOString(),tipo:document.getElementById('p90Tipo').value,descricao:desc,responsavel:document.getElementById('p90Resp').value.trim(),proxPasso:document.getElementById('p90Prox').value.trim()});
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  closeM('mP90');
+  renderP90(cid,plano);
+  toast('Registro dos primeiros 90 dias salvo!');
+}
+function removerRegistroP90(cid,id){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  plano.primeiros90=(plano.primeiros90||[]).filter(r=>r.id!==id);
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderP90(cid,plano);
+}
+
 function populatePSSelect(){
   const s=document.getElementById('psCliente');if(!s)return;
   const cl=CS_DB.getClientes();
@@ -8752,6 +8875,15 @@ function renderPaginaPS(){
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="spMarcos"></div>
     </div>
 
+    <!-- Primeiros 90 Dias -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-ttl"><i class="ti ti-calendar-time"></i>Primeiros 90 Dias
+        <span class="sub" id="p90Sub"></span>
+        <button class="btn-ghost" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="abrirModalP90('${cid}')"><i class="ti ti-plus"></i>Registrar</button>
+      </div>
+      <div id="spP90"></div>
+    </div>
+
     <!-- Metas -->
     <div class="card" style="margin-bottom:14px">
       <div class="card-ttl"><i class="ti ti-target"></i>Metas do plano
@@ -8793,6 +8925,7 @@ function renderPaginaPS(){
   const guiaEl=document.getElementById('spGuia');
   if(guiaEl)guiaEl.innerHTML=_guiaSPHtml(cid,!metasTot);
   renderPlanoSucesso(cid);
+  renderP90(cid,plano);
 }
 </script>
 <script>
