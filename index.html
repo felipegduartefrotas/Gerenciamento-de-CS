@@ -1877,7 +1877,7 @@ tr:hover td{background:#fafafa}
     <div class="form-g2">
       <div class="fg"><label>Cliente</label><select id="rCliente"></select></div>
       <div class="fg" style="position:relative"><label>Data</label><div class="iw"><input type="text" id="rData" placeholder="DD/MM/AAAA" oninput="_textToDP('rData','rDataPk')"><button class="ib-search" type="button" onclick="_openDP('rDataPk')" title="Calendário"><i class="ti ti-calendar"></i></button></div><input type="date" id="rDataPk" style="position:absolute;opacity:0;width:1px;height:1px;top:36px;left:0;pointer-events:none" onchange="_dpToText('rData','rDataPk')"></div>
-      <div class="fg"><label>Tipo</label><select id="rTipo"><option>QBR</option><option>Revisão Mensal</option><option>Emergência</option><option>Onboarding</option><option>Renovação</option></select></div>
+      <div class="fg"><label>Tipo</label><select id="rTipo"><option>Kickoff</option><option>Go-live</option><option>QBR</option><option>Revisão Mensal</option><option>Emergência</option><option>Onboarding</option><option>Renovação</option></select></div>
       <div class="fg"><label>Duração</label><select id="rDur"><option>30 min</option><option>1 hora</option><option>1h30</option><option>2 horas</option></select></div>
       <div class="fg form-full">
         <label>Participantes — Creare Sistemas</label>
@@ -1940,6 +1940,7 @@ tr:hover td{background:#fafafa}
         </div>
       </div>
     </div>
+    <input type="hidden" id="rMarcoId"><input type="hidden" id="rMarcoCid">
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mReuniao')">Cancelar</button><button class="btn-primary" onclick="salvarReuniao()"><i class="ti ti-device-floppy"></i>Salvar reunião</button></div>
   </div>
 </div>
@@ -2005,6 +2006,7 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>Canal</label><select><option>Reunião</option><option>E-mail</option><option>WhatsApp</option><option>Pesquisa online</option></select></div>
       <div class="fg"><label>CS Responsável</label><select><option>Felipe Duarte</option><option>Ana Lima</option><option>Pedro Costa</option></select></div>
     </div>
+    <input type="hidden" id="npsMarcoId"><input type="hidden" id="npsMarcoCid">
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mNPS')">Cancelar</button><button class="btn-primary" onclick="salvarNPS()"><i class="ti ti-device-floppy"></i>Registrar NPS</button></div>
   </div>
 </div>
@@ -4684,6 +4686,8 @@ function _resetMReuniao(){
   document.getElementById('rBtnGravarTxt').textContent='Gravar';
   if(_rMediaRec&&_rMediaRec.state==='recording')try{_rMediaRec.stop()}catch(e){}
   clearInterval(_rTimerInt);
+  const mi=document.getElementById('rMarcoId');const mc=document.getElementById('rMarcoCid');
+  if(mi)mi.value='';if(mc)mc.value='';
 }
 async function salvarReuniao(){
   const cid=document.getElementById('rCliente').value;
@@ -4704,6 +4708,10 @@ async function salvarReuniao(){
   const reuSalva=CS_DB.saveReuniao(reu);closeM('mReuniao');toast(`Reunião ${reu.tipo} ${isEdit?'atualizada':'salva'}! NPS, HS e Timeline atualizados.`);
   renderDashboard();renderReunioes();updateStatusBar();
   resetParticipantes();
+  // Marca marco do Plano de Sucesso se esta reunião foi aberta a partir de um marco
+  const pendingMarco=document.getElementById('rMarcoId')?.value;
+  const pendingMarcoCid=document.getElementById('rMarcoCid')?.value;
+  if(!isEdit&&pendingMarco&&pendingMarcoCid){_marcarMarcoSP(pendingMarcoCid,pendingMarco);document.getElementById('rMarcoId').value='';document.getElementById('rMarcoCid').value='';}
   if(!isEdit)setTimeout(()=>_abrirProximoPasso(cid,cli?.empresa||'',reu.tipo),400);
   if(_rAudioBlob){
     try{
@@ -6044,8 +6052,11 @@ function salvarNPS(){
   if(!notaBtn){toast('Selecione uma nota NPS de 0 a 10.','err');return;}
   const nota=parseInt(notaBtn.textContent);const g=npsGrupo(nota);
   CS_DB.saveNPS({clienteId:cid,empresa:cli?.empresa||'',nota,respondente:document.getElementById('npsResp').value||'N/A',cargo:document.getElementById('npsCargoR').value||'',comentario:document.getElementById('npsComent').value||'',data:new Date().toLocaleDateString('pt-BR'),dataISO:new Date().toISOString(),cs:CS_DB.getSession()?.nome||'Felipe Duarte'});
+  const pendingNPSMarco=document.getElementById('npsMarcoId')?.value;
+  const pendingNPSMarcoCid=document.getElementById('npsMarcoCid')?.value;
   closeM('mNPS');toast(`NPS ${nota}/10 (${g.g}) registrado para ${cli?.empresa}!`);renderNPSPage();renderDashboard();updateStatusBar();
   populateNPSClienteSelect();
+  if(pendingNPSMarco&&pendingNPSMarcoCid){_marcarMarcoSP(pendingNPSMarcoCid,pendingNPSMarco);document.getElementById('npsMarcoId').value='';document.getElementById('npsMarcoCid').value='';}
   if(document.getElementById('npsAbaCliente')&&document.getElementById('npsAbaCliente').style.display!=='none')renderNPSCliente();
 }
 
@@ -8620,18 +8631,43 @@ function removerMetaSP(cid,idx){
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
   renderPlanoSucesso(cid);
 }
-function registrarMarcoSP(cid,marco,btnEl){
-  const wrap=btnEl.parentElement;
-  wrap.innerHTML=`<input type="date" id="marcoDate_${marco}" style="font-size:10.5px;padding:3px 6px;border:1px solid var(--gray4);border-radius:6px;width:130px" value="${new Date().toISOString().slice(0,10)}"><button class="btn-primary" style="font-size:10px;padding:3px 8px;margin-left:4px" onclick="confirmarMarcoSP('${cid}','${marco}')"><i class="ti ti-check"></i></button><button class="btn-ghost" style="font-size:10px;padding:3px 6px" onclick="renderPlanoSucesso('${cid}')"><i class="ti ti-x"></i></button>`;
-}
-function confirmarMarcoSP(cid,marco){
-  const inp=document.getElementById('marcoDate_'+marco);
-  if(!inp||!inp.value){toast('Informe a data.','warn');return;}
-  const [y,m,d]=inp.value.split('-');
-  const data=`${d}/${m}/${y}`;
+function _marcarMarcoSP(cid,marcoId){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
   if(!plano.marcos)plano.marcos={};
-  plano.marcos[marco]=data;
+  plano.marcos[marcoId]=new Date().toLocaleDateString('pt-BR');
+  localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  renderPlanoSucesso(cid);
+  if(document.getElementById('psCliente')?.value===cid)renderPaginaPS();
+}
+function registrarMarcoSP(cid,marcoId){
+  const labels={kickoff:'Kickoff',go_live:'Go-live',primeiro_nps:'1º NPS',renovacao:'Renovação'};
+  if(marcoId==='kickoff'||marcoId==='go_live'||marcoId==='renovacao'){
+    // Abre modal de reunião pré-preenchido
+    const tipoMap={kickoff:'Kickoff',go_live:'Go-live',renovacao:'Renovação'};
+    document.getElementById('rMarcoId').value=marcoId;
+    document.getElementById('rMarcoCid').value=cid;
+    const s=document.getElementById('rCliente');
+    s.innerHTML=CS_DB.getClientes().map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+    s.value=cid;
+    document.getElementById('rTipo').value=tipoMap[marcoId];
+    document.getElementById('rData').value=new Date().toLocaleDateString('pt-BR');
+    openM('mReuniao');
+    toast(`Registre a reunião de ${labels[marcoId]} — ao salvar, o marco será marcado automaticamente.`,'info');
+  } else if(marcoId==='primeiro_nps'){
+    // Abre modal NPS pré-preenchido
+    document.getElementById('npsMarcoId').value=marcoId;
+    document.getElementById('npsMarcoCid').value=cid;
+    const s=document.getElementById('npsCliente');
+    s.innerHTML=CS_DB.getClientes().map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+    s.value=cid;
+    openM('mNPS');
+    toast('Registre o NPS do cliente — ao salvar, o marco será marcado automaticamente.','info');
+  }
+}
+function confirmarMarcoSP(cid,marco){
+  const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
+  if(!plano.marcos)plano.marcos={};
+  plano.marcos[marco]=new Date().toLocaleDateString('pt-BR');
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
   renderPlanoSucesso(cid);
   renderPaginaPS();

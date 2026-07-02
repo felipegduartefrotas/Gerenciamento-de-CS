@@ -1399,7 +1399,7 @@ tr:hover td{background:#fafafa}
     <div class="form-g2">
       <div class="fg"><label>Cliente</label><select id="rCliente"></select></div>
       <div class="fg"><label>Data</label><input type="text" id="rData"></div>
-      <div class="fg"><label>Tipo</label><select id="rTipo"><option>QBR</option><option>Revisão Mensal</option><option>Emergência</option><option>Onboarding</option><option>Renovação</option></select></div>
+      <div class="fg"><label>Tipo</label><select id="rTipo"><option>Kickoff</option><option>Go-live</option><option>QBR</option><option>Revisão Mensal</option><option>Emergência</option><option>Onboarding</option><option>Renovação</option></select></div>
       <div class="fg"><label>Duração</label><select id="rDur"><option>30 min</option><option>1 hora</option><option>1h30</option><option>2 horas</option></select></div>
       <div class="fg form-full">
         <label>Participantes — Creare Sistemas</label>
@@ -1464,6 +1464,7 @@ tr:hover td{background:#fafafa}
       <audio id="rAudioPlayer" controls style="width:100%;height:32px"></audio>
       <div style="font-size:10.5px;color:var(--gray3);margin-top:7px">Será salvo vinculado a esta reunião ao clicar em "Salvar reunião".</div>
     </div>
+    <input type="hidden" id="rMarcoId"><input type="hidden" id="rMarcoCid">
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mReuniao')">Cancelar</button><button class="btn-primary" onclick="salvarReuniao()"><i class="ti ti-device-floppy"></i>Salvar reunião</button></div>
   </div>
 </div>
@@ -1499,6 +1500,7 @@ tr:hover td{background:#fafafa}
       <div class="fg"><label>Canal</label><select><option>Reunião</option><option>E-mail</option><option>WhatsApp</option><option>Pesquisa online</option></select></div>
       <div class="fg"><label>CS Responsável</label><select><option>Felipe Duarte</option><option>Ana Lima</option><option>Pedro Costa</option></select></div>
     </div>
+    <input type="hidden" id="npsMarcoId"><input type="hidden" id="npsMarcoCid">
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mNPS')">Cancelar</button><button class="btn-primary" onclick="salvarNPS()"><i class="ti ti-device-floppy"></i>Registrar NPS</button></div>
   </div>
 </div>
@@ -2348,9 +2350,12 @@ async function salvarReuniao(){
       }catch(ae){console.warn('Erro ao salvar áudio da reunião:',ae);}
       rDescartarAudio();
     }
+    const pendingMarco=document.getElementById('rMarcoId')?.value;
+    const pendingMarcoCid=document.getElementById('rMarcoCid')?.value;
     closeM('mReuniao');toast(`Reunião ${reu.tipo} salva! NPS, HS e Timeline atualizados.`);
     renderDashboard();renderReunioes();updateStatusBar();
     resetParticipantes();
+    if(pendingMarco&&pendingMarcoCid){_marcarMarcoSPV4(pendingMarcoCid,pendingMarco);document.getElementById('rMarcoId').value='';document.getElementById('rMarcoCid').value='';}
   }catch(e){ toast('Erro ao salvar reunião: '+e.message,'err'); }
 }
 
@@ -3117,8 +3122,11 @@ async function salvarNPS(){
   const nota=parseInt(notaBtn.textContent);const g=npsGrupo(nota);
   try{
     await CS_DB.saveNPS({clienteId:cid,empresa:cli?.empresa||'',nota,respondente:document.getElementById('npsResp').value||'N/A',cargo:document.getElementById('npsCargoR').value||'',comentario:document.getElementById('npsComent').value||''});
+    const pendingNPSMarco=document.getElementById('npsMarcoId')?.value;
+    const pendingNPSMarcoCid=document.getElementById('npsMarcoCid')?.value;
     closeM('mNPS');toast(`NPS ${nota}/10 (${g.g}) registrado para ${cli?.empresa}!`);renderNPSPage();renderDashboard();updateStatusBar();
     populateNPSClienteSelect();
+    if(pendingNPSMarco&&pendingNPSMarcoCid){_marcarMarcoSPV4(pendingNPSMarcoCid,pendingNPSMarco);document.getElementById('npsMarcoId').value='';document.getElementById('npsMarcoCid').value='';}
     if(document.getElementById('npsAbaCliente')&&document.getElementById('npsAbaCliente').style.display!=='none')renderNPSCliente();
   }catch(e){ toast('Erro ao registrar NPS: '+e.message,'err'); }
 }
@@ -4831,13 +4839,35 @@ function removerMetaSPV4(cid,idx){
   plano.metas.splice(idx,1);
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));renderPlanoSucessoV4(cid);toast('Meta removida.');
 }
-function registrarMarcoSPV4(cid,marcoId,wrapEl){
-  const hoje=new Date().toLocaleDateString('pt-BR');
+function _marcarMarcoSPV4(cid,marcoId){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
   if(!plano.marcos)plano.marcos={};
-  plano.marcos[marcoId]=hoje;
+  plano.marcos[marcoId]=new Date().toLocaleDateString('pt-BR');
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
-  renderPlanoSucessoV4(cid);toast('Marco registrado!');
+  renderPlanoSucessoV4(cid);
+  if(document.getElementById('psCliente')?.value===cid)renderPaginaPSV4();
+}
+function registrarMarcoSPV4(cid,marcoId){
+  const labels={kickoff:'Kickoff',go_live:'Go-live',primeiro_nps:'1º NPS',renovacao:'Renovação'};
+  if(marcoId==='kickoff'||marcoId==='go_live'||marcoId==='renovacao'){
+    const tipoMap={kickoff:'Kickoff',go_live:'Go-live',renovacao:'Renovação'};
+    document.getElementById('rMarcoId').value=marcoId;
+    document.getElementById('rMarcoCid').value=cid;
+    const s=document.getElementById('rCliente');
+    s.innerHTML=CS_DB.getClientes().map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+    s.value=cid;
+    document.getElementById('rTipo').value=tipoMap[marcoId];
+    openM('mReuniao');
+    toast(`Registre a reunião de ${labels[marcoId]} — ao salvar, o marco será marcado automaticamente.`,'info');
+  } else if(marcoId==='primeiro_nps'){
+    document.getElementById('npsMarcoId').value=marcoId;
+    document.getElementById('npsMarcoCid').value=cid;
+    const s=document.getElementById('npsCliente');
+    s.innerHTML=CS_DB.getClientes().map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+    s.value=cid;
+    openM('mNPS');
+    toast('Registre o NPS do cliente — ao salvar, o marco será marcado automaticamente.','info');
+  }
 }
 function maskDataMeta(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5,9);el.value=v;}
 
