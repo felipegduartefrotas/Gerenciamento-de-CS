@@ -1330,9 +1330,9 @@ tr:hover td{background:#fafafa}
     <input type="hidden" id="v3uId">
     <div class="form-g2">
       <div class="fg form-full"><label>Nome completo *</label><input type="text" id="v3uNome" placeholder="Ex: João Silva"></div>
-      <div class="fg form-full"><label>E-mail</label><input type="email" id="v3uEmail" placeholder="joao@empresa.com"></div>
+      <div class="fg form-full"><label>E-mail *</label><input type="email" id="v3uEmail" placeholder="joao@empresa.com"></div>
       <div class="fg"><label>Perfil</label><select id="v3uPapel"><option value="consultor">Consultor CS</option><option value="gerencial">Gerencial</option><option value="admin">Administrador</option></select></div>
-      <div class="fg"><label>Senha</label><input type="password" id="v3uSenha" placeholder="Opcional"></div>
+      <div class="fg"><label id="v3uSenhaLabel">Senha * <span style="font-weight:400;font-size:10.5px;color:var(--gray3)">(mín. 8 caracteres)</span></label><input type="password" id="v3uSenha" placeholder="Mín. 8 caracteres"></div>
     </div>
     <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:16px">
       <button class="btn-ghost" onclick="closeM('mV3Usuario')">Cancelar</button>
@@ -2879,6 +2879,10 @@ function toggleSidebar(){
   ov.classList.toggle('open');
 }
 function nav(el,p){
+  // Guarda de acesso: consultor não acessa Configurações
+  if(p==='config'&&_getPapelAtual()==='consultor'){
+    toast('Acesso restrito. Contate o administrador.','err');return;
+  }
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
@@ -3420,17 +3424,45 @@ const _BR_CIDADE_COORDS={
   'Santo André|SP':[-23.663,-46.533],'Osasco|SP':[-23.533,-46.791],
   'Guarulhos|SP':[-23.462,-46.533],'Belford Roxo|RJ':[-22.764,-43.400]
 };
+// Cache de coords de cidades geocodificadas din\u00e2micamente
+var _geoCityCache=null;
+function _getGeoCityCache(){if(!_geoCityCache){try{_geoCityCache=JSON.parse(localStorage.getItem('_csm_geo_city')||'{}');}catch(e){_geoCityCache={};}}return _geoCityCache;}
+function _saveGeoCityCache(){try{localStorage.setItem('_csm_geo_city',JSON.stringify(_geoCityCache));}catch(e){}}
+
 function _getClienteCoords(c){
   const cidade=(c.cidade||'').trim();
   const uf=(c.uf||'').trim().toUpperCase();
+  if(!cidade&&!uf)return null;
   const key=cidade+'|'+uf;
+  // 1. Tabela est\u00e1tica (exata)
   if(_BR_CIDADE_COORDS[key])return _BR_CIDADE_COORDS[key];
+  // 2. Tabela est\u00e1tica normalizada (acento/case)
   const _strip=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const norm=_strip(cidade);
   for(const[k,v]of Object.entries(_BR_CIDADE_COORDS)){
     const[kC,kU]=k.split('|');
-    if(kU===uf&&_strip(kC)===norm)return v;
+    if(kU===uf&&_strip(kC)===norm){_BR_CIDADE_COORDS[key]=v;return v;}
   }
+  // 3. Cache din\u00e2mico de Nominatim
+  const cache=_getGeoCityCache();
+  if(cache[key])return cache[key];
+  // 4. Dispara geocodifica\u00e7\u00e3o ass\u00edncrona; retorna coord da UF enquanto aguarda
+  if(cidade&&!cache[key+'_pending']){
+    cache[key+'_pending']=true;
+    const q=cidade+(uf?', '+uf:'')+', Brasil';
+    fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&limit=1&q='+encodeURIComponent(q),{headers:{'Accept-Language':'pt-BR'}})
+      .then(r=>r.json()).then(data=>{
+        if(data&&data[0]){
+          const coords=[parseFloat(data[0].lat),parseFloat(data[0].lon)];
+          cache[key]=coords;delete cache[key+'_pending'];
+          _saveGeoCityCache();
+          // Atualiza mapas abertos
+          if(_clienteMap)renderDashMap();
+          if(window._agdMap)renderAgendaMapa();
+        }
+      }).catch(()=>{delete cache[key+'_pending'];});
+  }
+  // Fallback imediato: capital da UF
   if(_BR_UF_COORDS[uf])return[..._BR_UF_COORDS[uf]];
   return null;
 }
@@ -6619,6 +6651,8 @@ function abrirNovoUsuarioV3(){
   document.getElementById('v3uPapel').value='consultor';
   document.getElementById('v3uSenha').value='';
   document.getElementById('v3UserModalTitulo').textContent='Novo Usuário';
+  const lbl=document.getElementById('v3uSenhaLabel');
+  if(lbl)lbl.innerHTML='Senha * <span style="font-weight:400;font-size:10.5px;color:var(--gray3)">(mín. 8 caracteres)</span>';
   openM('mV3Usuario');
 }
 function editarUsuarioV3(idx){
@@ -6629,6 +6663,8 @@ function editarUsuarioV3(idx){
   document.getElementById('v3uPapel').value=u.papel||'consultor';
   document.getElementById('v3uSenha').value='';
   document.getElementById('v3UserModalTitulo').textContent='Editar Usuário';
+  const lbl=document.getElementById('v3uSenhaLabel');
+  if(lbl)lbl.innerHTML='Nova senha <span style="font-weight:400;font-size:10.5px;color:var(--gray3)">(deixe em branco para manter)</span>';
   openM('mV3Usuario');
 }
 function salvarUsuarioV3(){
@@ -6640,6 +6676,10 @@ function salvarUsuarioV3(){
   const idx=document.getElementById('v3uId').value;
   const existente=idx!==''?users[parseInt(idx)]:{};
   const senha=document.getElementById('v3uSenha').value;
+  // Novo usuário sem senha não consegue logar — obrigar preenchimento
+  if(idx===''&&!senha){toast('Defina uma senha para o usuário.','err');document.getElementById('v3uSenha').focus();return;}
+  if(senha&&senha.length<8){toast('A senha deve ter ao menos 8 caracteres.','err');return;}
+  if(!email){toast('Informe o e-mail do usuário.','err');return;}
   const obj={nome,email,papel,ativo:existente.ativo!==false,senhaHash:senha?_hashSenha(senha):(existente.senhaHash||'')};
   if(idx!==''){users[parseInt(idx)]=obj;}else{users.push(obj);}
   _saveUsuariosV3(users);closeM('mV3Usuario');renderUsuariosV3();_aplicarRestricoesPapel();toast('Usuário salvo!');
