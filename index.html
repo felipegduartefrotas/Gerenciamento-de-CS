@@ -3902,13 +3902,53 @@ function _renderAlertasStats(){
     {label:'Reuniões',cats:['reuniao_hoje','reuniao_atrasada'],cor:'rgba(26,111,219,.6)'},
   ].map(g=>({...g,count:alertasAtuais.filter(a=>g.cats.includes(a.categoria)).length})).filter(g=>g.count>0);
   const el=document.getElementById('alertasStats');if(!el)return;
+  const _scrollToList=()=>setTimeout(()=>document.getElementById('alertasList')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
+  const _filtrarEScrollar=(cat)=>{filtrarAlertas(cat);_scrollToList();};
+  const _atalhosCat=[
+    {cats:['sem_contato','sem_reuniao'],label:'Sem contato há 30d+',ic:'ti-clock',cor:'var(--blue)',bg:'var(--bbg)',acao:'Agendar reunião',aFn:`nav(document.querySelector('[data-p=reunioes]'),'reunioes');setTimeout(()=>openM('mReuniao'),120)`},
+    {cats:['hs_baixo'],label:'Health Score baixo',ic:'ti-heart-rate-monitor',cor:'var(--yellow)',bg:'var(--ybg)',acao:'Ver Dashboard 360',aFn:`nav(document.querySelector('[data-p=cliente360]'),'cliente360')`},
+    {cats:['nps_critico','nps_queda'],label:'NPS crítico / queda',ic:'ti-star-off',cor:'#8b5cf6',bg:'#f0eafa',acao:'Registrar NPS',aFn:`openM('mNPS')`},
+    {cats:['churn_critico','churn_alto'],label:'Risco de churn',ic:'ti-trending-down',cor:'var(--red)',bg:'var(--redl)',acao:'Ver Churn',aFn:`nav(document.querySelector('[data-p=churn]'),'churn')`},
+    {cats:['renovacao','vencido'],label:'Renovação próxima',ic:'ti-calendar-exclamation',cor:'var(--ytxt)',bg:'var(--ybg)',acao:'Ver Pipeline',aFn:`nav(document.querySelector('[data-p=pipeline]'),'pipeline')`},
+    {cats:['acoes_atrasadas'],label:'Ações atrasadas',ic:'ti-clipboard-x',cor:'var(--red)',bg:'var(--redl)',acao:'Ver Planos',aFn:`nav(document.querySelector('[data-p=planos]'),'planos')`},
+  ].map(g=>({...g,count:alertasAtuais.filter(a=>g.cats.includes(a.categoria)).length})).filter(g=>g.count>0);
   el.innerHTML=`
-  <div class="kpi-grid" style="margin-bottom:14px">
-    <div class="kpi red"><div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Urgentes</div><div class="kpi-val" style="color:var(--red)">${urgentes}</div><div class="kpi-sub">ação imediata</div></div>
-    <div class="kpi yellow"><div class="kpi-lbl"><i class="ti ti-bell"></i>Atenção</div><div class="kpi-val" style="color:var(--yellow)">${atencao}</div><div class="kpi-sub">monitorar</div></div>
-    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-inbox"></i>Total Abertos</div><div class="kpi-val">${total}</div><div class="kpi-sub">alertas ativos</div></div>
-    <div class="kpi ${slaMedia===null?'':slaMedia<=240?'green':'red'}"><div class="kpi-lbl"><i class="ti ti-clock-check"></i>SLA Médio</div><div class="kpi-val" style="color:${_slaCor(slaMedia)}">${_formatSLA(slaMedia)}</div><div class="kpi-sub">${fechados.length} tratados</div></div>
+  <div class="kpi-grid" style="margin-bottom:10px">
+    <div class="kpi red" style="cursor:pointer" onclick="filtrarAlertas('danger');${`_scrollToList()`}" title="Ver apenas urgentes">
+      <div class="kpi-lbl"><i class="ti ti-alert-triangle"></i>Urgentes<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
+      <div class="kpi-val" style="color:var(--red)">${urgentes}</div>
+      <div class="kpi-sub">clique para tratar</div>
+    </div>
+    <div class="kpi yellow" style="cursor:pointer" onclick="filtrarAlertas('warn');${`_scrollToList()`}" title="Ver apenas atenção">
+      <div class="kpi-lbl"><i class="ti ti-bell"></i>Atenção<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
+      <div class="kpi-val" style="color:var(--yellow)">${atencao}</div>
+      <div class="kpi-sub">clique para ver</div>
+    </div>
+    <div class="kpi" style="cursor:pointer" onclick="filtrarAlertas('');${`_scrollToList()`}" title="Ver todos os alertas">
+      <div class="kpi-lbl"><i class="ti ti-inbox"></i>Total Abertos<i class="ti ti-arrow-right" style="margin-left:auto;font-size:10px;opacity:.5"></i></div>
+      <div class="kpi-val">${total}</div>
+      <div class="kpi-sub">clique para ver todos</div>
+    </div>
+    <div class="kpi ${slaMedia===null?'':slaMedia<=240?'green':'red'}">
+      <div class="kpi-lbl"><i class="ti ti-clock-check"></i>SLA Médio</div>
+      <div class="kpi-val" style="color:${_slaCor(slaMedia)}">${_formatSLA(slaMedia)}</div>
+      <div class="kpi-sub">${fechados.length} tratados</div>
+    </div>
   </div>
+  ${_atalhosCat.length?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;background:var(--gray6);border-radius:10px;border:1px solid var(--gray4)">
+    <span style="font-size:11px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:.04em;width:100%;margin-bottom:2px"><i class="ti ti-bolt"></i> Ações Rápidas por Categoria</span>
+    ${_atalhosCat.map(g=>`<div style="display:flex;align-items:center;gap:8px;background:var(--white);border:1px solid var(--gray4);border-radius:10px;padding:8px 12px;flex:1;min-width:180px">
+      <div style="width:32px;height:32px;border-radius:8px;background:${g.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${g.ic}" style="color:${g.cor};font-size:14px"></i></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600">${g.label}</div>
+        <div style="font-size:10.5px;color:var(--gray3)">${g.count} alerta${g.count>1?'s':''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+        <button class="btn-ghost" style="font-size:10.5px;padding:3px 8px;white-space:nowrap" onclick="_filtrarEScrollar('${g.cats[0]}')"><i class="ti ti-list"></i>Ver</button>
+        <button class="btn-primary" style="font-size:10.5px;padding:3px 8px;white-space:nowrap" onclick="${g.aFn}"><i class="ti ti-bolt"></i>${g.acao}</button>
+      </div>
+    </div>`).join('')}
+  </div>`:''}
   <div class="two-col" style="margin-bottom:14px">
     <div class="card" style="margin-bottom:0">
       <div class="card-ttl"><i class="ti ti-chart-bar"></i>Alertas Abertos por Categoria</div>
@@ -8433,6 +8473,10 @@ function renderCliente360(){
   const engScore=calcEngScore(c);
   const acPend=ac.filter(a=>a.status!=='Concluído');
   const acConc=ac.filter(a=>a.status==='Concluído');
+  const obData=(CS_DB.get('onboardings')||[]).find(o=>o.clienteId===cid);
+  const obPct=obData?calcObPct(obData):null;
+  const obSteps=obData?obData.steps||[]:[];
+  const obConcStep=obSteps.filter(s=>s.concluido).length;
 
   document.getElementById('c360Content').innerHTML=`
     <div class="flt-row" style="margin-bottom:14px">
@@ -8443,9 +8487,28 @@ function renderCliente360(){
     <div class="kpi-grid">
       <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}" data-tooltip="Saúde geral da conta (0–100).&#10;Calculado com NPS, reuniões, ações e onboarding.&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
       <div class="kpi blue" data-tooltip="NPS consolidado deste cliente.&#10;Fórmula: % Promotores (9–10) − % Detratores (0–6).&#10;&lt;0 Crítico · 0–49 Neutro · 50–74 Bom · ≥75 Excelente"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
-      <div class="kpi ${churnScore>=40?'red':'green'}" data-tooltip="Probabilidade estimada de cancelamento (0–100%).&#10;Calculado com HS, NPS, inatividade e status.&#10;&lt;20% Baixo · 20–39% Médio · ≥40% Alto risco"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnScore}%</div><div class="kpi-sub">${churnLb.label}</div></div>
+      <div class="kpi ${churnScore>=40?'red':'green'}" data-tooltip="Probabilidade estimada de cancelamento (0–100%).&#10;Calculado com HS, NPS, inatividade e status.&#10;&lt;20% Baixo · 20–39% Médio · ≥40% Alto risco"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnLb.cor==='var(--red)'?churnScore+'%':churnScore+'%'}</div><div class="kpi-sub">${churnLb.label}</div></div>
       <div class="kpi gray" data-tooltip="Score de Engajamento (0–100).&#10;Mede frequência de contato, NPS e ações concluídas.&#10;≥70 Alto · 40–69 Médio · &lt;40 Baixo"><div class="kpi-lbl"><i class="ti ti-activity"></i>Engajamento</div><div class="kpi-val">${engScore}</div><div class="kpi-sub">${reu.length} reuniões totais</div></div>
+      ${obData?`<div class="kpi ${obData.status==='concluido'?'green':obPct>=50?'blue':'yellow'}" style="cursor:pointer" onclick="nav(document.querySelector('[data-p=onboarding]'),'onboarding')" data-tooltip="Onboarding deste cliente.&#10;Clique para ver detalhes e etapas.">
+        <div class="kpi-lbl"><i class="ti ti-rocket"></i>Onboarding</div>
+        <div class="kpi-val" style="color:${obData.status==='concluido'?'var(--green)':obPct>=50?'var(--blue)':'var(--yellow)'}">${obPct}%</div>
+        <div class="kpi-sub">${obData.status==='concluido'?'Concluído ✓':obConcStep+'/'+obSteps.length+' etapas'}</div>
+      </div>`:`<div class="kpi gray" style="cursor:pointer;opacity:.7" onclick="nav(document.querySelector('[data-p=onboarding]'),'onboarding')" data-tooltip="Nenhum onboarding registrado.&#10;Clique para iniciar.">
+        <div class="kpi-lbl"><i class="ti ti-rocket"></i>Onboarding</div>
+        <div class="kpi-val" style="color:var(--gray3)">—</div>
+        <div class="kpi-sub">não iniciado</div>
+      </div>`}
     </div>
+    ${obData?`<div style="background:${obData.status==='concluido'?'var(--gbg)':obPct>=70?'var(--bbg)':obPct>=30?'var(--ybg)':'var(--redl)'};border-radius:10px;padding:10px 16px;margin-top:12px;display:flex;align-items:center;gap:14px">
+      <i class="ti ti-rocket" style="font-size:20px;color:${obData.status==='concluido'?'var(--green)':obPct>=70?'var(--blue)':obPct>=30?'var(--ytxt)':'var(--red)'};flex-shrink:0"></i>
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:4px">Onboarding ${obData.status==='concluido'?'concluído':obPct+'% concluído — '+obConcStep+' de '+obSteps.length+' etapas'}</div>
+        <div style="height:6px;background:rgba(0,0,0,.1);border-radius:3px;overflow:hidden"><div style="height:100%;width:${obPct}%;background:${obData.status==='concluido'?'var(--green)':obPct>=70?'var(--blue)':obPct>=30?'var(--ytxt)':'var(--red)'};border-radius:3px;transition:width .5s"></div></div>
+        ${obData.kickoff?`<div style="font-size:11px;margin-top:4px;opacity:.75">Kickoff: ${obData.kickoff}${obData.prazoImpl?' · Prazo: '+obData.prazoImpl:''}${obData.responsavel?' · CS: '+obData.responsavel:''}</div>`:''}
+      </div>
+      <button class="btn-ghost" style="font-size:11.5px;padding:5px 11px;flex-shrink:0" onclick="nav(document.querySelector('[data-p=onboarding]'),'onboarding')"><i class="ti ti-arrow-right"></i>Ver etapas</button>
+    </div>`:''}
+
     <div class="two-col">
       <div class="card" style="margin-bottom:0">
         <div class="card-ttl"><i class="ti ti-building"></i>Dados da conta</div>
