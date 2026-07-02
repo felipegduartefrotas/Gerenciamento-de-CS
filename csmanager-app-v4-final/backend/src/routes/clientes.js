@@ -11,7 +11,7 @@ const CAMPOS = [
   'contato','cargo','email','telefone','responsavel_cs','responsavel_comercial',
   'tier','status','mensalidade_por_veiculo','taxa_adesao_por_veiculo','mrr','veiculos',
   'inicio','data_assinatura','vigencia','produtos','health_score','ultimo_nps',
-  'data_renovacao','renovacao',
+  'data_renovacao','renovacao','grupo_id','tipo_no_grupo',
 ];
 
 router.get('/', async (req, res) => {

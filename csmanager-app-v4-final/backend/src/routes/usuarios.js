@@ -27,7 +27,7 @@ router.post('/', async (req, res) => {
       `INSERT INTO usuarios (nome, email, senha_hash, papel)
        VALUES ($1, $2, $3, $4)
        RETURNING id, nome, email, papel, ativo, criado_em`,
-      [nome, email.trim().toLowerCase(), hash, papel === 'admin' ? 'admin' : 'consultor']
+      [nome, email.trim().toLowerCase(), hash, ['admin','gerencial','consultor'].includes(papel) ? papel : 'consultor']
     );
     res.status(201).json(rows[0]);
   } catch (e) {
@@ -45,7 +45,7 @@ router.patch('/:id', async (req, res) => {
   const valores = [];
   let i = 1;
   if (nome !== undefined) { campos.push(`nome = $${i++}`); valores.push(nome); }
-  if (papel !== undefined) { campos.push(`papel = $${i++}`); valores.push(papel === 'admin' ? 'admin' : 'consultor'); }
+  if (papel !== undefined) { campos.push(`papel = $${i++}`); valores.push(['admin','gerencial','consultor'].includes(papel) ? papel : 'consultor'); }
   if (ativo !== undefined) { campos.push(`ativo = $${i++}`); valores.push(!!ativo); }
   if (senha) {
     if (senha.length < 8) return res.status(400).json({ erro: 'A senha deve ter ao menos 8 caracteres.' });

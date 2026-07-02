@@ -16,17 +16,18 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { cliente_id, descricao, area, prioridade, status, progresso, responsavel, prazo, prazo_iso, comentarios, categoria, reuniao_tipo, reuniao_data, reuniao_hora, reuniao_pauta } = req.body;
+  const { cliente_id, descricao, area, prioridade, status, progresso, responsavel, prazo, prazo_iso, comentarios, categoria, reuniao_tipo, reuniao_data, reuniao_hora, reuniao_pauta, modalidade, reuniao_endereco, lat, lng } = req.body;
   if (!descricao) return res.status(400).json({ erro: 'Descrição é obrigatória.' });
 
   const log = [{ texto: `Ação criada com status "${status || 'Pendente'}"`, em: new Date().toISOString(), por: req.usuario.nome }];
 
   const { rows } = await pool.query(
-    `INSERT INTO acoes (cliente_id, descricao, area, prioridade, status, progresso, responsavel, prazo, prazo_iso, comentarios, categoria, reuniao_tipo, reuniao_data, reuniao_hora, reuniao_pauta, log, criado_por)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+    `INSERT INTO acoes (cliente_id, descricao, area, prioridade, status, progresso, responsavel, prazo, prazo_iso, comentarios, categoria, reuniao_tipo, reuniao_data, reuniao_hora, reuniao_pauta, modalidade, reuniao_endereco, lat, lng, log, criado_por)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
     [cliente_id || null, descricao, area, prioridade || 'Média', status || 'Pendente', progresso || 0,
      responsavel, prazo, prazo_iso || null, comentarios, categoria || null,
      reuniao_tipo || null, reuniao_data || null, reuniao_hora || null, reuniao_pauta || null,
+     modalidade || null, reuniao_endereco || null, lat || null, lng || null,
      JSON.stringify(log), req.usuario.nome]
   );
 

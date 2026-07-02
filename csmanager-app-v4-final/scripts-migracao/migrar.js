@@ -154,12 +154,14 @@ async function main() {
       if (a.clienteId && !novoClienteId) { console.warn(`  ⚠ Ação "${a.descricao}" ignorada: cliente original não encontrado.`); continue; }
       await client.query(
         `INSERT INTO acoes (cliente_id, descricao, area, prioridade, status, progresso, responsavel,
-           prazo, prazo_iso, comentarios, categoria, reuniao_tipo, reuniao_data, reuniao_hora, reuniao_pauta, log)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+           prazo, prazo_iso, comentarios, categoria, reuniao_tipo, reuniao_data, reuniao_hora, reuniao_pauta,
+           modalidade, reuniao_endereco, lat, lng, log)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
         [
           novoClienteId, paraMaiusculo(a.descricao), a.area, a.prioridade, a.status || 'Pendente', a.progresso || 0,
           paraMaiusculo(a.responsavel), a.prazo, a.prazoISO || null, paraMaiusculo(a.comentarios), a.categoria || null,
           a.reuniaoTipo || null, a.reuniaoData || null, a.reuniaoHora || null, paraMaiusculo(a.reuniaoPauta) || null,
+          a.modalidade || null, a.reuniaoEndereco || null, a.lat || null, a.lng || null,
           JSON.stringify(a.log || []),
         ]
       );

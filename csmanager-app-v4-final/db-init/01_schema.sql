@@ -10,7 +10,7 @@ CREATE TABLE usuarios (
   nome TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   senha_hash TEXT NOT NULL,
-  papel TEXT NOT NULL DEFAULT 'consultor' CHECK (papel IN ('admin','consultor')),
+  papel TEXT NOT NULL DEFAULT 'consultor' CHECK (papel IN ('admin','gerencial','consultor')),
   ativo BOOLEAN NOT NULL DEFAULT true,
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -98,6 +98,10 @@ CREATE TABLE acoes (
   reuniao_data TEXT,
   reuniao_hora TEXT,
   reuniao_pauta TEXT,
+  modalidade TEXT,
+  reuniao_endereco TEXT,
+  lat NUMERIC,
+  lng NUMERIC,
   log JSONB DEFAULT '[]',
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
   criado_por TEXT,
