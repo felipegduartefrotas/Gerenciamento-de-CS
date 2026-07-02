@@ -4864,6 +4864,8 @@ function salvarMetaSPModalV4(){
   if(idx>=0&&plano.metas[idx]){plano.metas[idx].titulo=titulo;plano.metas[idx].prazo=prazo;plano.metas[idx].indicador=indicador;}
   else plano.metas.push({titulo,prazo,indicador,concluida:false,criadaEm:new Date().toISOString()});
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  if(idx>=0) CS_DB._addTimeline(cid,'sistema',`Meta atualizada: ${titulo}`,`${indicador?'Indicador: '+indicador+' · ':''}${prazo?'Prazo: '+prazo:''}`);
+  else CS_DB._addTimeline(cid,'sistema',`Meta adicionada: ${titulo}`,`${indicador?'Indicador: '+indicador+' · ':''}${prazo?'Prazo: '+prazo:''}`);
   closeM('mNovaMetaSP');renderPlanoSucessoV4(cid);toast(idx>=0?'Meta atualizada!':'Meta adicionada!');
 }
 function editarMetaSPV4(cid,idx){
@@ -4878,7 +4880,11 @@ function editarMetaSPV4(cid,idx){
 }
 function toggleMetaSPV4(cid,idx){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
-  if(plano.metas[idx])plano.metas[idx].concluida=!plano.metas[idx].concluida;
+  if(plano.metas[idx]){
+    plano.metas[idx].concluida=!plano.metas[idx].concluida;
+    const m=plano.metas[idx];
+    CS_DB._addTimeline(cid,'sistema',m.concluida?`Meta concluída: ${m.titulo}`:`Meta reaberta: ${m.titulo}`,m.prazo?`Prazo: ${m.prazo}`:(m.indicador||''));
+  }
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));renderPlanoSucessoV4(cid);
 }
 function removerMetaSPV4(cid,idx){
@@ -4889,8 +4895,11 @@ function removerMetaSPV4(cid,idx){
 function _marcarMarcoSPV4(cid,marcoId){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
   if(!plano.marcos)plano.marcos={};
-  plano.marcos[marcoId]=new Date().toLocaleDateString('pt-BR');
+  const dataBR=new Date().toLocaleDateString('pt-BR');
+  plano.marcos[marcoId]=dataBR;
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  const marcoLabels={kickoff:'Kickoff',go_live:'Go-live',primeiro_nps:'1º NPS',renovacao:'Renovação'};
+  CS_DB._addTimeline(cid,'sistema',`Marco registrado: ${marcoLabels[marcoId]||marcoId}`,`Marcado em ${dataBR} via Plano de Sucesso.`);
   renderPlanoSucessoV4(cid);
   if(document.getElementById('psCliente')?.value===cid)renderPaginaPSV4();
 }
@@ -5129,6 +5138,8 @@ function salvarRegistroP90V4(){
   if(!plano.primeiros90)plano.primeiros90=[];
   plano.primeiros90.push({id:'p90_'+Date.now(),data:dataBR,dataISO:new Date(parseInt(y),parseInt(m)-1,parseInt(d)).toISOString(),tipo:document.getElementById('p90Tipo').value,comoFoi:document.getElementById('p90ComoFoi').value,engajamento:document.getElementById('p90Engajamento').value,adocao:document.getElementById('p90Adocao').value,descricao:document.getElementById('p90Desc').value.trim(),responsavel:document.getElementById('p90Resp').value.trim(),proxPasso:document.getElementById('p90Prox').value.trim()});
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  const reg=plano.primeiros90[plano.primeiros90.length-1];
+  CS_DB._addTimeline(cid,'sistema',`Primeiros 90 dias — ${reg.tipo}`,`${reg.descricao}${reg.comoFoi?' · Como foi: '+reg.comoFoi:''}${reg.engajamento?' · Engajamento: '+reg.engajamento:''}`);
   closeM('mP90');
   renderP90V4(cid,plano);
   toast('Registro dos primeiros 90 dias salvo!');

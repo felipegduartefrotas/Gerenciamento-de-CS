@@ -8652,12 +8652,18 @@ function salvarMetaSPModal(){
     plano.metas.push({titulo,prazo,indicador,concluida:false,criadaEm:new Date().toISOString()});
   }
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  if(idx>=0) CS_DB._addTimeline(cid,'sistema',`Meta atualizada: ${titulo}`,`${indicador?'Indicador: '+indicador+' · ':''}${prazo?'Prazo: '+prazo:''}`);
+  else CS_DB._addTimeline(cid,'sistema',`Meta adicionada: ${titulo}`,`${indicador?'Indicador: '+indicador+' · ':''}${prazo?'Prazo: '+prazo:''}`);
   closeM('mNovaMetaSP');renderPlanoSucesso(cid);toast(idx>=0?'Meta atualizada!':'Meta adicionada!','ok');
 }
 function maskDataMeta(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5,9);el.value=v;}
 function toggleMetaSP(cid,idx){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
-  if(plano.metas[idx])plano.metas[idx].concluida=!plano.metas[idx].concluida;
+  if(plano.metas[idx]){
+    plano.metas[idx].concluida=!plano.metas[idx].concluida;
+    const m=plano.metas[idx];
+    CS_DB._addTimeline(cid,'sistema',m.concluida?`Meta concluída: ${m.titulo}`:`Meta reaberta: ${m.titulo}`,m.prazo?`Prazo: ${m.prazo}`:(m.indicador||''));
+  }
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
   renderPlanoSucesso(cid);
 }
@@ -8681,8 +8687,11 @@ function removerMetaSP(cid,idx){
 function _marcarMarcoSP(cid,marcoId){
   const plano=JSON.parse(localStorage.getItem('cs_plano_'+cid)||'{"metas":[],"marcos":{}}');
   if(!plano.marcos)plano.marcos={};
-  plano.marcos[marcoId]=new Date().toLocaleDateString('pt-BR');
+  const dataBR=new Date().toLocaleDateString('pt-BR');
+  plano.marcos[marcoId]=dataBR;
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  const marcoLabels={kickoff:'Kickoff',go_live:'Go-live',primeiro_nps:'1º NPS',renovacao:'Renovação'};
+  CS_DB._addTimeline(cid,'sistema',`Marco registrado: ${marcoLabels[marcoId]||marcoId}`,`Marcado em ${dataBR} via Plano de Sucesso.`);
   renderPlanoSucesso(cid);
   if(document.getElementById('psCliente')?.value===cid)renderPaginaPS();
 }
@@ -8839,6 +8848,8 @@ function salvarRegistroP90(){
   if(!plano.primeiros90)plano.primeiros90=[];
   plano.primeiros90.push({id:'p90_'+Date.now(),data:dataBR,dataISO:new Date(parseInt(y),parseInt(m)-1,parseInt(d)).toISOString(),tipo:document.getElementById('p90Tipo').value,comoFoi:document.getElementById('p90ComoFoi').value,engajamento:document.getElementById('p90Engajamento').value,adocao:document.getElementById('p90Adocao').value,descricao:desc,responsavel:document.getElementById('p90Resp').value.trim(),proxPasso:document.getElementById('p90Prox').value.trim()});
   localStorage.setItem('cs_plano_'+cid,JSON.stringify(plano));
+  const reg=plano.primeiros90[plano.primeiros90.length-1];
+  CS_DB._addTimeline(cid,'sistema',`Primeiros 90 dias — ${reg.tipo}`,`${reg.descricao}${reg.comoFoi?' · Como foi: '+reg.comoFoi:''}${reg.engajamento?' · Engajamento: '+reg.engajamento:''}`);
   closeM('mP90');
   renderP90(cid,plano);
   toast('Registro dos primeiros 90 dias salvo!');
