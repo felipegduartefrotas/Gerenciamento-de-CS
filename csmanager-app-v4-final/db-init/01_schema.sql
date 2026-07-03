@@ -122,6 +122,21 @@ CREATE TABLE nps (
   cs TEXT
 );
 
+-- ── CSAT ─────────────────────────────────────────────────────
+CREATE TABLE csat (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cliente_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  nota INT NOT NULL CHECK (nota BETWEEN 1 AND 5),
+  tipo_interacao TEXT NOT NULL DEFAULT 'Geral',
+  respondente TEXT,
+  cargo TEXT,
+  comentario TEXT,
+  data_iso TIMESTAMPTZ NOT NULL DEFAULT now(),
+  cs TEXT
+);
+
+CREATE INDEX idx_csat_cliente ON csat(cliente_id);
+
 -- ── TIMELINE (auditoria por cliente, com histórico de edição) ─
 CREATE TABLE timeline (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

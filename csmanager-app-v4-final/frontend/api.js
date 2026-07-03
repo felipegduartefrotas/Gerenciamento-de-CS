@@ -380,6 +380,26 @@ const CS_DB = {
     return this._fetch(`/docs/${id}`, { method: 'DELETE' });
   },
 
+  // ── CSAT ──────────────────────────────────────────────────
+  async getCSAT(clienteId) {
+    if (clienteId) return this._fetch(`/csat?cliente_id=${clienteId}`);
+    return this._fetch('/csat');
+  },
+  async getCSATGeral() {
+    return this._fetch('/csat/geral');
+  },
+  async getCSATCalculo(clienteId) {
+    return this._fetch(`/csat/cliente/${clienteId}/calculo`);
+  },
+  async addCSAT({ clienteId, nota, tipoInteracao, respondente, cargo, comentario }) {
+    return this._fetch('/csat', { method: 'POST', body: JSON.stringify({
+      cliente_id: clienteId, nota, tipo_interacao: tipoInteracao, respondente, cargo, comentario,
+    }) });
+  },
+  async deleteCSAT(id) {
+    return this._fetch(`/csat/${id}`, { method: 'DELETE' });
+  },
+
   // ── WEBHOOK ───────────────────────────────────────────────
   async dispararWebhook() {
     return this._fetch('/alertas/disparar-webhook', { method: 'POST' });

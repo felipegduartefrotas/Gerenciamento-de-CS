@@ -491,6 +491,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="timeline" onclick="nav(this,'timeline')"><i class="ti ti-timeline"></i>Timeline</div>
     <div class="nav-sec">Analytics</div>
     <div class="nav-item" data-p="nps" onclick="nav(this,'nps')"><i class="ti ti-star"></i>NPS / Satisfação</div>
+    <div class="nav-item" data-p="csat" onclick="nav(this,'csat')"><i class="ti ti-mood-smile"></i>CSAT</div>
     <div class="nav-item" data-p="exec" onclick="nav(this,'exec')"><i class="ti ti-chart-bar"></i>Dashboard Executivo</div>
     <div class="nav-item" data-p="alertas" onclick="nav(this,'alertas')"><i class="ti ti-bell"></i>Alertas<span class="nav-badge" id="nbAlertas">0</span></div>
     <div class="nav-sec">Gestão de Contas</div>
@@ -872,6 +873,50 @@ tr:hover td{background:#fafafa}
       <table><thead><tr><th>Data</th><th>Nota</th><th>Grupo</th><th>Respondente</th><th>Cargo</th><th>Comentário</th><th>CS</th></tr></thead>
       <tbody id="npsCliHistTbody"></tbody></table>
     </div>
+  </div>
+</div>
+
+<!-- CSAT -->
+<div class="page" id="page-csat">
+  <div class="ph"><h2><i class="ti ti-mood-smile"></i>CSAT — Satisfação por Interação</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-ghost" onclick="exportarCSVCSAT()"><i class="ti ti-file-spreadsheet"></i>Exportar CSV</button>
+      <button class="btn-primary" onclick="openM('mCSAT')"><i class="ti ti-plus"></i>Registrar CSAT</button>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--gray2);margin-bottom:16px;line-height:1.6">
+    O CSAT mede a satisfação imediata com uma interação específica (atendimento, reunião, suporte), em escala de 1–5. Diferente do NPS, que avalia o relacionamento de longo prazo. <span style="font-weight:600">Score CSAT = % de notas 4 ou 5.</span>
+  </div>
+  <div class="kpi-grid" id="csatKPIs"></div>
+  <div class="two-col" style="margin:14px 0">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-ttl"><i class="ti ti-chart-bar"></i>Distribuição de notas</div>
+      <div class="chart-wrap" style="height:140px"><canvas id="csatDistChart"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-ttl"><i class="ti ti-chart-line"></i>Evolução do CSAT</div>
+      <div class="chart-wrap" style="height:140px"><canvas id="csatEvolChart"></canvas></div>
+    </div>
+  </div>
+  <div class="flt-row" style="margin-bottom:12px">
+    <select class="flt-sel" id="csatFltCliente" onchange="renderCSAT()"><option value="">Todos os clientes</option></select>
+    <select class="flt-sel" id="csatFltTipo" onchange="renderCSAT()">
+      <option value="">Todos os tipos</option>
+      <option>Reunião</option><option>Suporte</option><option>Atendimento</option><option>Onboarding</option><option>Treinamento</option><option>E-mail</option><option>Geral</option>
+    </select>
+    <select class="flt-sel" id="csatFltNota" onchange="renderCSAT()">
+      <option value="">Todas as notas</option>
+      <option value="5">⭐⭐⭐⭐⭐ Muito Satisfeito (5)</option>
+      <option value="4">⭐⭐⭐⭐ Satisfeito (4)</option>
+      <option value="3">⭐⭐⭐ Neutro (3)</option>
+      <option value="2">⭐⭐ Insatisfeito (2)</option>
+      <option value="1">⭐ Muito Insatisfeito (1)</option>
+    </select>
+  </div>
+  <div class="tbl-card">
+    <div class="tbl-head"><div class="tbl-head-ttl"><i class="ti ti-list-details"></i>Histórico CSAT <span id="csatCount" class="sub"></span></div></div>
+    <table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Nota</th><th>Respondente</th><th>Comentário</th><th>CS</th><th></th></tr></thead>
+    <tbody id="csatTbody"></tbody></table>
   </div>
 </div>
 
@@ -1720,6 +1765,43 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- MODAL CSAT -->
+<div class="modal-ov" id="mCSAT">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-ttl"><span><i class="ti ti-mood-smile"></i>Registrar CSAT</span><span class="modal-close" onclick="closeM('mCSAT')"><i class="ti ti-x"></i></span></div>
+    <div class="form-g2">
+      <div class="fg"><label>Cliente <span class="req">*</span></label><select id="csatCliente"></select></div>
+      <div class="fg"><label>Tipo de Interação</label>
+        <select id="csatTipoInteracao">
+          <option>Reunião</option><option>Suporte</option><option>Atendimento</option>
+          <option>Onboarding</option><option>Treinamento</option><option>E-mail</option><option>Geral</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:14px">
+      <label>Nota de Satisfação <span class="req">*</span></label>
+      <div id="csatStarPicker" style="display:flex;gap:8px;margin-top:8px">
+        <button type="button" class="csat-star" data-v="1" onclick="selecionarEstrela(1)" style="font-size:28px;background:none;border:none;cursor:pointer;opacity:.35;transition:opacity .15s">⭐</button>
+        <button type="button" class="csat-star" data-v="2" onclick="selecionarEstrela(2)" style="font-size:28px;background:none;border:none;cursor:pointer;opacity:.35;transition:opacity .15s">⭐</button>
+        <button type="button" class="csat-star" data-v="3" onclick="selecionarEstrela(3)" style="font-size:28px;background:none;border:none;cursor:pointer;opacity:.35;transition:opacity .15s">⭐</button>
+        <button type="button" class="csat-star" data-v="4" onclick="selecionarEstrela(4)" style="font-size:28px;background:none;border:none;cursor:pointer;opacity:.35;transition:opacity .15s">⭐</button>
+        <button type="button" class="csat-star" data-v="5" onclick="selecionarEstrela(5)" style="font-size:28px;background:none;border:none;cursor:pointer;opacity:.35;transition:opacity .15s">⭐</button>
+        <span id="csatNotaLabel" style="align-self:center;font-size:13px;color:var(--gray2);margin-left:6px">Selecione uma nota</span>
+      </div>
+      <input type="hidden" id="csatNota">
+    </div>
+    <div class="form-g2">
+      <div class="fg"><label>Respondente</label><input type="text" id="csatRespondente" placeholder="Nome do contato"></div>
+      <div class="fg"><label>Cargo</label><input type="text" id="csatCargo" placeholder="Cargo / Função"></div>
+    </div>
+    <div class="fg"><label>Comentário</label><textarea id="csatComentario" rows="3" placeholder="O que o cliente disse sobre a experiência?"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeM('mCSAT')">Cancelar</button>
+      <button class="btn-primary" onclick="salvarCSAT()"><i class="ti ti-device-floppy"></i>Registrar CSAT</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL AÇÃO -->
 <div class="modal-ov" id="mAcao">
   <div class="modal">
@@ -2199,6 +2281,7 @@ function nav(el,p){
   if(p==='cliente360'){populateC360Select();renderCliente360();}
   if(p==='plano-sucesso'){populatePSSelectV4();renderPaginaPSV4();}
   if(p==='grupos')renderGrupos();
+  if(p==='csat'){initCSATPage();}
   if(p==='relatorios')populateRelatoriosSelects();
   if(p==='qbr'){populateQBRSelect();renderQBR();}
   if(p==='metas'){initMetasPeriodo();renderMetas();}
@@ -2209,6 +2292,7 @@ function nav(el,p){
 function openM(id){
   if(id==='mReuniao')populateReuniaoSelect();
   if(id==='mNPS')populateNPSSelect();
+  if(id==='mCSAT')populateCSATModal();
   if(id==='mAcao')populateAcaoSelect();
   if(id==='mTranscricao')_txAbrirModal();
   if(id==='mNovaAta')_ataAbrirModal();
@@ -3725,6 +3809,191 @@ function initNPSCharts(forcar){
   }
 }
 
+// ════════════════════════════════════════════════
+// CSAT — CUSTOMER SATISFACTION SCORE
+// ════════════════════════════════════════════════
+let _csatData=[];
+let _csatChartDist=null,_csatChartEvol=null;
+
+const _csatLabel={1:'Muito Insatisfeito',2:'Insatisfeito',3:'Neutro',4:'Satisfeito',5:'Muito Satisfeito'};
+const _csatEmoji={1:'😞',2:'🙁',3:'😐',4:'🙂',5:'😊'};
+const _csatClr={1:'#D10000',2:'#e5830a',3:'#888',4:'#3b82f6',5:'#18a75c'};
+
+function selecionarEstrela(v){
+  document.getElementById('csatNota').value=v;
+  const lbl=document.getElementById('csatNotaLabel');
+  if(lbl)lbl.textContent=`${_csatEmoji[v]} ${_csatLabel[v]}`;
+  document.querySelectorAll('.csat-star').forEach(s=>{
+    s.style.opacity=parseInt(s.dataset.v)<=v?'1':'0.25';
+  });
+}
+
+async function initCSATPage(){
+  // Popula select de clientes
+  const sCliente=document.getElementById('csatFltCliente');
+  if(sCliente){
+    const cl=CS_DB.getClientes();
+    sCliente.innerHTML='<option value="">Todos os clientes</option>'+cl.map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+  }
+  // Carrega dados
+  try{
+    _csatData=await CS_DB.getCSAT();
+  }catch(e){_csatData=[];}
+  renderCSAT();
+  renderCSATCharts();
+  renderCSATKPIs();
+}
+
+function renderCSATKPIs(){
+  const el=document.getElementById('csatKPIs');if(!el)return;
+  const notas=_csatData.map(r=>r.nota);
+  if(!notas.length){el.innerHTML='';return;}
+  const satisfeitos=notas.filter(n=>n>=4).length;
+  const score=Math.round((satisfeitos/notas.length)*100);
+  const media=(notas.reduce((s,n)=>s+n,0)/notas.length).toFixed(1);
+  const insatisfeitos=notas.filter(n=>n<=2).length;
+  const tipos=[...new Set(_csatData.map(r=>r.tipo_interacao))].length;
+  const corScore=score>=80?'var(--green)':score>=60?'var(--yellow)':'var(--red)';
+  el.innerHTML=`
+    <div class="kpi ${score>=80?'green':score>=60?'yellow':'red'}"><div class="kpi-lbl"><i class="ti ti-mood-smile"></i>Score CSAT</div><div class="kpi-val" style="color:${corScore}">${score}%</div><div class="kpi-sub">% notas 4 e 5</div></div>
+    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-star"></i>Média das Notas</div><div class="kpi-val">${media}</div><div class="kpi-sub">escala de 1 a 5</div></div>
+    <div class="kpi"><div class="kpi-lbl"><i class="ti ti-list"></i>Total de Registros</div><div class="kpi-val">${notas.length}</div><div class="kpi-sub">${tipos} tipo${tipos!==1?'s':''} de interação</div></div>
+    <div class="kpi ${insatisfeitos>0?'red':''}"><div class="kpi-lbl"><i class="ti ti-mood-sad"></i>Insatisfeitos</div><div class="kpi-val" style="color:${insatisfeitos>0?'var(--red)':'inherit'}">${insatisfeitos}</div><div class="kpi-sub">notas 1 ou 2</div></div>`;
+}
+
+function renderCSAT(){
+  const tbody=document.getElementById('csatTbody');
+  const countEl=document.getElementById('csatCount');
+  if(!tbody)return;
+  const fltCliente=document.getElementById('csatFltCliente')?.value||'';
+  const fltTipo=document.getElementById('csatFltTipo')?.value||'';
+  const fltNota=document.getElementById('csatFltNota')?.value||'';
+  let list=_csatData;
+  if(fltCliente)list=list.filter(r=>r.cliente_id===fltCliente);
+  if(fltTipo)list=list.filter(r=>r.tipo_interacao===fltTipo);
+  if(fltNota)list=list.filter(r=>String(r.nota)===fltNota);
+  if(countEl)countEl.textContent=`${list.length} registro${list.length!==1?'s':''}`;
+  if(!list.length){tbody.innerHTML=`<tr><td colspan="8"><div style="text-align:center;padding:24px;color:var(--gray3);font-size:12.5px"><i class="ti ti-mood-smile" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhum registro CSAT encontrado.</div></td></tr>`;return;}
+  tbody.innerHTML=list.map(r=>{
+    const stars='⭐'.repeat(r.nota)+'☆'.repeat(5-r.nota);
+    const dt=r.data_iso?new Date(r.data_iso).toLocaleDateString('pt-BR'):'—';
+    return`<tr>
+      <td style="font-size:11.5px;color:var(--gray2)">${dt}</td>
+      <td style="font-weight:600">${_escH(r.empresa||'—')}</td>
+      <td><span style="background:var(--gray5);border-radius:20px;padding:2px 9px;font-size:11.5px">${_escH(r.tipo_interacao||'—')}</span></td>
+      <td><span style="color:${_csatClr[r.nota]};font-size:16px" title="${_csatLabel[r.nota]}">${stars}</span></td>
+      <td style="font-size:11.5px">${_escH(r.respondente||'—')}</td>
+      <td style="font-size:11.5px;color:var(--gray2);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${_escH(r.comentario||'')}">${_escH(r.comentario||'—')}</td>
+      <td style="font-size:11.5px;color:var(--gray2)">${_escH(r.cs||'—')}</td>
+      <td><span class="lnk" style="color:var(--red);font-size:11.5px" onclick="removerCSAT('${r.id}')"><i class="ti ti-trash"></i></span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCSATCharts(){
+  // Distribuição por nota
+  const ctx1=document.getElementById('csatDistChart')?.getContext('2d');
+  if(ctx1){
+    if(_csatChartDist)_csatChartDist.destroy();
+    const conts=[1,2,3,4,5].map(n=>_csatData.filter(r=>r.nota===n).length);
+    _csatChartDist=new Chart(ctx1,{type:'bar',data:{labels:['1 ☆','2 ☆','3 ☆','4 ☆','5 ☆'],datasets:[{data:conts,backgroundColor:['#D10000','#e5830a','#888','#3b82f6','#18a75c'],borderRadius:5,maxBarThickness:44}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8}},scales:{y:{beginAtZero:true,ticks:{color:'var(--gray3)',font:{size:10},stepSize:1}},x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
+  }
+  // Evolução mensal do score CSAT
+  const ctx2=document.getElementById('csatEvolChart')?.getContext('2d');
+  if(ctx2&&_csatData.length){
+    const byMes={};
+    _csatData.forEach(r=>{
+      const d=new Date(r.data_iso);
+      const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if(!byMes[k])byMes[k]=[];
+      byMes[k].push(r.nota);
+    });
+    const meses=Object.keys(byMes).sort().slice(-12);
+    const scores=meses.map(m=>{const ns=byMes[m];return Math.round((ns.filter(n=>n>=4).length/ns.length)*100);});
+    const labels=meses.map(m=>{const[y,mo]=m.split('-');return new Date(y,mo-1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});});
+    if(_csatChartEvol)_csatChartEvol.destroy();
+    _csatChartEvol=new Chart(ctx2,{type:'line',data:{labels,datasets:[{label:'CSAT %',data:scores,borderColor:'#18a75c',backgroundColor:'rgba(24,167,92,.1)',fill:true,tension:.35,pointRadius:3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:700},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>ctx.raw+'%'}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10},callback:v=>v+'%'}},x:{ticks:{color:'var(--gray3)',font:{size:10}},grid:{display:false}}}}});
+  }
+}
+
+async function salvarCSAT(){
+  const cid=document.getElementById('csatCliente')?.value;
+  const nota=parseInt(document.getElementById('csatNota')?.value||'0');
+  if(!cid){toast('Selecione um cliente.','err');return;}
+  if(!nota||nota<1||nota>5){toast('Selecione uma nota de 1 a 5.','err');return;}
+  const btn=document.querySelector('#mCSAT .btn-primary');
+  if(btn)btn.disabled=true;
+  try{
+    await CS_DB.addCSAT({
+      clienteId:cid,
+      nota,
+      tipoInteracao:document.getElementById('csatTipoInteracao')?.value||'Geral',
+      respondente:document.getElementById('csatRespondente')?.value.trim()||null,
+      cargo:document.getElementById('csatCargo')?.value.trim()||null,
+      comentario:document.getElementById('csatComentario')?.value.trim()||null,
+    });
+    toast('CSAT registrado!');
+    closeM('mCSAT');
+    // limpa form
+    document.getElementById('csatNota').value='';
+    document.getElementById('csatRespondente').value='';
+    document.getElementById('csatCargo').value='';
+    document.getElementById('csatComentario').value='';
+    document.querySelectorAll('.csat-star').forEach(s=>s.style.opacity='0.35');
+    const lbl=document.getElementById('csatNotaLabel');if(lbl)lbl.textContent='Selecione uma nota';
+    // recarga
+    _csatData=await CS_DB.getCSAT();
+    renderCSAT();renderCSATCharts();renderCSATKPIs();
+  }catch(e){toast('Erro ao salvar CSAT: '+e.message,'err');}
+  finally{if(btn)btn.disabled=false;}
+}
+
+async function removerCSAT(id){
+  if(!confirm('Remover este registro CSAT?'))return;
+  try{
+    await CS_DB.deleteCSAT(id);
+    toast('Removido.');
+    _csatData=_csatData.filter(r=>r.id!==id);
+    renderCSAT();renderCSATCharts();renderCSATKPIs();
+  }catch(e){toast('Erro ao remover.','err');}
+}
+
+function exportarCSVCSAT(){
+  if(!_csatData.length){toast('Nenhum dado para exportar.','warn');return;}
+  const cols=['data_iso','empresa','tipo_interacao','nota','respondente','cargo','comentario','cs'];
+  const labels=['Data','Cliente','Tipo','Nota','Respondente','Cargo','Comentário','CS'];
+  const esc=v=>'"'+(String(v||'').replace(/"/g,'""'))+'"';
+  const csv=[labels.join(','),..._csatData.map(r=>cols.map(c=>esc(r[c])).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='csat_export.csv';a.click();
+}
+
+function populateCSATModal(){
+  const s=document.getElementById('csatCliente');if(!s)return;
+  const cl=CS_DB.getClientes();
+  s.innerHTML=cl.map(c=>`<option value="${c.id}">${c.empresa}</option>`).join('');
+}
+
+// Carrega CSAT de um cliente no Dashboard 360
+async function renderCSATCliente360(cid){
+  const el=document.getElementById('spCSATCliente360');if(!el)return;
+  try{
+    const dados=await CS_DB.getCSAT(cid);
+    if(!dados.length){el.innerHTML=`<div style="color:var(--gray3);font-size:12px;text-align:center;padding:10px 0"><i class="ti ti-mood-smile" style="display:block;font-size:20px;margin-bottom:4px"></i>Nenhum CSAT registrado.<br><button class="btn-ghost" style="margin-top:6px;font-size:11.5px" onclick="openM('mCSAT');setTimeout(()=>{document.getElementById('csatCliente').value='${cid}'},50)"><i class="ti ti-plus"></i>Registrar primeiro CSAT</button></div>`;return;}
+    const notas=dados.map(d=>d.nota);
+    const score=Math.round((notas.filter(n=>n>=4).length/notas.length)*100);
+    const media=(notas.reduce((s,n)=>s+n,0)/notas.length).toFixed(1);
+    const ultimo=dados[0];
+    const stars='⭐'.repeat(ultimo.nota)+'☆'.repeat(5-ultimo.nota);
+    el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="flex:1"><div style="font-size:11px;color:var(--gray3);text-transform:uppercase;letter-spacing:.05em">Score CSAT</div><div style="font-size:22px;font-weight:700;color:${score>=80?'var(--green)':score>=60?'var(--yellow)':'var(--red)'}">${score}%</div></div>
+      <div style="flex:1"><div style="font-size:11px;color:var(--gray3);text-transform:uppercase;letter-spacing:.05em">Média</div><div style="font-size:22px;font-weight:700">${media}<span style="font-size:13px;color:var(--gray3)">/5</span></div></div>
+      <div style="flex:1"><div style="font-size:11px;color:var(--gray3);text-transform:uppercase;letter-spacing:.05em">Registros</div><div style="font-size:22px;font-weight:700">${notas.length}</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--gray2)">Último: <span style="color:${_csatClr[ultimo.nota]}">${stars}</span> · ${_escH(ultimo.tipo_interacao||'—')} · ${new Date(ultimo.data_iso).toLocaleDateString('pt-BR')}</div>
+    ${dados.length>1?`<div style="display:flex;gap:4px;margin-top:8px">${[1,2,3,4,5].map(n=>{const c=notas.filter(x=>x===n).length;return c?`<div style="flex:${c};background:${_csatClr[n]};height:6px;border-radius:3px" title="${c}x nota ${n}"></div>`:''}).join('')}</div>`:''}`
+  }catch(e){el.innerHTML='<span style="color:var(--gray3);font-size:12px">Erro ao carregar CSAT.</span>';}
+}
+
 // ═══ RATING BUTTONS ═══
 function buildRatings(){
   const rn=document.getElementById('ratNPS');
@@ -5098,6 +5367,12 @@ function renderCliente360(){
       </div>
     </div>
     <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-mood-smile"></i>CSAT — Satisfação por Interação
+        <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="openM('mCSAT');setTimeout(()=>{document.getElementById('csatCliente').value='${cid}'},50)"><i class="ti ti-plus"></i>Registrar</button>
+      </div>
+      <div id="spCSATCliente360"><div style="color:var(--gray3);font-size:12px;padding:10px 0">Carregando...</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
       <div class="card-ttl"><i class="ti ti-folder"></i>Documentos<span class="sub" id="c360DocsCount"></span>
         <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirUploadDocV4('${cid}')"><i class="ti ti-upload"></i>Adicionar</button>
       </div>
@@ -5117,6 +5392,7 @@ function renderCliente360(){
     }
     // Gráfico de evolução do Health Score
     renderDocsClienteV4(cid);
+    renderCSATCliente360(cid);
     CS_DB.getHsHistorico(cid).then(hist=>{
       const ctx2=document.getElementById('c360HsChart')?.getContext('2d');
       if(!ctx2)return;
