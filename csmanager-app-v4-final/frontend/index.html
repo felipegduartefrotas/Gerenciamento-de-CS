@@ -2303,7 +2303,13 @@ function renderClientes(){
   const f={status:document.getElementById('fltStatus')?.value||'',tier:document.getElementById('fltTier')?.value||'',hs:document.getElementById('fltHS')?.value||'',q:document.getElementById('fltQ')?.value||''};
   const list=_sortList(CS_DB.getClientes(f));
   const re=CS_DB.getAllReunioes();
-  document.getElementById('clienteTbody').innerHTML=list.map(c=>{
+  const tbody=document.getElementById('clienteTbody');
+  if(!list.length){
+    const isFiltered=Object.values(f).some(v=>v!=='');
+    tbody.innerHTML=`<tr><td colspan="11"><div style="text-align:center;padding:32px 0;color:var(--gray3)"><i class="ti ti-${isFiltered?'search-off':'building-off'}" style="font-size:28px;display:block;margin-bottom:8px"></i><span style="font-size:13px">${isFiltered?'Nenhum cliente encontrado com esses filtros.':'Nenhum cliente cadastrado ainda.'}</span><br><button class="btn-ghost" style="margin-top:10px;font-size:12px" onclick="${isFiltered?"document.getElementById('fltStatus').value='';document.getElementById('fltTier').value='';document.getElementById('fltHS').value='';document.getElementById('fltQ').value='';renderClientes()":"openM('mCliente')"}"><i class="ti ti-${isFiltered?'x':'plus'}"></i>${isFiltered?'Limpar filtros':'Adicionar primeiro cliente'}</button></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML=list.map(c=>{
     const ultimaReu=re.filter(r=>r.clienteId===c.id)[0];
     return`<tr>
       <td style="font-weight:600;cursor:pointer" onclick="abrirEditar('${c.id}')" title="Clique para editar">${c.empresa}</td>
@@ -4851,7 +4857,7 @@ function renderCliente360(){
 
   document.getElementById('c360Content').innerHTML=`
     <div class="kpi-grid">
-      <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}" data-tooltip="Saúde geral da conta (0–100).&#10;Calculado com NPS, reuniões, ações e onboarding.&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
+      <div class="kpi ${hsCls(c.healthScore)==='hs-g'?'green':hsCls(c.healthScore)==='hs-y'?'yellow':'red'}" data-tooltip="Saúde geral da conta (0–100).&#10;Calculado com NPS, reuniões, ações e onboarding.&#10;≥70 Saudável · 40–69 Atenção · &lt;40 Crítico"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>Health Score</div><div class="kpi-val" style="color:${hsColor(c.healthScore)}">${c.healthScore}<span id="c360HsTrend" style="font-size:11px;font-weight:500;margin-left:6px;opacity:.85"></span></div><div class="kpi-sub">${c.healthScore>=70?'Saudável':c.healthScore>=40?'Atenção':'Crítico'}</div></div>
       <div class="kpi blue" data-tooltip="NPS consolidado deste cliente.&#10;Fórmula: % Promotores (9–10) − % Detratores (0–6).&#10;&lt;0 Crítico · 0–49 Neutro · 50–74 Bom · ≥75 Excelente"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
       <div class="kpi ${churnScore>=40?'red':'green'}" data-tooltip="Probabilidade estimada de cancelamento (0–100%).&#10;Calculado com HS, NPS, inatividade e status.&#10;&lt;20% Baixo · 20–39% Médio · ≥40% Alto risco"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnScore}%</div><div class="kpi-sub">${churnLb.label}</div></div>
       <div class="kpi gray" data-tooltip="Score de Engajamento (0–100).&#10;Mede frequência de contato, NPS e ações concluídas.&#10;≥70 Alto · 40–69 Médio · &lt;40 Baixo"><div class="kpi-lbl"><i class="ti ti-activity"></i>Engajamento</div><div class="kpi-val">${engScore}</div><div class="kpi-sub">${reu.length} reuniões totais</div></div>
@@ -4907,7 +4913,7 @@ function renderCliente360(){
           ${ac.length?ac.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray4);font-size:12px">
             <span class="badge" style="background:${a.status==='Concluído'?'var(--gbg)':'var(--ybg)'};color:${a.status==='Concluído'?'var(--gtxt)':'var(--ytxt)'};font-size:10px">${a.status}</span>
             <span style="flex:1">${a.descricao}</span>
-          </div>`).join(''):'<div style="color:var(--gray2);padding:10px 0">Nenhuma ação registrada.</div>'}
+          </div>`).join(''):`<div style="text-align:center;padding:16px 0;color:var(--gray3)"><i class="ti ti-clipboard-list" style="font-size:22px;display:block;margin-bottom:6px"></i><span style="font-size:12px">Nenhuma ação registrada.</span><br><button class="btn-ghost" style="margin-top:8px;font-size:11.5px" onclick="openM('mAcao');document.getElementById('acCliente').value='${cid}'"><i class="ti ti-plus"></i>Criar primeira ação</button></div>`}
         </div>
       </div>
       <div class="card" style="margin-bottom:0">
@@ -4916,7 +4922,7 @@ function renderCliente360(){
           ${tl.length?tl.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray4);font-size:12px">
             <span style="color:var(--gray3);font-size:10.5px;min-width:95px">${formatarDataHora(t.dataISO)}</span>
             <span style="flex:1">${t.titulo}</span>
-          </div>`).join(''):'<div style="color:var(--gray2);padding:10px 0">Sem atividade registrada.</div>'}
+          </div>`).join(''):`<div style="text-align:center;padding:16px 0;color:var(--gray3)"><i class="ti ti-timeline" style="font-size:22px;display:block;margin-bottom:6px"></i><span style="font-size:12px">Sem atividade registrada.</span><br><button class="btn-ghost" style="margin-top:8px;font-size:11.5px" onclick="nav(document.querySelector('[data-p=reunioes]'),'reunioes');setTimeout(()=>openM('mReuniao'),120)"><i class="ti ti-calendar-plus"></i>Registrar reunião</button></div>`}
         </div>
       </div>
     </div>
@@ -4957,6 +4963,11 @@ function renderCliente360(){
         <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirUploadDocV4('${cid}')"><i class="ti ti-upload"></i>Adicionar</button>
       </div>
       <div id="spDocsCliente"><div style="color:var(--gray3);font-size:12px;padding:10px 0">Carregando...</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-pencil"></i>Notas Rápidas<span class="sub">salvo automaticamente</span></div>
+      <textarea id="c360NotaRapida" rows="4" placeholder="Anotações livres sobre este cliente — insights, pendências informais, contexto de conversas..." style="width:100%;border:1px solid var(--gray4);border-radius:8px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;color:inherit;background:var(--gray6);line-height:1.5" onInput="_autoSaveNota360('${cid}',this.value)">${_escH(CS_DB.get('nota_c360_${cid}')||'')}</textarea>
+      <div id="c360NotaStatus" style="font-size:10.5px;color:var(--gray3);margin-top:4px;text-align:right"></div>
     </div>`;
 
   setTimeout(()=>{
@@ -4972,6 +4983,13 @@ function renderCliente360(){
       if(!ctx2)return;
       const sub=document.getElementById('c360HsSubtitle');
       if(sub)sub.textContent=hist.length?`${hist.length} registro(s)`:'sem histórico ainda';
+      // Tendência: compara último score com o anterior
+      if(hist.length>=2){
+        const scores2=hist.map(h=>h.score);
+        const diff=scores2[scores2.length-1]-scores2[scores2.length-2];
+        const tEl=document.getElementById('c360HsTrend');
+        if(tEl)tEl.innerHTML=diff>0?`<span style="color:var(--green)">↑ +${diff}</span>`:diff<0?`<span style="color:var(--red)">↓ ${diff}</span>`:`<span style="color:var(--gray3)">→</span>`;
+      }
       if(!hist.length){
         if(ctx2){ctx2.canvas.parentElement.innerHTML='<div style="color:var(--gray3);font-size:12px;padding:20px 0;text-align:center">Histórico registrado automaticamente a cada atualização do cliente.</div>';} return;
       }
@@ -4980,6 +4998,22 @@ function renderCliente360(){
       new Chart(ctx2,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>` HS: ${ctx.parsed.y}`}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
     }).catch(()=>{});
   },80);
+}
+
+// ════════════════════════════════════════════════
+// NOTAS RÁPIDAS POR CLIENTE (Dashboard 360)
+// ════════════════════════════════════════════════
+let _notaTimer=null;
+function _autoSaveNota360(cid,val){
+  const status=document.getElementById('c360NotaStatus');
+  if(status)status.textContent='Salvando...';
+  clearTimeout(_notaTimer);
+  _notaTimer=setTimeout(async()=>{
+    try{
+      await CS_DB.set('nota_c360_'+cid,val);
+      if(status)status.textContent='Salvo em '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    }catch(e){if(status)status.textContent='Erro ao salvar.';}
+  },800);
 }
 
 // ════════════════════════════════════════════════
