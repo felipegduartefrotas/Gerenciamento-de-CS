@@ -505,6 +505,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="relatorios" onclick="nav(this,'relatorios')"><i class="ti ti-file-report"></i>Relatórios</div>
     <div class="nav-item" data-p="qbr" onclick="nav(this,'qbr')"><i class="ti ti-presentation-analytics"></i>QBR</div>
     <div class="nav-item" data-p="metas" onclick="nav(this,'metas')"><i class="ti ti-target"></i>Metas da Equipe</div>
+    <div class="nav-item" data-p="regua" onclick="nav(this,'regua')"><i class="ti ti-timeline-event-text"></i>Régua de Comunicação</div>
     <div class="nav-sec">Ferramentas</div>
     <div class="nav-item" data-p="emails" onclick="nav(this,'emails')"><i class="ti ti-mail"></i>Templates E-mail</div>
     <div class="nav-item" data-p="importar" onclick="nav(this,'importar')"><i class="ti ti-table-import"></i>Importar Excel</div>
@@ -1343,6 +1344,19 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- RÉGUA DE COMUNICAÇÃO -->
+<div class="page" id="page-regua">
+  <div class="ph">
+    <h2><i class="ti ti-timeline-event-text"></i>Régua de Comunicação</h2>
+    <button class="btn-primary" onclick="openM('mNovaRegra')"><i class="ti ti-plus"></i>Nova Regra</button>
+  </div>
+  <div style="font-size:12.5px;color:var(--gray2);margin-bottom:16px;line-height:1.6">
+    Define cadências automáticas de contato por perfil de cliente. O sistema mostrará no <strong>Painel do Dia</strong> quais clientes estão com contato vencido ou próximo do vencimento conforme a régua configurada.
+  </div>
+  <div id="reguaAlertas" style="margin-bottom:16px"></div>
+  <div id="reguaLista"></div>
+</div>
+
 <!-- METAS DA EQUIPE -->
 <div class="page" id="page-metas">
   <div class="ph">
@@ -1385,6 +1399,67 @@ tr:hover td{background:#fafafa}
 
 <!-- TOAST -->
 <div class="toast-wrap" id="toastWrap"></div>
+
+<!-- MODAL NOVA REGRA DE COMUNICAÇÃO -->
+<div class="modal-ov" id="mNovaRegra">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-ttl"><span><i class="ti ti-timeline-event-text"></i>Nova Regra de Comunicação</span><span class="modal-close" onclick="closeM('mNovaRegra')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="regraEditId">
+    <div class="fg"><label>Nome da Régua</label><input type="text" id="regraNome" placeholder="Ex.: Check-in mensal Tier Gold"></div>
+    <div class="form-g2">
+      <div class="fg"><label>Tier do Cliente</label>
+        <select id="regraTier">
+          <option value="">Qualquer Tier</option>
+          <option value="Gold">Gold</option>
+          <option value="Silver">Silver</option>
+          <option value="Bronze">Bronze</option>
+          <option value="Enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="fg"><label>Status do Cliente</label>
+        <select id="regraStatus">
+          <option value="">Qualquer Status</option>
+          <option value="Ativo">Ativo</option>
+          <option value="Em Risco">Em Risco</option>
+          <option value="Churn">Churn</option>
+          <option value="Onboarding">Onboarding</option>
+          <option value="Novo">Novo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-g2">
+      <div class="fg"><label>HS Máximo (opcional)</label><input type="number" id="regraHSMax" placeholder="Ex.: 59 (para clientes em risco)" min="0" max="100"></div>
+      <div class="fg"><label>Frequência de Contato</label>
+        <select id="regraFreq">
+          <option value="7">Semanal (7 dias)</option>
+          <option value="14">Quinzenal (14 dias)</option>
+          <option value="30">Mensal (30 dias)</option>
+          <option value="45">A cada 45 dias</option>
+          <option value="60">Bimestral (60 dias)</option>
+          <option value="90">Trimestral (90 dias)</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Tipo de Contato</label>
+      <select id="regraTipoContato">
+        <option>Reunião de Check-in</option>
+        <option>Ligação</option>
+        <option>E-mail</option>
+        <option>QBR</option>
+        <option>Visita Presencial</option>
+        <option>Qualquer Contato</option>
+      </select>
+    </div>
+    <div class="fg"><label>Prioridade</label>
+      <select id="regraPrioridade">
+        <option value="alta">Alta</option>
+        <option value="media" selected>Média</option>
+        <option value="baixa">Baixa</option>
+      </select>
+    </div>
+    <div class="modal-foot"><button class="btn-primary" onclick="salvarRegra()"><i class="ti ti-check"></i>Salvar Regra</button><button class="btn-ghost" onclick="closeM('mNovaRegra')">Cancelar</button></div>
+  </div>
+</div>
 
 <!-- MODAL NOVA META DE EQUIPE -->
 <div class="modal-ov" id="mNovaMeta">
@@ -2127,6 +2202,7 @@ function nav(el,p){
   if(p==='relatorios')populateRelatoriosSelects();
   if(p==='qbr'){populateQBRSelect();renderQBR();}
   if(p==='metas'){initMetasPeriodo();renderMetas();}
+  if(p==='regua')renderRegua();
   if(p==='agenda'){renderAgenda();setTimeout(()=>{try{renderAgendaMapa();}catch(e){}},100);}
   if(p==='usuarios')renderUsuarios();
 }
@@ -5808,6 +5884,146 @@ td{padding:7px 10px;border-bottom:1px solid #eee}
 }
 
 // ════════════════════════════════════════════════
+// RÉGUA DE COMUNICAÇÃO
+// ════════════════════════════════════════════════
+const _REGUA_KEY='regua_comunicacao';
+function _getRegras(){return CS_DB.get(_REGUA_KEY)||[];}
+function _saveRegras(arr){CS_DB.set(_REGUA_KEY,arr);}
+
+function renderRegua(){
+  const regras=_getRegras();
+  const listaEl=document.getElementById('reguaLista');
+  const alertEl=document.getElementById('reguaAlertas');
+  if(!listaEl)return;
+
+  // Calcula clientes que precisam de contato baseado nas regras
+  const cl=CS_DB.getClientes();
+  const re=CS_DB.getAllReunioes();
+  const now=new Date();
+  const vencidos=[];
+  for(const c of cl){
+    for(const r of regras){
+      if(r.tier&&r.tier!==c.tier)continue;
+      if(r.status&&r.status!==c.status)continue;
+      if(r.hsMax&&c.healthScore>parseInt(r.hsMax))continue;
+      const ultReu=re.filter(x=>x.clienteId===c.id).sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];
+      const diasSem=ultReu?Math.floor((now-new Date(ultReu.dataISO))/86400000):9999;
+      const freq=parseInt(r.frequencia)||30;
+      if(diasSem>=freq){
+        vencidos.push({cliente:c,regra:r,diasSem,diasVencido:diasSem-freq});
+      }
+    }
+  }
+
+  if(alertEl){
+    if(vencidos.length){
+      const criticos=vencidos.filter(v=>v.diasVencido>7);
+      alertEl.innerHTML=`<div style="background:var(--red);background:linear-gradient(135deg,#d10000 0%,#a80000 100%);color:#fff;border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px">
+        <i class="ti ti-alert-triangle" style="font-size:22px;flex-shrink:0"></i>
+        <div><strong>${vencidos.length} cliente${vencidos.length!==1?'s':''} com contato vencido</strong> pela régua configurada${criticos.length?` · <span style="font-weight:700">${criticos.length} com mais de 7 dias de atraso</span>`:''}
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${vencidos.slice(0,8).map(v=>`<span style="background:rgba(255,255,255,.15);border-radius:20px;padding:2px 10px;font-size:11.5px;cursor:pointer" onclick="nav(document.querySelector('[data-p=cliente360]'),'cliente360');setTimeout(()=>{document.getElementById('c360Select').value='${v.cliente.id}';renderCliente360()},80)">${_escH(v.cliente.empresa)} <span style="opacity:.7">${v.diasSem}d</span></span>`).join('')}${vencidos.length>8?`<span style="opacity:.6;font-size:11.5px">+${vencidos.length-8} mais</span>`:''}</div></div>
+      </div>`;
+    } else {
+      alertEl.innerHTML=regras.length?`<div style="background:var(--green);background:linear-gradient(135deg,#18a75c,#0f7a40);color:#fff;border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:10px"><i class="ti ti-circle-check" style="font-size:20px"></i><span>Todos os clientes estão dentro da cadência de comunicação configurada.</span></div>`:'';
+    }
+  }
+
+  const prioClr={alta:'var(--red)',media:'var(--yellow)',baixa:'var(--green)'};
+  const prioLabel={alta:'Alta',media:'Média',baixa:'Baixa'};
+
+  if(!regras.length){
+    listaEl.innerHTML=`<div class="empty-state"><i class="ti ti-timeline-event-text"></i><p>Nenhuma régua configurada ainda.<br>Crie regras para automatizar a cadência de comunicação com sua carteira.</p><button class="btn-ghost" style="margin-top:10px" onclick="openM('mNovaRegra')"><i class="ti ti-plus"></i>Criar primeira régua</button></div>`;
+    return;
+  }
+
+  listaEl.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
+  ${regras.map((r,i)=>{
+    const afetados=cl.filter(c=>{
+      if(r.tier&&r.tier!==c.tier)return false;
+      if(r.status&&r.status!==c.status)return false;
+      if(r.hsMax&&c.healthScore>parseInt(r.hsMax))return false;
+      return true;
+    });
+    const venc=vencidos.filter(v=>v.regra===r);
+    return`<div class="card" style="padding:14px 18px;margin-bottom:0;border-left:3px solid ${prioClr[r.prioridade]||'var(--gray4)'}">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-weight:600;font-size:13.5px">${_escH(r.nome)}</span>
+            <span style="font-size:10.5px;background:${prioClr[r.prioridade]||'var(--gray4)'};color:#fff;padding:1px 8px;border-radius:20px">${prioLabel[r.prioridade]||'Média'}</span>
+            ${venc.length?`<span style="background:var(--red);color:#fff;font-size:10.5px;padding:1px 8px;border-radius:20px">${venc.length} vencido${venc.length!==1?'s':''}</span>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--gray2);display:flex;flex-wrap:wrap;gap:10px">
+            <span><i class="ti ti-refresh" style="font-size:11px"></i> A cada ${r.frequencia} dias</span>
+            <span><i class="ti ti-phone" style="font-size:11px"></i> ${r.tipoContato||'Qualquer contato'}</span>
+            ${r.tier?`<span><i class="ti ti-medal" style="font-size:11px"></i> Tier ${r.tier}</span>`:''}
+            ${r.status?`<span><i class="ti ti-circle" style="font-size:11px"></i> Status ${r.status}</span>`:''}
+            ${r.hsMax?`<span><i class="ti ti-heart-rate-monitor" style="font-size:11px"></i> HS ≤ ${r.hsMax}</span>`:''}
+            <span><i class="ti ti-users" style="font-size:11px"></i> ${afetados.length} cliente${afetados.length!==1?'s':''} afetado${afetados.length!==1?'s':''}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn-ghost" style="padding:5px 9px;font-size:11.5px;color:var(--red)" onclick="removerRegra(${i})"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}
+  </div>`;
+}
+
+function salvarRegra(){
+  const nome=document.getElementById('regraNome')?.value.trim();
+  if(!nome){toast('Informe o nome da régua.','err');return;}
+  const regras=_getRegras();
+  regras.push({
+    nome,
+    tier:document.getElementById('regraTier')?.value||'',
+    status:document.getElementById('regraStatus')?.value||'',
+    hsMax:document.getElementById('regraHSMax')?.value||'',
+    frequencia:document.getElementById('regraFreq')?.value||'30',
+    tipoContato:document.getElementById('regraTipoContato')?.value||'',
+    prioridade:document.getElementById('regraPrioridade')?.value||'media',
+    criadoEm:new Date().toISOString()
+  });
+  _saveRegras(regras);
+  closeM('mNovaRegra');
+  document.getElementById('regraNome').value='';
+  document.getElementById('regraHSMax').value='';
+  toast('Régua criada!');
+  renderRegua();
+}
+
+function removerRegra(idx){
+  if(!confirm('Remover esta régua?'))return;
+  const regras=_getRegras();
+  regras.splice(idx,1);
+  _saveRegras(regras);
+  renderRegua();
+}
+
+// Integração com Painel do Dia — retorna clientes vencidos pela régua
+function getReguaVencidosHoje(){
+  const regras=_getRegras();if(!regras.length)return[];
+  const cl=CS_DB.getClientes();
+  const re=CS_DB.getAllReunioes();
+  const now=new Date();
+  const vencidos=[];
+  const seen=new Set();
+  for(const c of cl){
+    for(const r of regras){
+      if(r.tier&&r.tier!==c.tier)continue;
+      if(r.status&&r.status!==c.status)continue;
+      if(r.hsMax&&c.healthScore>parseInt(r.hsMax))continue;
+      const ultReu=re.filter(x=>x.clienteId===c.id).sort((a,b)=>new Date(b.dataISO)-new Date(a.dataISO))[0];
+      const diasSem=ultReu?Math.floor((now-new Date(ultReu.dataISO))/86400000):9999;
+      const freq=parseInt(r.frequencia)||30;
+      if(diasSem>=freq&&!seen.has(c.id)){seen.add(c.id);vencidos.push({...c,diasSem,regra:r});}
+    }
+  }
+  return vencidos;
+}
+
+// ════════════════════════════════════════════════
 // METAS DA EQUIPE DE CS
 // ════════════════════════════════════════════════
 function _metasKey(ano,q){return`metas_equipe_${ano}_${q}`;}
@@ -6696,6 +6912,16 @@ function renderHoje(){
     var c=CS_DB.getClienteById(n.clienteId);
     return mkLinha('<span style="font-weight:700;color:var(--red);font-size:16px;flex-shrink:0">'+n.nota+'</span><div><div style="font-weight:500;font-size:13px">'+_escH((c?c.empresa:n.empresa)||'')+'</div><div style="font-size:11.5px;color:var(--gray2)">'+_escH(n.respondente||'')+(n.data?' · '+n.data:'')+'</div></div>','','');
   },'Nenhum detrator sem tratativa. Bom trabalho!');
+
+  // Régua de Comunicação — clientes com contato vencido
+  var reguaVenc=getReguaVencidosHoje();
+  if(reguaVenc.length){
+    html+=mkSecao('Régua de Comunicação — Contato Vencido','ti-timeline-event-text','#7c3aed',reguaVenc.slice(0,10),function(cv){
+      var d=cv.diasSem===9999?'nunca':cv.diasSem+'d';
+      var cor=cv.diasSem>60?'var(--red)':'#c8700a';
+      return mkLinha('<i class="ti ti-building" style="color:var(--gray3)"></i><div><div style="font-weight:500;font-size:13px">'+_escH(cv.empresa)+'</div><div style="font-size:11.5px;color:var(--gray2)">'+_escH(cv.regra.nome||'')+(cv.responsavelCS?' · '+cv.responsavelCS:'')+'</div></div>','<span style="color:'+cor+';font-weight:600">'+d+'</span>','nav(document.querySelector(\'[data-p=cliente360]\'),\'cliente360\');setTimeout(function(){document.getElementById(\'c360Select\').value=\''+cv.id+'\';renderCliente360()},80)');
+    },'');
+  }
 
   var contEl=document.getElementById('hojeContent');
   if(contEl)contEl.innerHTML=html;
