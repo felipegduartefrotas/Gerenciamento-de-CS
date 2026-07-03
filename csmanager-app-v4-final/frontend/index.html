@@ -504,6 +504,7 @@ tr:hover td{background:#fafafa}
     <div class="nav-item" data-p="engajamento" onclick="nav(this,'engajamento')"><i class="ti ti-activity"></i>Engajamento</div>
     <div class="nav-item" data-p="relatorios" onclick="nav(this,'relatorios')"><i class="ti ti-file-report"></i>Relatórios</div>
     <div class="nav-item" data-p="qbr" onclick="nav(this,'qbr')"><i class="ti ti-presentation-analytics"></i>QBR</div>
+    <div class="nav-item" data-p="metas" onclick="nav(this,'metas')"><i class="ti ti-target"></i>Metas da Equipe</div>
     <div class="nav-sec">Ferramentas</div>
     <div class="nav-item" data-p="emails" onclick="nav(this,'emails')"><i class="ti ti-mail"></i>Templates E-mail</div>
     <div class="nav-item" data-p="importar" onclick="nav(this,'importar')"><i class="ti ti-table-import"></i>Importar Excel</div>
@@ -1342,6 +1343,20 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- METAS DA EQUIPE -->
+<div class="page" id="page-metas">
+  <div class="ph">
+    <h2><i class="ti ti-target"></i>Metas da Equipe de CS</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="metasTrimestre" onchange="renderMetas()" style="font-size:12.5px;padding:6px 10px"><option value="Q1">Q1 (Jan–Mar)</option><option value="Q2">Q2 (Abr–Jun)</option><option value="Q3">Q3 (Jul–Set)</option><option value="Q4">Q4 (Out–Dez)</option></select>
+      <input type="number" id="metasAno" min="2020" max="2035" oninput="renderMetas()" style="width:86px;font-size:12.5px;padding:6px 10px;border:1px solid var(--gray4);border-radius:7px;background:var(--gray6);color:inherit">
+      <button class="btn-primary" onclick="openM('mNovaMeta')"><i class="ti ti-plus"></i>Nova Meta</button>
+    </div>
+  </div>
+  <div id="metasKPIs" style="margin-bottom:18px"></div>
+  <div id="metasLista"></div>
+</div>
+
 <!-- QBR -->
 <div class="page" id="page-qbr">
   <div class="ph">
@@ -1370,6 +1385,37 @@ tr:hover td{background:#fafafa}
 
 <!-- TOAST -->
 <div class="toast-wrap" id="toastWrap"></div>
+
+<!-- MODAL NOVA META DE EQUIPE -->
+<div class="modal-ov" id="mNovaMeta">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-ttl"><span><i class="ti ti-target"></i>Nova Meta da Equipe</span><span class="modal-close" onclick="closeM('mNovaMeta')"><i class="ti ti-x"></i></span></div>
+    <input type="hidden" id="metaEditId">
+    <div class="fg"><label>Título da Meta</label><input type="text" id="metaTitulo" placeholder="Ex.: HS médio acima de 75"></div>
+    <div class="form-g2">
+      <div class="fg"><label>Categoria</label>
+        <select id="metaCategoria">
+          <option value="hs">Health Score</option>
+          <option value="nps">NPS</option>
+          <option value="churn">Churn / Retenção</option>
+          <option value="reunioes">Reuniões</option>
+          <option value="renovacoes">Renovações</option>
+          <option value="onboarding">Onboarding</option>
+          <option value="mrr">MRR / Receita</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="fg"><label>Responsável</label><input type="text" id="metaResponsavel" placeholder="Nome do CS ou 'Equipe'"></div>
+    </div>
+    <div class="form-g2">
+      <div class="fg"><label>Valor Alvo</label><input type="number" id="metaAlvo" placeholder="Ex.: 75"></div>
+      <div class="fg"><label>Unidade</label><input type="text" id="metaUnidade" placeholder="pts / % / qtd / R$"></div>
+    </div>
+    <div class="fg"><label>Descrição / Critério</label><textarea id="metaDescricao" rows="3" placeholder="Como essa meta será medida e considerada cumprida?"></textarea></div>
+    <div class="modal-foot"><button class="btn-primary" onclick="salvarMeta()"><i class="ti ti-check"></i>Salvar Meta</button><button class="btn-ghost" onclick="closeM('mNovaMeta')">Cancelar</button></div>
+  </div>
+</div>
+
 <!-- MODAL META DO PLANO DE SUCESSO -->
 <!-- MODAL PRIMEIROS 90 DIAS -->
 <div class="modal-ov" id="mP90">
@@ -2080,6 +2126,7 @@ function nav(el,p){
   if(p==='grupos')renderGrupos();
   if(p==='relatorios')populateRelatoriosSelects();
   if(p==='qbr'){populateQBRSelect();renderQBR();}
+  if(p==='metas'){initMetasPeriodo();renderMetas();}
   if(p==='agenda'){renderAgenda();setTimeout(()=>{try{renderAgendaMapa();}catch(e){}},100);}
   if(p==='usuarios')renderUsuarios();
 }
@@ -5758,6 +5805,134 @@ td{padding:7px 10px;border-bottom:1px solid #eee}
   abrirRelatorioEmNovaJanela(html,`Relatorio_Diretoria.html`);
   registrarRelatorioGerado(escopo==='cliente'?`Relatório Diretoria — ${clientes[0].empresa}`:'Relatório Diretoria — Carteira completa','diretoria');
   toast('Relatório de diretoria gerado em nova aba!');
+}
+
+// ════════════════════════════════════════════════
+// METAS DA EQUIPE DE CS
+// ════════════════════════════════════════════════
+function _metasKey(ano,q){return`metas_equipe_${ano}_${q}`;}
+function _getMetas(ano,q){return CS_DB.get(_metasKey(ano,q))||[];}
+function _saveMetas(ano,q,arr){CS_DB.set(_metasKey(ano,q),arr);}
+
+function initMetasPeriodo(){
+  const anoEl=document.getElementById('metasAno');
+  if(anoEl&&!anoEl.value){anoEl.value=new Date().getFullYear();}
+  const triEl=document.getElementById('metasTrimestre');
+  if(triEl){const m=new Date().getMonth();triEl.value=m<3?'Q1':m<6?'Q2':m<9?'Q3':'Q4';}
+}
+
+function _metasValorAtual(cat){
+  const cl=CS_DB.getClientes();if(!cl.length)return null;
+  if(cat==='hs')return Math.round(cl.reduce((s,c)=>s+c.healthScore,0)/cl.length);
+  if(cat==='nps'){const all=CS_DB.getClientes().flatMap(c=>CS_DB.getNPSCliente(c.id));const r=CS_DB.calcNPS(all);return r.score??null;}
+  if(cat==='churn')return cl.filter(c=>calcChurnScore(c)>=40).length;
+  if(cat==='reunioes')return CS_DB.getAllReunioes().length;
+  if(cat==='onboarding'){const obs=CS_DB.get('onboardings')||[];return obs.length?Math.round(obs.reduce((s,o)=>s+calcObPct(o),0)/obs.length):null;}
+  return null;
+}
+
+const _metaCatMeta={hs:{icon:'ti-heart-rate-monitor',cor:'var(--green)',label:'Health Score'},nps:{icon:'ti-star',cor:'var(--blue)',label:'NPS'},churn:{icon:'ti-trending-down',cor:'var(--red)',label:'Churn'},reunioes:{icon:'ti-calendar',cor:'var(--blue)',label:'Reuniões'},renovacoes:{icon:'ti-refresh',cor:'var(--green)',label:'Renovações'},onboarding:{icon:'ti-rocket',cor:'var(--yellow)',label:'Onboarding'},mrr:{icon:'ti-currency-dollar',cor:'var(--green)',label:'MRR'},outro:{icon:'ti-target',cor:'var(--gray2)',label:'Outro'}};
+
+function renderMetas(){
+  initMetasPeriodo();
+  const q=document.getElementById('metasTrimestre')?.value;
+  const ano=document.getElementById('metasAno')?.value;
+  const kpisEl=document.getElementById('metasKPIs');
+  const listaEl=document.getElementById('metasLista');
+  if(!kpisEl||!listaEl)return;
+  const metas=_getMetas(ano,q);
+
+  // KPIs automáticos do momento
+  const hsAtual=_metasValorAtual('hs');
+  const npsAtual=_metasValorAtual('nps');
+  const churnAtual=_metasValorAtual('churn');
+  const reuAtual=_metasValorAtual('reunioes');
+  kpisEl.innerHTML=`<div class="kpi-grid" style="margin-bottom:0">
+    <div class="kpi green"><div class="kpi-lbl"><i class="ti ti-heart-rate-monitor"></i>HS Médio Atual</div><div class="kpi-val">${hsAtual??'—'}</div><div class="kpi-sub">carteira completa</div></div>
+    <div class="kpi blue"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS Atual</div><div class="kpi-val" style="color:${npsAtual>=50?'var(--green)':npsAtual>=0?'var(--yellow)':'var(--red)'}">${npsAtual??'—'}</div><div class="kpi-sub">consolidado</div></div>
+    <div class="kpi red"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Em Risco de Churn</div><div class="kpi-val">${churnAtual??'—'}</div><div class="kpi-sub">clientes ≥40% prob.</div></div>
+    <div class="kpi blue"><div class="kpi-lbl"><i class="ti ti-calendar"></i>Reuniões Totais</div><div class="kpi-val">${reuAtual??'—'}</div><div class="kpi-sub">registradas</div></div>
+  </div>`;
+
+  if(!metas.length){listaEl.innerHTML=`<div class="empty-state" style="margin-top:18px"><i class="ti ti-target"></i><p>Nenhuma meta definida para ${q} ${ano}.</p><button class="btn-ghost" style="margin-top:10px" onclick="openM('mNovaMeta')"><i class="ti ti-plus"></i>Definir primeira meta</button></div>`;return;}
+
+  // Separa por status
+  const comProgresso=metas.filter(m=>m.atual!==null&&m.atual!==undefined&&m.alvo);
+  const semProgresso=metas.filter(m=>!(m.atual!==null&&m.atual!==undefined&&m.alvo));
+
+  listaEl.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+  ${metas.map((m,i)=>{
+    const cat=_metaCatMeta[m.categoria]||_metaCatMeta.outro;
+    const atual=m.atual??_metasValorAtual(m.categoria);
+    const alvo=parseFloat(m.alvo)||null;
+    const pct=alvo&&atual!==null?Math.min(100,Math.round((atual/alvo)*100)):null;
+    const atingida=pct!==null&&pct>=100;
+    return`<div class="card" style="padding:14px 18px;margin-bottom:0;border-left:3px solid ${cat.cor}">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <i class="ti ${cat.icon}" style="color:${cat.cor}"></i>
+            <span style="font-weight:600;font-size:14px">${_escH(m.titulo)}</span>
+            ${atingida?`<span style="background:var(--green);color:#fff;font-size:10.5px;padding:1px 8px;border-radius:20px;font-weight:700">✓ Atingida</span>`:''}
+          </div>
+          <div style="font-size:11.5px;color:var(--gray2);margin-bottom:8px">${_escH(m.descricao||'')}${m.responsavel?` &nbsp;·&nbsp; <span style="font-weight:600">${_escH(m.responsavel)}</span>`:''}${m.unidade?` &nbsp;·&nbsp; Unidade: ${_escH(m.unidade)}`:''}
+          </div>
+          ${alvo!==null?`<div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;background:var(--gray5);border-radius:4px;height:8px"><div style="width:${pct||0}%;background:${atingida?'var(--green)':pct>60?'var(--blue)':'var(--yellow)'};height:8px;border-radius:4px;transition:width .4s"></div></div>
+            <span style="font-size:12px;font-weight:700;min-width:60px;text-align:right">${atual??'?'} / ${alvo} ${m.unidade||''}</span>
+            <span style="font-size:11px;color:var(--gray3);min-width:36px">${pct!==null?pct+'%':''}</span>
+          </div>`:`<div style="font-size:12px;color:var(--gray3)">Alvo: ${_escH(String(m.alvo||'—'))} ${m.unidade||''} &nbsp;·&nbsp; Progresso não monitorado automaticamente</div>`}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn-ghost" style="padding:5px 9px;font-size:11.5px" onclick="atualizarProgressoMeta(${i},'${ano}','${q}')"><i class="ti ti-edit"></i>Atualizar</button>
+          <button class="btn-ghost" style="padding:5px 9px;font-size:11.5px;color:var(--red)" onclick="removerMeta(${i},'${ano}','${q}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}
+  </div>`;
+}
+
+function salvarMeta(){
+  const q=document.getElementById('metasTrimestre')?.value;
+  const ano=document.getElementById('metasAno')?.value;
+  if(!q||!ano)return;
+  const titulo=document.getElementById('metaTitulo')?.value.trim();
+  if(!titulo){toast('Informe o título da meta.','err');return;}
+  const metas=_getMetas(ano,q);
+  const editId=document.getElementById('metaEditId')?.value;
+  const meta={
+    titulo,
+    categoria:document.getElementById('metaCategoria')?.value||'outro',
+    responsavel:document.getElementById('metaResponsavel')?.value.trim()||'',
+    alvo:document.getElementById('metaAlvo')?.value||'',
+    unidade:document.getElementById('metaUnidade')?.value.trim()||'',
+    descricao:document.getElementById('metaDescricao')?.value.trim()||'',
+    criadoEm:new Date().toISOString()
+  };
+  if(editId!==''){metas[parseInt(editId)]=meta;}else{metas.push(meta);}
+  _saveMetas(ano,q,metas);
+  closeM('mNovaMeta');
+  toast('Meta salva!');
+  renderMetas();
+}
+
+function removerMeta(idx,ano,q){
+  if(!confirm('Remover esta meta?'))return;
+  const metas=_getMetas(ano,q);
+  metas.splice(idx,1);
+  _saveMetas(ano,q,metas);
+  renderMetas();
+}
+
+function atualizarProgressoMeta(idx,ano,q){
+  const metas=_getMetas(ano,q);
+  const m=metas[idx];if(!m)return;
+  const novoVal=prompt(`Progresso atual para "${m.titulo}" (unidade: ${m.unidade||'—'}):`,m.atual??'');
+  if(novoVal===null)return;
+  m.atual=novoVal===''?null:parseFloat(novoVal)||novoVal;
+  _saveMetas(ano,q,metas);
+  renderMetas();
 }
 
 // ════════════════════════════════════════════════
