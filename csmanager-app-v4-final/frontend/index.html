@@ -5589,46 +5589,125 @@ function gerarRelatorioCliente(){
   const cid=document.getElementById('relClienteSelect').value;
   const c=CS_DB.getClienteById(cid);
   if(!c){toast('Selecione um cliente.','err');return}
-  const reu=CS_DB.getReunioesCliente(cid);
+  const periodoLabel=document.getElementById('relPeriodoCliente').value;
+  const now=new Date();
+  let dataIni=null;
+  if(periodoLabel==='Último mês'){dataIni=new Date(now);dataIni.setMonth(dataIni.getMonth()-1);}
+  else if(periodoLabel==='Último trimestre'){dataIni=new Date(now);dataIni.setMonth(dataIni.getMonth()-3);}
+  const filtrar=arr=>dataIni?arr.filter(x=>{const d=new Date(x.dataISO||x.criadoEm||'');return d>=dataIni;}):arr;
+
+  const reuTodas=CS_DB.getReunioesCliente(cid);
+  const reu=filtrar(reuTodas);
   const nps=CS_DB.getNPSCliente(cid);
-  const ac=CS_DB.getAcoesCliente(cid);
-  const npsCalc=CS_DB.calcNPS(nps);
-  const periodo=document.getElementById('relPeriodoCliente').value;
-  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório — ${c.empresa}</title>
-<style>body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;max-width:800px;margin:0 auto;padding:40px 30px;line-height:1.6}
-.hdr{display:flex;align-items:center;gap:12px;border-bottom:3px solid #D10000;padding-bottom:16px;margin-bottom:24px}
-.bar{width:8px;height:34px;background:#D10000;border-radius:2px}.brand{font-size:22px;font-weight:700}
-.sub{color:#666;font-size:12px;letter-spacing:1px;text-transform:uppercase}
-h2{font-size:16px;border-left:4px solid #D10000;padding-left:10px;margin-top:28px}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}
-.kpi{background:#f7f7f7;border-radius:10px;padding:16px;text-align:center}
-.kpi .v{font-size:26px;font-weight:700}.kpi .l{font-size:11px;color:#666;margin-top:4px}
-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
-th{background:#f0f0f0;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;color:#666}
-td{padding:8px 10px;border-bottom:1px solid #eee}
-.foot{margin-top:40px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:14px}
-@media print{body{padding:0}}
+  const npsPeriodo=filtrar(nps);
+  const npsCalc=CS_DB.calcNPS(nps); // score geral
+  const npsPCalc=CS_DB.calcNPS(npsPeriodo);
+  const acTodas=CS_DB.getAcoesCliente(cid);
+  const acFiltradas=filtrar(acTodas);
+  const acAndamento=acTodas.filter(a=>a.status==='Em Andamento'||a.status==='Pendente');
+  const acConcluidas=filtrar(acTodas).filter(a=>a.status==='Concluído');
+  const obs=CS_DB.get('onboardings')||[];
+  const ob=obs.find(o=>o.clienteId===cid)||null;
+  const obPct=ob?calcObPct(ob):null;
+  const churnScore=calcChurnScore(c);
+  const churnLb=churnLabel(churnScore);
+  const hsClr=c.healthScore>=70?'#18a75c':c.healthScore>=40?'#e5830a':'#d10000';
+  const npsClr=(npsCalc.score??0)>=50?'#18a75c':(npsCalc.score??0)>=0?'#e5830a':'#d10000';
+
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório — ${_escH(c.empresa)}</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:#1a1a1a;max-width:820px;margin:0 auto;padding:36px 28px;line-height:1.6;font-size:13px}
+.cover{border-bottom:3px solid #D10000;padding-bottom:20px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-end}
+.brand-block .brand{font-size:20px;font-weight:800;letter-spacing:-.3px;color:#D10000}
+.brand-block .brand-sub{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-top:2px}
+.cliente-nome{font-size:26px;font-weight:700;margin:0}
+.cliente-meta{font-size:12px;color:#666;margin-top:3px}
+.periodo-badge{background:#f5f5f5;border-radius:6px;padding:4px 12px;font-size:11px;color:#888}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0 24px}
+.kpi{background:#f8f8f8;border-radius:10px;padding:14px;text-align:center;border-top:3px solid transparent}
+.kpi .v{font-size:28px;font-weight:700;line-height:1}
+.kpi .l{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-top:5px}
+h2{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#D10000;border-bottom:1px solid #eee;padding-bottom:6px;margin:22px 0 12px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:#f5f5f5;text-align:left;padding:7px 10px;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#888;border-bottom:2px solid #e8e8e8}
+td{padding:7px 10px;border-bottom:1px solid #f0f0f0}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:#e6f7ef;color:#18a75c}.badge-red{background:#fdecea;color:#d10000}.badge-yellow{background:#fff8e6;color:#c47b00}.badge-gray{background:#f0f0f0;color:#888}
+.ob-bar-bg{background:#e8e8e8;border-radius:4px;height:8px;margin-top:5px}
+.ob-bar-fill{background:#18a75c;height:8px;border-radius:4px}
+.nps-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin:8px 0 4px}
+.nps-seg{height:100%}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.info-block{background:#f8f8f8;border-radius:8px;padding:12px 14px}
+.info-block .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#888;margin-bottom:3px}
+.info-block .val{font-size:13px;font-weight:600}
+.foot{margin-top:36px;padding-top:12px;border-top:1px solid #eee;font-size:10.5px;color:#bbb;display:flex;justify-content:space-between}
+.no-data{color:#bbb;font-style:italic;padding:8px 0}
+@media print{body{padding:12px 16px}button{display:none!important}}
 </style></head><body>
-<div class="hdr"><div class="bar"></div><div><div class="brand">creare sistemas</div><div class="sub">Relatório de Acompanhamento — Customer Success</div></div></div>
-<h1 style="margin-bottom:2px">${c.empresa}</h1>
-<div style="color:#666;font-size:13px">Período de referência: ${periodo} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
-<h2>Indicadores de Saúde da Conta</h2>
-<div class="kpis">
-  <div class="kpi"><div class="v" style="color:${hsColor(c.healthScore)}">${c.healthScore}</div><div class="l">Health Score</div></div>
-  <div class="kpi"><div class="v" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="l">NPS</div></div>
-  <div class="kpi"><div class="v">${reu.length}</div><div class="l">Reuniões realizadas</div></div>
+<div class="cover">
+  <div><div class="brand-block"><div class="brand">creare sistemas</div><div class="brand-sub">Relatório de Acompanhamento · Customer Success</div></div></div>
+  <div style="text-align:right"><div class="periodo-badge">${periodoLabel}</div><div style="font-size:10.5px;color:#aaa;margin-top:4px">Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
 </div>
-<h2>Reuniões Realizadas</h2>
-<table><thead><tr><th>Data</th><th>Tipo</th><th>Pontos Positivos</th><th>Próxima Reunião</th></tr></thead><tbody>
-${reu.length?reu.map(r=>`<tr><td>${r.data}</td><td>${r.tipo}</td><td>${r.pontosPosi||'—'}</td><td>${r.proximaReuniao||'—'}</td></tr>`).join(''):'<tr><td colspan="4" style="color:#999">Nenhuma reunião registrada no período.</td></tr>'}
-</tbody></table>
+<div class="cliente-nome">${_escH(c.empresa)}</div>
+<div class="cliente-meta">${c.cnpj?`CNPJ: ${c.cnpj} &nbsp;·&nbsp; `:''}Segmento: ${c.segmento||'—'} &nbsp;·&nbsp; Tier: ${c.tier} &nbsp;·&nbsp; Status: ${c.status} &nbsp;·&nbsp; CS Responsável: ${c.responsavelCS||'—'}</div>
+
+<div class="kpi-grid">
+  <div class="kpi" style="border-top-color:${hsClr}"><div class="v" style="color:${hsClr}">${c.healthScore}</div><div class="l">Health Score</div></div>
+  <div class="kpi" style="border-top-color:${npsClr}"><div class="v" style="color:${npsClr}">${npsCalc.score??'—'}</div><div class="l">NPS Geral</div></div>
+  <div class="kpi" style="border-top-color:#3b82f6"><div class="v" style="color:#3b82f6">${reu.length}</div><div class="l">Reuniões no Período</div></div>
+  <div class="kpi" style="border-top-color:${churnScore>=40?'#d10000':churnScore>=20?'#e5830a':'#18a75c'}"><div class="v" style="color:${churnScore>=40?'#d10000':churnScore>=20?'#e5830a':'#18a75c'}">${churnScore}%</div><div class="l">Risco de Churn</div></div>
+</div>
+
+${ob?`<div class="two-col" style="margin-bottom:22px">
+  <div class="info-block"><div class="lbl">Status do Onboarding</div><div class="val">${obPct}% concluído</div><div class="ob-bar-bg"><div class="ob-bar-fill" style="width:${obPct}%"></div></div></div>
+  <div class="info-block"><div class="lbl">Complexidade / Usuários</div><div class="val">${ob.complexidade||'—'} · ${ob.numUsuarios||'—'} usuários</div></div>
+</div>`:''}
+
+<h2>Reuniões Realizadas no Período</h2>
+${reu.length?`<table><thead><tr><th>Data</th><th>Tipo</th><th>Pontos Positivos</th><th>Próxima Reunião</th></tr></thead><tbody>
+${reu.map(r=>`<tr><td>${r.data}</td><td>${r.tipo}</td><td>${_escH(r.pontosPosi||'—')}</td><td>${r.proximaReuniao||'—'}</td></tr>`).join('')}
+</tbody></table>`:`<p class="no-data">Nenhuma reunião registrada no período.</p>`}
+
 <h2>Ações em Andamento</h2>
-<table><thead><tr><th>Descrição</th><th>Área</th><th>Status</th><th>Prazo</th></tr></thead><tbody>
-${ac.length?ac.map(a=>`<tr><td>${a.descricao}</td><td>${a.area||'—'}</td><td>${a.status}</td><td>${a.prazo||'—'}</td></tr>`).join(''):'<tr><td colspan="4" style="color:#999">Nenhuma ação registrada.</td></tr>'}
-</tbody></table>
+${acAndamento.length?`<table><thead><tr><th>Descrição</th><th>Área</th><th>Status</th><th>Prazo</th></tr></thead><tbody>
+${acAndamento.map(a=>`<tr><td>${_escH(a.descricao)}</td><td>${a.area||'—'}</td><td><span class="badge ${a.status==='Concluído'?'badge-green':a.status==='Em Andamento'?'badge-yellow':'badge-gray'}">${a.status}</span></td><td>${a.prazo||'—'}</td></tr>`).join('')}
+</tbody></table>`:`<p class="no-data">Nenhuma ação em andamento.</p>`}
+
+${acConcluidas.length?`<h2>Ações Concluídas no Período</h2>
+<table><thead><tr><th>Descrição</th><th>Área</th><th>Prazo</th></tr></thead><tbody>
+${acConcluidas.map(a=>`<tr><td>${_escH(a.descricao)}</td><td>${a.area||'—'}</td><td>${a.prazo||'—'}</td></tr>`).join('')}
+</tbody></table>`:''}
+
 <h2>Satisfação (NPS)</h2>
-<p>Promotores: <strong>${npsCalc.promPct}%</strong> · Neutros: <strong>${npsCalc.neuPct}%</strong> · Detratores: <strong>${npsCalc.detPct}%</strong></p>
-<div class="foot">Relatório gerado automaticamente pelo CS Manager Creare Sistemas · Documento de uso operacional, sem informações financeiras ou contratuais.</div>
+<div class="two-col">
+  <div class="info-block"><div class="lbl">Score NPS Geral</div><div class="val" style="font-size:22px;color:${npsClr}">${npsCalc.score??'—'}</div><div style="font-size:11px;color:#888;margin-top:3px">Baseado em ${nps.length} resposta${nps.length!==1?'s':''}</div></div>
+  <div class="info-block">
+    <div class="lbl">Distribuição</div>
+    <div class="nps-bar">
+      <div class="nps-seg" style="width:${npsCalc.promPct||0}%;background:#18a75c" title="Promotores ${npsCalc.promPct}%"></div>
+      <div class="nps-seg" style="width:${npsCalc.neuPct||0}%;background:#e5830a" title="Neutros ${npsCalc.neuPct}%"></div>
+      <div class="nps-seg" style="width:${npsCalc.detPct||0}%;background:#d10000" title="Detratores ${npsCalc.detPct}%"></div>
+    </div>
+    <div style="display:flex;gap:10px;font-size:10.5px;color:#888">
+      <span>● Promotores ${npsCalc.promPct||0}%</span>
+      <span>● Neutros ${npsCalc.neuPct||0}%</span>
+      <span>● Detratores ${npsCalc.detPct||0}%</span>
+    </div>
+  </div>
+</div>
+${nps.length?`<table><thead><tr><th>Data</th><th>Nota</th><th>Comentário</th><th>Categoria</th></tr></thead><tbody>
+${nps.slice(0,10).map(n=>`<tr><td>${n.data||'—'}</td><td><span class="badge ${n.nota>=9?'badge-green':n.nota>=7?'badge-yellow':'badge-red'}">${n.nota}</span></td><td>${_escH(n.comentario||'—')}</td><td>${n.categoria||'—'}</td></tr>`).join('')}
+${nps.length>10?`<tr><td colspan="4" style="color:#aaa;font-style:italic">... e mais ${nps.length-10} registros.</td></tr>`:''}
+</tbody></table>`:''}
+
+<div class="foot">
+  <span>CS Manager · Creare Sistemas &nbsp;·&nbsp; Documento operacional — sem dados financeiros ou contratuais</span>
+  <span>${c.responsavelCS||''}</span>
+</div>
+<script>window.onload=()=>window.print();<\/script>
 </body></html>`;
   abrirRelatorioEmNovaJanela(html,`Relatorio_${c.empresa}.html`);
   registrarRelatorioGerado(`Relatório Cliente — ${c.empresa}`,'cliente');
