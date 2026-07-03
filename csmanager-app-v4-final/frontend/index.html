@@ -1101,29 +1101,59 @@ tr:hover td{background:#fafafa}
   <div class="ph"><h2><i class="ti ti-rocket"></i>Onboarding de Novos Clientes</h2>
     <button class="btn-primary" onclick="openM('mNovoOnboarding')"><i class="ti ti-plus"></i>Iniciar Onboarding</button>
   </div>
-  <div class="kpi-grid" id="obKPIs"></div>
-  <div class="tbl-card">
-    <div class="tbl-head">
-      <div class="tbl-head-ttl"><i class="ti ti-rocket"></i>Clientes em Implantação</div>
-      <div style="display:flex;gap:8px">
-        <select class="flt-sel" id="obFltStatus" onchange="renderOnboarding()"><option value="">Todos</option><option value="nao-iniciado">Não iniciado</option><option value="em-andamento">Em andamento</option><option value="concluido">Concluído</option><option value="atrasado">Atrasado</option></select>
+  <div class="flt-row" style="margin-bottom:14px">
+    <button class="tl-filter-btn active" data-obt="geral" onclick="trocarAbaOBV4('geral',this)"><i class="ti ti-building-community"></i>Visão Geral Carteira</button>
+    <button class="tl-filter-btn" data-obt="cliente" onclick="trocarAbaOBV4('cliente',this)"><i class="ti ti-user-circle"></i>Por Cliente</button>
+  </div>
+  <!-- ABA GERAL -->
+  <div id="obAbaGeralV4">
+    <div class="kpi-grid" id="obKPIs"></div>
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="tbl-head-ttl"><i class="ti ti-rocket"></i>Clientes em Implantação</div>
+        <div style="display:flex;gap:8px">
+          <select class="flt-sel" id="obFltStatus" onchange="renderOnboarding()"><option value="">Todos</option><option value="nao-iniciado">Não iniciado</option><option value="em-andamento">Em andamento</option><option value="concluido">Concluído</option><option value="atrasado">Atrasado</option></select>
+        </div>
       </div>
+      <div id="obList" style="padding:0 0 8px"></div>
     </div>
-    <div id="obList" style="padding:0 0 8px"></div>
+  </div>
+  <!-- ABA POR CLIENTE -->
+  <div id="obAbaClienteV4" style="display:none">
+    <div style="margin-bottom:14px">
+      <select class="flt-sel" id="obClienteSelectV4" onchange="renderObClienteV4()" style="font-size:12.5px;padding:6px 10px;min-width:280px">
+        <option value="">— Selecione um cliente —</option>
+      </select>
+    </div>
+    <div id="obClienteContentV4">
+      <div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-user-circle" style="font-size:36px;display:block;margin-bottom:10px;color:var(--gray4)"></i>Selecione um cliente para ver os detalhes do onboarding.</div>
+    </div>
   </div>
 </div>
 
 <!-- MODAL NOVO ONBOARDING -->
 <div class="modal-ov" id="mNovoOnboarding">
-  <div class="modal">
+  <div class="modal" style="max-width:620px">
     <div class="modal-ttl"><span><i class="ti ti-rocket"></i>Iniciar Onboarding</span><span class="modal-close" onclick="closeM('mNovoOnboarding')"><i class="ti ti-x"></i></span></div>
     <div class="form-g2">
       <div class="fg"><label>Cliente *</label><select id="obCliente"></select></div>
       <div class="fg"><label>Data de kickoff</label><input type="text" id="obDataKickoff" placeholder="DD/MM/AAAA"></div>
       <div class="fg"><label>Prazo de implantação</label><input type="text" id="obPrazoImpl" placeholder="DD/MM/AAAA"></div>
       <div class="fg"><label>Responsável CS</label><select id="obRespCS"><option>Felipe Duarte</option><option>Ana Lima</option><option>Pedro Costa</option></select></div>
+      <div class="fg"><label>Contato principal do cliente</label><input type="text" id="obContato" placeholder="Nome do ponto focal no cliente"></div>
+      <div class="fg"><label>E-mail ou WhatsApp</label><input type="text" id="obContatoInfo" placeholder="email@empresa.com ou (51) 9xxxx-xxxx"></div>
+      <div class="fg"><label>Nº de usuários</label><input type="number" id="obNumUsuarios" placeholder="Ex: 25" min="1" style="width:100%"></div>
+      <div class="fg"><label>Complexidade</label>
+        <select id="obComplexidade">
+          <option value="">— selecione —</option>
+          <option value="Baixa">Baixa — implantação simples, poucos módulos</option>
+          <option value="Média">Média — múltiplos módulos ou integrações</option>
+          <option value="Alta">Alta — grande escala ou customizações</option>
+        </select>
+      </div>
       <div class="fg form-full"><label>Escopo contratado</label><input type="text" id="obEscopo" placeholder="Ex: 120 veículos, Telemetria + Videomonitoramento"></div>
-      <div class="fg form-full"><label>Observações iniciais</label><textarea id="obObs" placeholder="Particularidades, riscos identificados no kickoff..."></textarea></div>
+      <div class="fg form-full"><label>Riscos identificados</label><input type="text" id="obRiscos" placeholder="Ex: equipe do cliente reduzida, integração com ERP legado..."></div>
+      <div class="fg form-full"><label>Observações iniciais</label><textarea id="obObs" placeholder="Particularidades e alinhamentos feitos no kickoff..."></textarea></div>
     </div>
     <div class="btn-row"><button class="btn-ghost" onclick="closeM('mNovoOnboarding')">Cancelar</button><button class="btn-primary" onclick="salvarOnboarding()"><i class="ti ti-rocket"></i>Iniciar</button></div>
   </div>
@@ -1135,6 +1165,7 @@ tr:hover td{background:#fafafa}
     <button class="btn-ghost" onclick="recalcularChurn()"><i class="ti ti-refresh"></i>Recalcular</button>
   </div>
   <div class="kpi-grid" id="churnKPIs"></div>
+  <div id="churnEscalacaoPanel"></div>
 
   <div class="two-col" style="margin-bottom:14px">
     <div class="card" style="margin-bottom:0">
@@ -4167,7 +4198,12 @@ async function salvarOnboarding() {
     id: 'ob_' + Date.now(), clienteId: cid, empresa: cli.empresa,
     kickoff, prazoImpl: document.getElementById('obPrazoImpl').value,
     responsavel: document.getElementById('obRespCS').value,
+    contato: document.getElementById('obContato').value,
+    contatoInfo: document.getElementById('obContatoInfo').value,
+    numUsuarios: document.getElementById('obNumUsuarios').value,
+    complexidade: document.getElementById('obComplexidade').value,
     escopo: document.getElementById('obEscopo').value,
+    riscos: document.getElementById('obRiscos').value,
     obs: document.getElementById('obObs').value,
     criadoEm: new Date().toISOString(), status: 'em-andamento',
     steps: OB_STEPS_TEMPLATE.map(s => ({ ...s, concluido: false, dataConc: null }))
@@ -4403,6 +4439,115 @@ function churnLabel(score) {
 function recalcularChurn() { renderChurn(); toast('Churn recalculado com dados atuais.'); }
 
 // ════════════════════════════════════════════════
+// ESCALAÇÃO CHURN CRÍTICO
+// ════════════════════════════════════════════════
+function _renderEscalacaoPanel(criticos){
+  const el=document.getElementById('churnEscalacaoPanel');if(!el)return;
+  if(!criticos||!criticos.length){el.innerHTML='';return;}
+  el.innerHTML=`<div style="background:#fff0f0;border:1.5px solid var(--red);border-radius:10px;padding:13px 16px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <i class="ti ti-alert-triangle" style="color:var(--red);font-size:18px;flex-shrink:0"></i>
+      <span style="font-weight:700;color:var(--red);font-size:13.5px">${criticos.length} cliente${criticos.length>1?'s':''} em Churn Crítico — Escalação necessária</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      ${criticos.map(c=>`<span style="background:#fff;border:1px solid var(--red);border-radius:6px;padding:3px 9px;font-size:12px;color:var(--red);font-weight:600">${c.empresa.split(' ')[0]} <strong>${c.churnScore}%</strong></span>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-primary" style="background:var(--red);font-size:12px;padding:6px 14px" onclick="escalarChurnCriticos('diretoria')"><i class="ti ti-mail"></i> Escalar para Diretoria</button>
+      <button class="btn-ghost" style="font-size:12px;padding:6px 14px" onclick="escalarChurnCriticos('comercial')"><i class="ti ti-mail"></i> Escalar para Comercial</button>
+      <button class="btn-ghost" style="font-size:12px;padding:6px 14px" onclick="escalarChurnCriticos('tecnico')"><i class="ti ti-mail"></i> Time Técnico</button>
+      <button class="lnk" style="font-size:11.5px;margin-left:auto" onclick="_autoEscalarCriticosV4()"><i class="ti ti-layout-kanban"></i> Criar cards no Kanban</button>
+    </div>
+  </div>`;
+}
+function escalarChurnCriticos(destino){
+  const cl=CS_DB.getClientes();
+  const criticos=cl.map(c=>({...c,churnScore:calcChurnScore(c)})).filter(c=>c.churnScore>=70).sort((a,b)=>b.churnScore-a.churnScore);
+  if(!criticos.length){toast('Nenhum cliente em churn crítico no momento.','warn');return;}
+  const nomes=criticos.map(c=>`  • ${c.empresa} — ${c.churnScore}% (HS: ${c.healthScore} · MRR: ${c.mrr||'—'})`).join('\n');
+  document.getElementById('emChurnClienteId').value='';
+  document.getElementById('emChurnDestino').value=destino||'diretoria';
+  document.getElementById('emChurnOutroWrap').style.display='none';
+  document.getElementById('emChurnAssunto').value=`[URGENTE] ${criticos.length} cliente${criticos.length>1?'s':''} em Churn Crítico — Escalação CS`;
+  document.getElementById('emChurnCorpo').value=`Olá,\n\nO monitoramento de Customer Success identificou ${criticos.length} cliente${criticos.length>1?'s':''} em RISCO CRÍTICO DE CHURN (prob. ≥ 70%) que requerem ação imediata:\n\n${nomes}\n\nAções já tomadas:\n• Cards de retenção urgente criados automaticamente no Plano de Ação\n• Alertas registrados na Central de Alertas\n\nSolicito alinhamento urgente para definição da estratégia de retenção.\n\n${CS_DB.getSession()?.nome||'CS Manager'}\nCustomer Success`;
+  openM('mEmailChurn');
+}
+async function _autoEscalarCriticosV4(){
+  const cl=CS_DB.getClientes();
+  const limite7d=new Date(Date.now()-7*86400000);
+  const acExist=CS_DB.getAllAcoes().filter(a=>a.categoria==='retencao_churn'&&a.status!=='Concluído'&&new Date(a.criadoEm)>limite7d);
+  const criticos=cl.map(c=>({...c,score:calcChurnScore(c)})).filter(c=>c.score>=70);
+  let criados=0;
+  for(const c of criticos){
+    if(acExist.find(a=>a.clienteId===c.id))continue;
+    const prazo=new Date(Date.now()+2*86400000);
+    try{
+      await CS_DB.saveAcao({clienteId:c.id,descricao:`Retenção urgente — Churn ${c.score}%`,area:'CS',prioridade:'Alta',status:'Pendente',progresso:0,responsavel:CS_DB.getSession()?.nome||'CS',prazo:prazo.toLocaleDateString('pt-BR'),prazoISO:prazo.toISOString(),comentarios:`Auto-gerado. Prob. churn: ${c.score}% · HS: ${c.healthScore} · MRR: ${c.mrr||'—'}. Ação imediata necessária.`,categoria:'retencao_churn',criadoEm:new Date().toISOString()});
+      await CS_DB._addTimeline(c.id,'sistema','Card de retenção criado automaticamente',`Churn crítico (${c.score}%) detectado.`);
+      criados++;
+    }catch(e){}
+  }
+  if(criados){toast(`${criados} card${criados>1?'s':''} de retenção criado${criados>1?'s':''} no Kanban!`,'ok');renderKanban();}
+  else{toast('Cards já existem para todos os críticos.');}
+}
+
+// ════════════════════════════════════════════════
+// ONBOARDING — ABA POR CLIENTE (V4)
+// ════════════════════════════════════════════════
+async function toggleObStepV4(idx,si){await toggleObStep(idx,si);renderObClienteV4();}
+
+function trocarAbaOBV4(aba,btn){
+  document.querySelectorAll('[data-obt]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('obAbaGeralV4').style.display=aba==='geral'?'':'none';
+  document.getElementById('obAbaClienteV4').style.display=aba==='cliente'?'':'none';
+  if(aba==='cliente'){populateObClienteSelectV4();renderObClienteV4();}
+}
+function populateObClienteSelectV4(){
+  const obs=CS_DB.get('onboardings')||[];
+  const sel=document.getElementById('obClienteSelectV4');if(!sel)return;
+  const badge=o=>o.status==='concluido'?'✅ Concluído':o.status==='em-andamento'?'🔄 Em andamento':'⏳ Não iniciado';
+  sel.innerHTML='<option value="">— Selecione um cliente —</option>'+obs.map((o,i)=>`<option value="${i}">${o.empresa} · ${badge(o)}</option>`).join('');
+}
+function renderObClienteV4(){
+  const idxStr=document.getElementById('obClienteSelectV4')?.value;
+  const cont=document.getElementById('obClienteContentV4');if(!cont)return;
+  if(idxStr===''||idxStr==null){cont.innerHTML=`<div style="text-align:center;padding:40px;color:var(--gray2)"><i class="ti ti-user-circle" style="font-size:36px;display:block;margin-bottom:10px;color:var(--gray4)"></i>Selecione um cliente para ver os detalhes do onboarding.</div>`;return;}
+  const idx=parseInt(idxStr);
+  const obs=CS_DB.get('onboardings')||[];const ob=obs[idx];if(!ob)return;
+  const pct=calcObPct(ob);
+  const concStep=ob.steps.filter(s=>s.concluido).length;
+  const totalStep=ob.steps.length;
+  const cor=pct>=100?'var(--green)':pct>=60?'var(--blue)':pct>0?'var(--yellow)':'var(--gray3)';
+  let diasKickoff='—',diasPrazo=null,prazoTxt='—';
+  if(ob.kickoff){const[d,m,y]=ob.kickoff.split('/');diasKickoff=Math.max(0,Math.floor((new Date()-new Date(`${y}-${m}-${d}`))/86400000));}
+  if(ob.prazoImpl){const[d,m,y]=ob.prazoImpl.split('/');diasPrazo=Math.ceil((new Date(`${y}-${m}-${d}`)-new Date())/86400000);prazoTxt=ob.prazoImpl;}
+  const complexCor={Baixa:'var(--green)',Média:'var(--blue)',Alta:'var(--red)'};
+  const complexBg={Baixa:'var(--gbg)',Média:'var(--bbg)',Alta:'var(--redl)'};
+  cont.innerHTML=`
+    ${(ob.contato||ob.complexidade||ob.numUsuarios||ob.riscos)?`<div class="card" style="margin-bottom:14px;padding:14px 18px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 20px">
+        ${ob.contato?`<div><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-user"></i> Contato</div><div style="font-size:13px;font-weight:600">${ob.contato}</div>${ob.contatoInfo?`<div style="font-size:11.5px;color:var(--blue)">${ob.contatoInfo}</div>`:''}</div>`:''}
+        ${ob.numUsuarios?`<div><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-users"></i> Usuários</div><div style="font-size:13px;font-weight:600">${ob.numUsuarios}</div></div>`:''}
+        ${ob.complexidade?`<div><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-gauge"></i> Complexidade</div><span style="font-size:12px;padding:3px 11px;border-radius:20px;font-weight:600;background:${complexBg[ob.complexidade]||'var(--gray5)'};color:${complexCor[ob.complexidade]||'var(--gray2)'}">${ob.complexidade}</span></div>`:''}
+        ${ob.escopo?`<div style="grid-column:1/-1"><div style="font-size:10.5px;color:var(--gray3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-file-text"></i> Escopo</div><div style="font-size:12.5px">${ob.escopo}</div></div>`:''}
+        ${ob.riscos?`<div style="grid-column:1/-1"><div style="font-size:10.5px;color:var(--red);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px"><i class="ti ti-alert-triangle"></i> Riscos</div><div style="font-size:12.5px;color:var(--gray2)">${ob.riscos}</div></div>`:''}
+      </div>
+    </div>`:''}
+    <div class="kpi-grid" style="margin-bottom:14px">
+      <div class="kpi ${pct>=100?'green':pct>=60?'blue':'yellow'}"><div class="kpi-lbl">Progresso</div><div class="kpi-val" style="color:${cor}">${pct}%</div><div class="kpi-sub">${concStep}/${totalStep} etapas</div></div>
+      <div class="kpi gray"><div class="kpi-lbl">Dias desde kickoff</div><div class="kpi-val">${diasKickoff}</div><div class="kpi-sub">Início: ${ob.kickoff||'—'}</div></div>
+      <div class="kpi ${diasPrazo!==null&&diasPrazo<0?'red':diasPrazo!==null&&diasPrazo<=7?'yellow':'gray'}"><div class="kpi-lbl">${diasPrazo!==null&&diasPrazo<0?'Atrasado':'Dias até prazo'}</div><div class="kpi-val" style="${diasPrazo!==null&&diasPrazo<0?'color:var(--red)':''}">${diasPrazo!==null?Math.abs(diasPrazo)+'d':'—'}</div><div class="kpi-sub">Prazo: ${prazoTxt}</div></div>
+    </div>
+    <div style="font-size:11.5px;font-weight:600;color:var(--gray3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Etapas</div>
+    ${ob.steps.map((s,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray5)">
+      <span style="font-size:16px;flex-shrink:0">${s.concluido?'✅':'⬜'}</span>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:${s.concluido?'400':'600'};text-decoration:${s.concluido?'line-through':''};color:${s.concluido?'var(--gray3)':'inherit'}">${s.titulo}</div><div style="font-size:11px;color:var(--gray3)">${s.area}${s.dataConc?' · Concluído em '+s.dataConc:''}</div></div>
+      <button class="btn-ghost" style="font-size:11px;padding:4px 9px;flex-shrink:0" onclick="toggleObStepV4(${idx},${i})">${s.concluido?'Reabrir':'Concluir'}</button>
+    </div>`).join('')}`;
+}
+
+// ════════════════════════════════════════════════
 // EMAIL DE ALERTA — CHURN
 // ════════════════════════════════════════════════
 const EMAIL_DESTINOS={comercial:'comercial@creare.com.br',diretoria:'diretoria@creare.com.br',tecnico:'suporte.tecnico@creare.com.br'};
@@ -4595,6 +4740,7 @@ function renderChurn() {
     <div class="kpi yellow"><div class="kpi-lbl">Risco Alto (40-69%)</div><div class="kpi-val" style="color:var(--yellow)">${alto}</div><div class="kpi-sub dn">monitorar</div></div>
     <div class="kpi red"><div class="kpi-lbl">MRR em risco</div><div class="kpi-val" style="color:var(--red)">R$${Math.round(mrrRisco/1000)}K</div><div class="kpi-sub dn">prob. churn ≥ 40%</div></div>
     <div class="kpi green"><div class="kpi-lbl">MRR protegido</div><div class="kpi-val" style="color:var(--green)">R$${Math.round(mrrProteg/1000)}K</div><div class="kpi-sub up">prob. churn < 40%</div></div>`;
+  _renderEscalacaoPanel(all.filter(c=>c.churnScore>=70));
 
   // Gauge visual
   const gaugeEl = document.getElementById('churnGauge');
@@ -4696,6 +4842,12 @@ function renderCliente360(){
   const engScore=calcEngScore(c);
   const acPend=ac.filter(a=>a.status!=='Concluído');
   const acConc=ac.filter(a=>a.status==='Concluído');
+  // Onboarding deste cliente
+  const obs=CS_DB.get('onboardings')||[];
+  const obData=obs.find(o=>o.clienteId===cid)||null;
+  const obSteps=obData?.steps||[];
+  const obPct=obData?calcObPct(obData):0;
+  const obConcStep=obSteps.filter(s=>s.concluido).length;
 
   document.getElementById('c360Content').innerHTML=`
     <div class="kpi-grid">
@@ -4703,7 +4855,18 @@ function renderCliente360(){
       <div class="kpi blue" data-tooltip="NPS consolidado deste cliente.&#10;Fórmula: % Promotores (9–10) − % Detratores (0–6).&#10;&lt;0 Crítico · 0–49 Neutro · 50–74 Bom · ≥75 Excelente"><div class="kpi-lbl"><i class="ti ti-star"></i>NPS</div><div class="kpi-val" style="color:${npsColor(npsCalc.score??0)}">${npsCalc.score??'—'}</div><div class="kpi-sub">${nps.length} pesquisa${nps.length!==1?'s':''}</div></div>
       <div class="kpi ${churnScore>=40?'red':'green'}" data-tooltip="Probabilidade estimada de cancelamento (0–100%).&#10;Calculado com HS, NPS, inatividade e status.&#10;&lt;20% Baixo · 20–39% Médio · ≥40% Alto risco"><div class="kpi-lbl"><i class="ti ti-trending-down"></i>Risco de Churn</div><div class="kpi-val" style="color:${churnLb.cor}">${churnScore}%</div><div class="kpi-sub">${churnLb.label}</div></div>
       <div class="kpi gray" data-tooltip="Score de Engajamento (0–100).&#10;Mede frequência de contato, NPS e ações concluídas.&#10;≥70 Alto · 40–69 Médio · &lt;40 Baixo"><div class="kpi-lbl"><i class="ti ti-activity"></i>Engajamento</div><div class="kpi-val">${engScore}</div><div class="kpi-sub">${reu.length} reuniões totais</div></div>
+      ${obData?`<div class="kpi ${obData.status==='concluido'?'green':obPct>=50?'blue':'yellow'}" style="cursor:pointer" onclick="nav(document.querySelector('[data-p=onboarding]'),'onboarding')" data-tooltip="Onboarding deste cliente.&#10;Clique para ver detalhes e etapas."><div class="kpi-lbl"><i class="ti ti-rocket"></i>Onboarding</div><div class="kpi-val" style="color:${obData.status==='concluido'?'var(--green)':obPct>=50?'var(--blue)':'var(--yellow)'}">${obPct}%</div><div class="kpi-sub">${obData.status==='concluido'?'Concluído ✓':obConcStep+'/'+obSteps.length+' etapas'}</div></div>`:`<div class="kpi gray" style="cursor:pointer;opacity:.7" onclick="nav(document.querySelector('[data-p=onboarding]'),'onboarding')" data-tooltip="Nenhum onboarding registrado.&#10;Clique para iniciar."><div class="kpi-lbl"><i class="ti ti-rocket"></i>Onboarding</div><div class="kpi-val" style="color:var(--gray3)">—</div><div class="kpi-sub">não iniciado</div></div>`}
     </div>
+    ${obData?`<div style="background:${obData.status==='concluido'?'var(--gbg)':obPct>=70?'var(--bbg)':obPct>=30?'var(--ybg)':'var(--redl)'};border-radius:10px;padding:10px 16px;margin-top:12px;display:flex;align-items:center;gap:14px">
+      <i class="ti ti-rocket" style="font-size:20px;color:${obData.status==='concluido'?'var(--green)':obPct>=70?'var(--blue)':obPct>=30?'var(--ytxt)':'var(--red)'};flex-shrink:0"></i>
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:4px">Onboarding ${obData.status==='concluido'?'concluído':obPct+'% concluído — '+obConcStep+' de '+obSteps.length+' etapas'}</div>
+        <div style="height:6px;background:rgba(0,0,0,.1);border-radius:3px;overflow:hidden"><div style="height:100%;width:${obPct}%;background:${obData.status==='concluido'?'var(--green)':obPct>=70?'var(--blue)':obPct>=30?'var(--ytxt)':'var(--red)'};border-radius:3px;transition:width .5s"></div></div>
+        ${obData.kickoff?`<div style="font-size:11px;margin-top:4px;opacity:.75">Kickoff: ${obData.kickoff}${obData.prazoImpl?' · Prazo: '+obData.prazoImpl:''}${obData.responsavel?' · CS: '+obData.responsavel:''}</div>`:''}
+      </div>
+      <button class="btn-ghost" style="font-size:11.5px;padding:5px 11px;flex-shrink:0" onclick="nav(document.querySelector('[data-p=onboarding]'),'onboarding')"><i class="ti ti-arrow-right"></i>Ver etapas</button>
+    </div>`:''}
+    <div style="margin-top:12px"></div>
     <div class="two-col">
       <div class="card" style="margin-bottom:0">
         <div class="card-ttl"><i class="ti ti-building"></i>Dados da conta</div>
