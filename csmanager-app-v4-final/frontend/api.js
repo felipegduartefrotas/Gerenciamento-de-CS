@@ -364,6 +364,22 @@ const CS_DB = {
     return this._fetch(`/hs-historico/${clienteId}`);
   },
 
+  // ── DOCUMENTOS ────────────────────────────────────────────
+  async getDocs(clienteId) {
+    return this._fetch(`/docs?cliente_id=${clienteId}`);
+  },
+  async addDoc({ clienteId, nome, categoria, tamanhoKB, tipo, base64, dataDoc, nota }) {
+    return this._fetch('/docs', { method: 'POST', body: JSON.stringify({
+      cliente_id: clienteId, nome, categoria, tamanho_kb: tamanhoKB, tipo, base64, data_doc: dataDoc, nota,
+    }) });
+  },
+  async getDocFull(id) {
+    return this._fetch(`/docs/${id}`);
+  },
+  async deleteDoc(id) {
+    return this._fetch(`/docs/${id}`, { method: 'DELETE' });
+  },
+
   // ── WEBHOOK ───────────────────────────────────────────────
   async dispararWebhook() {
     return this._fetch('/alertas/disparar-webhook', { method: 'POST' });
@@ -449,11 +465,18 @@ const CS_DB = {
   },
 
   // ── ÁUDIOS ────────────────────────────────────────────────
-  async salvarAudio(clienteId, dataBase64, duracao, tamanhoKB) {
-    return this._fetch('/audios', { method: 'POST', body: JSON.stringify({ cliente_id: clienteId, data_base64: dataBase64, duracao, tamanho_kb: tamanhoKB }) });
+  async salvarAudio(clienteId, dataBase64, duracao, tamanhoKB, reuniaoId = null, titulo = null) {
+    return this._fetch('/audios', { method: 'POST', body: JSON.stringify({ cliente_id: clienteId, reuniao_id: reuniaoId, titulo, data_base64: dataBase64, duracao, tamanho_kb: tamanhoKB }) });
   },
   async buscarAudio(audioId) {
     return this._fetch(`/audios/${audioId}`);
+  },
+  async listarAudios({ clienteId, reuniaoId }) {
+    const q = clienteId ? `cliente_id=${clienteId}` : `reuniao_id=${reuniaoId}`;
+    return this._fetch(`/audios?${q}`);
+  },
+  async deletarAudio(audioId) {
+    return this._fetch(`/audios/${audioId}`, { method: 'DELETE' });
   },
 
   // ── ARMAZENAMENTO GENÉRICO (compat. com módulos ainda não migrados,

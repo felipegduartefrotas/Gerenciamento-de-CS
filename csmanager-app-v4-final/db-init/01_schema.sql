@@ -158,10 +158,26 @@ CREATE TABLE configuracoes (
   valor JSONB
 );
 
+-- ── DOCUMENTOS POR CLIENTE (contratos, propostas, etc.) ──────
+CREATE TABLE documentos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cliente_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  nome TEXT,
+  categoria TEXT,
+  tamanho_kb INT,
+  tipo TEXT,
+  data_base64 TEXT NOT NULL,
+  data_doc TEXT,
+  nota TEXT,
+  criado_em TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ── ÁUDIOS ANEXADOS (base64 salvo no banco) ───────────────────
 CREATE TABLE audios (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   cliente_id UUID NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  reuniao_id UUID REFERENCES reunioes(id) ON DELETE SET NULL,
+  titulo TEXT,
   data_base64 TEXT NOT NULL,
   duracao TEXT,
   tamanho_kb INT,
@@ -181,6 +197,7 @@ CREATE INDEX idx_clientes_status ON clientes(status);
 -- agendadas (filtro por categoria). Sem esses índices, a consulta de alertas
 -- faria uma varredura completa da tabela "acoes" a cada chamada, o que fica
 -- progressivamente mais lento conforme a carteira de clientes cresce.
+CREATE INDEX idx_documentos_cliente ON documentos(cliente_id);
 CREATE INDEX idx_acoes_categoria ON acoes(categoria);
 CREATE INDEX idx_acoes_status_prazo ON acoes(status, prazo_iso);
 

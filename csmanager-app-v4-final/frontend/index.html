@@ -1837,6 +1837,38 @@ tr:hover td{background:#fafafa}
   </div>
 </div>
 
+<!-- MODAL UPLOAD DOCUMENTO CLIENTE -->
+<div class="modal-ov" id="mNovoDocCliente">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-ttl"><span><i class="ti ti-folder-up" style="color:var(--blue)"></i>Adicionar Documento</span><button class="modal-close" onclick="closeM('mNovoDocCliente')"><i class="ti ti-x"></i></button></div>
+    <input type="hidden" id="docCidV4">
+    <div class="fg" style="margin-bottom:14px">
+      <label>Arquivo</label>
+      <div id="docDropzoneV4" style="border:2px dashed var(--gray4);border-radius:10px;padding:22px;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('docFileV4').click()" ondragover="event.preventDefault();this.style.borderColor='var(--blue)'" ondragleave="this.style.borderColor='var(--gray4)'" ondrop="event.preventDefault();this.style.borderColor='var(--gray4)';document.getElementById('docFileV4').files=event.dataTransfer.files;onDocFileSelectedV4()">
+        <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--gray3);display:block;margin-bottom:6px"></i>
+        <span style="font-size:12.5px;color:var(--gray3)">Clique ou arraste o arquivo aqui</span>
+      </div>
+      <input type="file" id="docFileV4" style="display:none" onchange="onDocFileSelectedV4()">
+      <div id="docFileInfoV4" style="margin-top:8px"></div>
+    </div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fg">
+        <label>Categoria</label>
+        <select id="docCategoriaV4">
+          <option>Contrato</option><option>Proposta Comercial</option><option>Aditivo</option>
+          <option>Apresentação</option><option>Relatório</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Data do documento</label>
+        <input type="date" id="docDataV4">
+      </div>
+      <div class="fg form-full"><label>Observação</label><input type="text" id="docNotaV4" placeholder="Ex: Versão assinada, válido até dez/2026..."></div>
+    </div>
+    <div class="btn-row"><button class="btn-ghost" onclick="closeM('mNovoDocCliente')">Cancelar</button><button class="btn-primary" id="docSalvarBtnV4" onclick="salvarDocClienteV4()"><i class="ti ti-device-floppy"></i>Salvar</button></div>
+  </div>
+</div>
+
 <!-- MODAL NOVA ATA ESTRUTURADA -->
 <div class="modal-ov" id="mNovaAta">
   <div class="modal" style="max-width:740px;max-height:92vh;overflow-y:auto">
@@ -4756,6 +4788,12 @@ function renderCliente360(){
         <span style="font-size:12.5px;color:var(--gray2)">Gerencie metas e marcos do contrato deste cliente.</span>
         <button class="btn-primary" style="font-size:11.5px;padding:5px 13px" onclick="irParaPlanoSucessoV4('${cid}')"><i class="ti ti-target"></i>Abrir Plano de Sucesso</button>
       </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-ttl"><i class="ti ti-folder"></i>Documentos<span class="sub" id="c360DocsCount"></span>
+        <button class="btn-ghost" style="margin-left:auto;font-size:11.5px;padding:5px 11px" onclick="abrirUploadDocV4('${cid}')"><i class="ti ti-upload"></i>Adicionar</button>
+      </div>
+      <div id="spDocsCliente"><div style="color:var(--gray3);font-size:12px;padding:10px 0">Carregando...</div></div>
     </div>`;
 
   setTimeout(()=>{
@@ -4765,6 +4803,7 @@ function renderCliente360(){
       new Chart(ctx,{type:'line',data:{labels:npsOrdenado.map(n=>n.data),datasets:[{data:npsOrdenado.map(n=>n.nota),borderColor:'#1E5AE0',backgroundColor:'rgba(30,90,224,.12)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#1E5AE0',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8}},scales:{y:{min:0,max:10,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9}},grid:{display:false}}}}});
     }
     // Gráfico de evolução do Health Score
+    renderDocsClienteV4(cid);
     CS_DB.getHsHistorico(cid).then(hist=>{
       const ctx2=document.getElementById('c360HsChart')?.getContext('2d');
       if(!ctx2)return;
@@ -4778,6 +4817,108 @@ function renderCliente360(){
       new Chart(ctx2,{type:'line',data:{labels,datasets:[{data:scores,borderColor:'#D10000',backgroundColor:'rgba(209,0,0,.08)',tension:.35,fill:true,borderWidth:3,pointRadius:4,pointBackgroundColor:'#D10000',pointBorderColor:'#fff',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',padding:10,cornerRadius:8,callbacks:{label:ctx=>` HS: ${ctx.parsed.y}`}}},scales:{y:{min:0,max:100,ticks:{color:'var(--gray3)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{color:'var(--gray3)',font:{size:9},maxTicksLimit:8},grid:{display:false}}}}});
     }).catch(()=>{});
   },80);
+}
+
+// ════════════════════════════════════════════════
+// DOCUMENTOS POR CLIENTE (V4 — banco PostgreSQL)
+// ════════════════════════════════════════════════
+function _docCatIconV4(cat){
+  const m={
+    'Contrato':{ico:'ti-file-certificate',cor:'#1E5AE0',bg:'var(--bbg)'},
+    'Proposta Comercial':{ico:'ti-file-dollar',cor:'var(--green)',bg:'var(--gbg)'},
+    'Aditivo':{ico:'ti-file-plus',cor:'var(--yellow)',bg:'var(--ybg)'},
+    'Apresentação':{ico:'ti-presentation',cor:'#8b5cf6',bg:'#f0eafa'},
+    'Relatório':{ico:'ti-report',cor:'var(--gray2)',bg:'var(--gray5)'},
+  };
+  return m[cat]||{ico:'ti-file',cor:'var(--gray2)',bg:'var(--gray5)'};
+}
+async function renderDocsClienteV4(cid){
+  const el=document.getElementById('spDocsCliente');
+  const countEl=document.getElementById('c360DocsCount');
+  if(!el)return;
+  let docs=[];
+  try{ docs=await CS_DB.getDocs(cid); }catch(e){ el.innerHTML=`<div style="color:var(--red);font-size:12px;padding:10px 0">Erro ao carregar documentos.</div>`;return; }
+  if(countEl)countEl.textContent=docs.length?`${docs.length} arquivo(s)`:'';
+  if(!docs.length){el.innerHTML=`<div style="color:var(--gray3);padding:16px 0;text-align:center;font-size:12.5px"><i class="ti ti-folder-open" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhum documento cadastrado.</div>`;return;}
+  el.innerHTML=docs.map(d=>{
+    const ic=_docCatIconV4(d.categoria);
+    const kb=d.tamanho_kb||0;
+    const sz=kb>1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
+    const dataExib=d.data_doc?d.data_doc.split('-').reverse().join('/'):new Date(d.criado_em).toLocaleDateString('pt-BR');
+    return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray5)">
+      <div style="width:34px;height:34px;border-radius:8px;background:${ic.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${ic.ico}" style="color:${ic.cor};font-size:16px"></i></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_escH(d.nome||'Sem nome')}</div>
+        <div style="font-size:11px;color:var(--gray3)">${_docCatBadgeV4(d.categoria)} · ${sz} · ${dataExib}${d.nota?` · ${_escH(d.nota)}`:''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn-ghost" style="padding:5px 9px;font-size:11.5px" onclick="downloadDocClienteV4('${d.id}','${(d.nome||'documento').replace(/'/g,"\\'")}','${d.tipo||''}')" title="Baixar"><i class="ti ti-download"></i></button>
+        <button class="btn-ghost" style="padding:5px 9px;font-size:11.5px;color:var(--red)" onclick="removerDocClienteV4('${d.id}','${cid}')" title="Remover"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function _docCatBadgeV4(cat){
+  const ic=_docCatIconV4(cat);
+  return`<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${ic.bg};color:${ic.cor};white-space:nowrap">${cat||'Outro'}</span>`;
+}
+function abrirUploadDocV4(cid){
+  document.getElementById('docCidV4').value=cid;
+  document.getElementById('docCategoriaV4').selectedIndex=0;
+  document.getElementById('docDataV4').value='';
+  document.getElementById('docNotaV4').value='';
+  document.getElementById('docFileInfoV4').innerHTML='';
+  document.getElementById('docFileV4').value='';
+  openM('mNovoDocCliente');
+}
+function onDocFileSelectedV4(){
+  const file=document.getElementById('docFileV4').files[0];
+  if(!file)return;
+  const kb=Math.round(file.size/1024);
+  const sz=kb>1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
+  const ic={pdf:{ico:'ti-file-type-pdf',cor:'#D10000'},doc:{ico:'ti-file-type-doc',cor:'#1E5AE0'},docx:{ico:'ti-file-type-doc',cor:'#1E5AE0'},xls:{ico:'ti-file-type-xls',cor:'var(--green)'},xlsx:{ico:'ti-file-type-xls',cor:'var(--green)'}}[ext]||{ico:'ti-file',cor:'var(--gray2)'};
+  document.getElementById('docFileInfoV4').innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--gbg);border-radius:8px"><i class="ti ${ic.ico}" style="color:${ic.cor};font-size:16px"></i><span style="font-size:12.5px;font-weight:600;color:var(--gtxt)">${file.name}</span><span style="font-size:11px;color:var(--gray3);margin-left:auto">${sz}</span></div>`;
+}
+async function salvarDocClienteV4(){
+  const cid=document.getElementById('docCidV4').value;
+  const file=document.getElementById('docFileV4').files[0];
+  if(!file){toast('Selecione um arquivo.','warn');return;}
+  const kb=Math.round(file.size/1024);
+  if(kb>8192){toast('Arquivo muito grande. Limite: 8MB.','err');return;}
+  const btn=document.getElementById('docSalvarBtnV4');
+  if(btn)btn.disabled=true;
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const dateVal=document.getElementById('docDataV4').value;
+      const cat=document.getElementById('docCategoriaV4').value;
+      await CS_DB.addDoc({clienteId:cid,nome:file.name,categoria:cat,tamanhoKB:kb,tipo:file.type,base64:e.target.result,dataDoc:dateVal||null,nota:document.getElementById('docNotaV4').value.trim()||null});
+      await CS_DB._addTimeline(cid,'sistema',`Documento adicionado: ${file.name}`,`Categoria: ${cat} · ${kb>1024?(kb/1024).toFixed(1)+'MB':kb+'KB'}`);
+      closeM('mNovoDocCliente');
+      toast('Documento salvo!');
+      renderDocsClienteV4(cid);
+    }catch(err){toast('Erro ao salvar documento: '+err.message,'err');}
+    finally{if(btn)btn.disabled=false;}
+  };
+  reader.readAsDataURL(file);
+}
+async function downloadDocClienteV4(docId,nome,tipo){
+  try{
+    const doc=await CS_DB.getDocFull(docId);
+    const a=document.createElement('a');
+    a.href=doc.data_base64;
+    a.download=nome||'documento';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){toast('Erro ao baixar documento.','err');}
+}
+async function removerDocClienteV4(docId,cid){
+  if(!confirm('Remover este documento permanentemente?'))return;
+  try{
+    await CS_DB.deleteDoc(docId);
+    toast('Documento removido.');
+    renderDocsClienteV4(cid);
+  }catch(e){toast('Erro ao remover documento.','err');}
 }
 
 // ════════════════════════════════════════════════

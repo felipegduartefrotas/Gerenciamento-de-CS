@@ -28,6 +28,7 @@ app.use('/api/nps', require('./routes/nps'));
 app.use('/api/timeline', require('./routes/timeline'));
 app.use('/api/alertas', require('./routes/alertas'));
 app.use('/api/audios', require('./routes/audios'));
+app.use('/api/docs', require('./routes/docs'));
 app.use('/api/kv', require('./routes/kv'));
 app.use('/api/config', require('./routes/config'));
 app.use('/api/grupos', require('./routes/grupos'));
