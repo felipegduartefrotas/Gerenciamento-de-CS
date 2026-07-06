@@ -5,9 +5,8 @@ FROM nginx:alpine
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copia os arquivos do app (index.html, api.js) para a pasta servida pelo Nginx
-COPY index.html /usr/share/nginx/html/
-COPY api.js /usr/share/nginx/html/
+# Copia todos os arquivos do app para a pasta servida pelo Nginx
+COPY index.html api.js manifest.json sw.js /usr/share/nginx/html/
 
 EXPOSE 80
 
