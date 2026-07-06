@@ -56,7 +56,7 @@ csmanager-app/
    ```
 
 7. Acesse `http://IP-DO-SEU-SERVIDOR` no navegador. Login inicial:
-   - **E-mail:** felipe@creare.com.br
+   - **E-mail:** felipe.duarte@crearesistemas.com.br
    - **Senha:** Creare2026!
 
    **Troque essa senha assim que possível** — crie um novo usuário administrador pela própria interface (tela de gestão de usuários) e, se quiser, remova ou altere a senha da conta padrão.

@@ -7,7 +7,7 @@
 INSERT INTO usuarios (nome, email, senha_hash, papel)
 VALUES (
   'Felipe Duarte',
-  'felipe@creare.com.br',
+  'felipe.duarte@crearesistemas.com.br',
   '$2b$10$hLYBSl.55ADWkyr8qglzKOvXvjSptqRwCJqV/cKElE8XqTvhaaDUG',
   'admin'
 )
