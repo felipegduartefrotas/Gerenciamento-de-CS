@@ -34,6 +34,15 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3001
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      # ClickUp (opcionais — deixe em branco para desativar a integração)
+      CLICKUP_API_TOKEN: ${CLICKUP_API_TOKEN:-}
+      CLICKUP_LIST_ID: ${CLICKUP_LIST_ID:-}
+      CLICKUP_WEBHOOK_SECRET: ${CLICKUP_WEBHOOK_SECRET:-}
+      CLICKUP_ENVIAR_TAREFAS: ${CLICKUP_ENVIAR_TAREFAS:-false}
+      CLICKUP_STATUS_PENDENTE: ${CLICKUP_STATUS_PENDENTE:-to do}
+      CLICKUP_STATUS_ANDAMENTO: ${CLICKUP_STATUS_ANDAMENTO:-in progress}
+      CLICKUP_STATUS_CONCLUIDO: ${CLICKUP_STATUS_CONCLUIDO:-complete}
+      CLICKUP_STATUS_CANCELADA: ${CLICKUP_STATUS_CANCELADA:-cancelled}
     depends_on:
       db:
         condition: service_healthy

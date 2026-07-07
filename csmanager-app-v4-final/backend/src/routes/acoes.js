@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db/pool');
 const { autenticar } = require('../middleware/auth');
 const { comoArray } = require('../db/jsonbUtil');
+const cu = require('../services/clickup');
 
 const router = express.Router();
 router.use(autenticar);
@@ -37,7 +38,17 @@ router.post('/', async (req, res) => {
       [cliente_id, `Ação criada: ${descricao}`, `Criada por ${req.usuario.nome} · Status inicial: ${status || 'Pendente'}`, req.usuario.nome]
     );
   }
-  res.status(201).json(rows[0]);
+
+  // Sincroniza com ClickUp somente se envio bidirecional estiver ativo
+  const acaoCriada = rows[0];
+  if (cu.podeEnviar()) {
+    const empresa = (await pool.query('SELECT empresa FROM clientes WHERE id=$1', [cliente_id || null]).catch(()=>({rows:[]})) ).rows[0]?.empresa || '';
+    cu.criarTarefaAcao({ ...acaoCriada, empresa })
+      .then(taskId => { if (taskId) pool.query('UPDATE acoes SET clickup_task_id=$1 WHERE id=$2', [taskId, acaoCriada.id]).catch(()=>{}); })
+      .catch(e => console.error('ClickUp criarTarefa:', e.message));
+  }
+
+  res.status(201).json(acaoCriada);
 });
 
 // Atualiza status (drag-and-drop ou edição) com log + timeline, igual à lógica validada no frontend
@@ -66,6 +77,13 @@ router.patch('/:id/status', async (req, res) => {
       [a.cliente_id, `Ação atualizada: ${a.descricao}`, `Status: "${statusAnterior}" → "${status}" · por ${req.usuario.nome}`, req.usuario.nome]
     );
   }
+
+  // Sincroniza status com ClickUp somente se envio bidirecional estiver ativo
+  if (cu.podeEnviar() && a.clickup_task_id) {
+    cu.atualizarTarefaAcao(a.clickup_task_id, { status })
+      .catch(e => console.error('ClickUp atualizarStatus:', e.message));
+  }
+
   res.json(rows[0]);
 });
 
@@ -82,12 +100,27 @@ router.put('/:id', async (req, res) => {
      log=$8, ultima_alteracao_em=now(), ultima_alteracao_por=$9 WHERE id=$10 RETURNING *`,
     [descricao, area, prioridade, progresso, responsavel, prazo, comentarios, JSON.stringify(novoLog), req.usuario.nome, req.params.id]
   );
+
+  // Sincroniza campos editados com ClickUp somente se envio bidirecional estiver ativo
+  if (cu.podeEnviar() && a.clickup_task_id) {
+    cu.atualizarTarefaAcao(a.clickup_task_id, { descricao, prioridade, prazo_iso: req.body.prazo_iso })
+      .catch(e => console.error('ClickUp atualizarAcao:', e.message));
+  }
+
   res.json(rows[0]);
 });
 
 router.delete('/:id', async (req, res) => {
+  const atual = await pool.query('SELECT clickup_task_id FROM acoes WHERE id = $1', [req.params.id]);
   const { rows } = await pool.query('DELETE FROM acoes WHERE id = $1 RETURNING id', [req.params.id]);
   if (!rows.length) return res.status(404).json({ erro: 'Ação não encontrada.' });
+
+  // Remove tarefa no ClickUp somente se envio bidirecional estiver ativo
+  const taskId = atual.rows[0]?.clickup_task_id;
+  if (cu.podeEnviar() && taskId) {
+    cu.excluirTarefaAcao(taskId).catch(e => console.error('ClickUp excluirTarefa:', e.message));
+  }
+
   res.json({ ok: true });
 });
 

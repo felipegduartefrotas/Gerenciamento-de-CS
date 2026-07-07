@@ -1079,6 +1079,34 @@ tr:hover td{background:#fafafa}
       </div>
     </div>
   </div>
+
+  <!-- Card ClickUp — só admin vê -->
+  <div class="card" style="margin-bottom:12px;display:none" id="configClickUpCard">
+    <div class="card-ttl"><i class="ti ti-circle-check"></i>ClickUp
+      <span id="clickupStatusBadge" style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;background:var(--gray5);color:var(--gray3)">Verificando…</span>
+    </div>
+    <div id="clickupDesativado" style="display:none;background:var(--gray5);border:1px solid var(--gray4);border-radius:8px;padding:11px 14px;font-size:12px;color:var(--gray2);line-height:1.7;margin-bottom:12px">
+      <strong style="color:var(--gray1)">Integração não configurada.</strong><br>
+      Para ativar, o time de TI deve preencher as variáveis de ambiente no arquivo <strong>.env</strong> do servidor:<br>
+      <code style="background:var(--gray4);padding:2px 5px;border-radius:4px;font-size:11px">CLICKUP_API_TOKEN</code>,
+      <code style="background:var(--gray4);padding:2px 5px;border-radius:4px;font-size:11px">CLICKUP_LIST_ID</code> e, opcionalmente,
+      <code style="background:var(--gray4);padding:2px 5px;border-radius:4px;font-size:11px">CLICKUP_WEBHOOK_SECRET</code>.<br>
+      Consulte o arquivo <strong>.env.example</strong> na raiz do projeto para o passo a passo completo.
+    </div>
+    <div id="clickupAtivo" style="display:none">
+      <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:10px 14px;font-size:12px;color:#065f46;margin-bottom:12px;line-height:1.6" class="cu-desc">
+        <strong>✓ Integração ativa (somente recebe).</strong> Mudanças de status feitas no ClickUp atualizam automaticamente as ações aqui. O CS Manager não cria tarefas no ClickUp.
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+        <button class="btn-primary" onclick="clickupSincronizarManual()" id="btnClickupSync">
+          <i class="ti ti-refresh"></i>Sincronizar ações pendentes
+        </button>
+        <span style="font-size:11.5px;color:var(--gray3)">Envia para o ClickUp todas as ações ainda sem tarefa vinculada.</span>
+      </div>
+      <div id="clickupSyncResult" style="margin-top:10px;font-size:12px"></div>
+    </div>
+  </div>
+
   <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn-primary" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i>Salvar configurações</button></div>
 </div>
 
@@ -2274,7 +2302,7 @@ function nav(el,p){
   if(p==='planos')renderKanban();
   if(p==='reunioes'){renderReunioes();renderReunioesAgendadas();}
   if(p==='clientes')renderClientes();
-  if(p==='config'){loadConfig();populateCSSelects();}
+  if(p==='config'){loadConfig();populateCSSelects();verificarClickUp();}
   if(p==='onboarding'){populateObSelect();renderOnboarding();}
   if(p==='hoje')renderHoje();
   if(p==='churn'){renderChurn();renderHistoricoChurn();}
@@ -2738,7 +2766,8 @@ function renderKanban(){
         else if(diff<=3){prazoTag=`<span style="background:var(--ybg);color:var(--ytxt);font-size:9.5px;padding:1px 5px;border-radius:4px;white-space:nowrap"><i class="ti ti-clock"></i> ${diff}d</span>`;cardBorder='border-left:3px solid var(--yellow)';}
         else{prazoTag=`<span style="font-size:10px;color:var(--gray2)">${a.prazo||''}</span>`;}
       }else if(a.prazo&&a.status!=='Concluído'){prazoTag=`<span style="font-size:10px;color:var(--gray2)">${a.prazo}</span>`;}
-      return`<div class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${isReuniao?'border-left:3px solid var(--blue)':cardBorder}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto">${prazoTag}</span></div></div>`}).join('')}</div></div>`;
+      const cuBadge=a.clickup_task_id?`<span title="Sincronizado com ClickUp" style="font-size:9px;padding:1px 5px;border-radius:4px;background:#f0f4ff;color:#4361ee;font-weight:700;flex-shrink:0">CU</span>`:'';
+      return`<div class="k-card" draggable="true" ondragstart="dragAcaoStart(event,'${a.id}')" ondragend="this.classList.remove('k-card-dragging')" onclick="${clickHandler}" style="${isReuniao?'border-left:3px solid var(--blue)':cardBorder}"><div class="k-pri ${pc}">${isReuniao?'📅 Reunião':a.prioridade||a.status}</div><div class="k-title">${a.descricao}</div><div class="k-cl">${a.empresa||''}</div><div class="pg-row"><div class="pg-bg"><div class="pg-fill ${pf}" style="width:${a.progresso||0}%"></div></div><span style="font-size:10px;color:var(--gray2)">${a.progresso||0}%</span></div><div class="k-meta"><div class="k-av ${pf?'gn':''}">${av}</div><span>${a.area||''}</span><span style="margin-left:auto;display:flex;align-items:center;gap:4px">${cuBadge}${prazoTag}</span></div></div>`}).join('')}</div></div>`;
   }).join('');
 }
 let acaoArrastandoId=null;
@@ -4247,6 +4276,51 @@ function loadConfig(){const cfg=CS_DB.getConfig();if(document.getElementById('cf
   const bEl=document.getElementById('backupStatusInfo');if(bEl){const lb=CS_DB.get('lastBackup');bEl.innerHTML=lb?`<i class="ti ti-check" style="color:var(--green)"></i> Último backup: ${new Date(lb.data).toLocaleString('pt-BR')} (${lb.totalRegistros} registros na época)`:`<i class="ti ti-alert-triangle" style="color:var(--yellow)"></i> Nenhum backup feito ainda — exporte agora para não perder dados.`}}
 async function salvarConfig(){const cidade=(document.getElementById('cfgCidade')?.value||'').trim();if(cidade)localStorage.setItem('csm_cidade',cidade);else localStorage.removeItem('csm_cidade');_updateTbClock();const cfg={alertaDiasSemContato:parseInt(document.getElementById('cfgDias').value)||30,alertaHSMinimo:parseInt(document.getElementById('cfgHS').value)||50,alertaNPSMinimo:parseInt(document.getElementById('cfgNPS').value)||20,alertaDiasRenovacao:parseInt(document.getElementById('cfgRen').value)||60,metaNPS:parseInt(document.getElementById('cfgNPSMeta').value)??75,csResponsavel:document.getElementById('cfgNome').value,csEmail:document.getElementById('cfgEmail').value,webhookUrl:document.getElementById('cfgWebhook')?.value||''};try{await CS_DB.saveConfig(cfg);toast('Configurações salvas!');await CS_DB._gerarAlertas();updateStatusBar();renderDashboard()}catch(e){toast('Erro ao salvar configurações: '+e.message,'err')}}
 async function testarWebhook(){const url=document.getElementById('cfgWebhook')?.value;if(!url){toast('Configure o Webhook URL antes de testar.','err');return}try{const r=await CS_DB.dispararWebhook();toast(`Webhook disparado com sucesso — ${r.enviados} alerta(s) enviado(s).`)}catch(e){toast('Falha no webhook: '+e.message,'err')}}
+
+async function verificarClickUp(){
+  const sess=CS_DB.getSession();
+  const card=document.getElementById('configClickUpCard');
+  if(!card||sess?.papel!=='admin')return;
+  card.style.display='block';
+  const badge=document.getElementById('clickupStatusBadge');
+  const divAtivo=document.getElementById('clickupAtivo');
+  const divDesativ=document.getElementById('clickupDesativado');
+  try{
+    const r=await CS_DB._fetch('/clickup/status');
+    if(r.configurado){
+      badge.textContent=r.bidirecional?'Ativo — bidirecional':'Ativo — somente recebe';
+      badge.style.background='#ecfdf5';badge.style.color='#065f46';
+      // Atualiza descrição no card conforme direção
+      const descEl=divAtivo.querySelector('.cu-desc');
+      if(descEl)descEl.innerHTML=r.bidirecional
+        ?'<strong>✓ Integração bidirecional ativa.</strong> Ações criadas/editadas aqui aparecem no ClickUp, e mudanças de status feitas no ClickUp atualizam as ações aqui.'
+        :'<strong>✓ Integração ativa (somente recebe).</strong> Mudanças de status feitas no ClickUp atualizam automaticamente as ações aqui. O CS Manager não cria tarefas no ClickUp.';
+      divAtivo.style.display='block';divDesativ.style.display='none';
+    }else{
+      badge.textContent='Não configurado';badge.style.background='var(--gray5)';badge.style.color='var(--gray3)';
+      divAtivo.style.display='none';divDesativ.style.display='block';
+    }
+  }catch(e){
+    badge.textContent='Erro';badge.style.background='#fef2f2';badge.style.color='#991b1b';
+    divAtivo.style.display='none';divDesativ.style.display='block';
+  }
+}
+
+async function clickupSincronizarManual(){
+  const btn=document.getElementById('btnClickupSync');
+  const res=document.getElementById('clickupSyncResult');
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Sincronizando…';
+  try{
+    const r=await CS_DB._fetch('/clickup/sincronizar',{method:'POST'});
+    res.innerHTML=`<span style="color:var(--green)"><i class="ti ti-check"></i> ${r.criados} ação(ões) enviadas para o ClickUp${r.erros?` · ${r.erros} erro(s)`:''}.</span>`;
+    toast(`ClickUp: ${r.criados} ação(ões) sincronizada(s).`);
+  }catch(e){
+    res.innerHTML=`<span style="color:var(--red)"><i class="ti ti-x"></i> Erro: ${e.message}</span>`;
+    toast('Falha na sincronização: '+e.message,'err');
+  }finally{
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-refresh"></i>Sincronizar ações pendentes';
+  }
+}
 
 // ═══ LOGIN ═══
 async function doLogin(){
