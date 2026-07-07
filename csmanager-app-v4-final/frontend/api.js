@@ -90,6 +90,28 @@ const CS_DB = {
     try {
       this._cache.config = await this._fetch('/config');
     } catch { this._cache.config = {}; }
+    this._aplicarFiltroCarteira();
+  },
+
+  // Consultor CS só enxerga clientes da sua carteira (responsavelCS === seu nome).
+  // Admin e Gerencial enxergam tudo.
+  _aplicarFiltroCarteira() {
+    const sess = this.getSession();
+    if (!sess || sess.papel !== 'consultor') return;
+    const nome = sess.nome.toLowerCase();
+    const idsCarteira = new Set(
+      this._cache.clientes
+        .filter(c => (c.responsavelCS || '').toLowerCase() === nome)
+        .map(c => c.id)
+    );
+    this._cache.clientes = this._cache.clientes.filter(c => idsCarteira.has(c.id));
+    this._cache.reunioes = this._cache.reunioes.filter(r => idsCarteira.has(r.clienteId));
+    this._cache.acoes   = this._cache.acoes.filter(a => idsCarteira.has(a.clienteId));
+    this._cache.nps     = this._cache.nps.filter(n => idsCarteira.has(n.clienteId));
+    this._cache.alertas = this._cache.alertas.filter(a => idsCarteira.has(a.clienteId));
+    // KV: filtra onboardings pelo mesmo critério
+    const obs = this.get('onboardings') || [];
+    this.set('onboardings', obs.filter(o => idsCarteira.has(o.clienteId)));
   },
 
   // ── normalização snake_case (Postgres) → camelCase (frontend) ─

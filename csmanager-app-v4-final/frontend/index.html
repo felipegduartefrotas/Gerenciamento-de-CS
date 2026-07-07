@@ -1375,7 +1375,7 @@ tr:hover td{background:#fafafa}
       <div class="fg" style="margin-bottom:11px"><label>Período de referência</label><select id="relPeriodoCliente"><option>Último mês</option><option>Último trimestre</option><option>Desde o início do contrato</option></select></div>
       <button class="btn-primary" style="width:100%;justify-content:center" onclick="gerarRelatorioCliente()"><i class="ti ti-file-export"></i>Gerar relatório do cliente</button>
     </div>
-    <div class="card" style="margin-bottom:0">
+    <div class="card" style="margin-bottom:0" id="cardRelatorioDiretoria">
       <div class="card-ttl"><i class="ti ti-lock"></i>Relatório para Diretoria<span class="sub">🔒 confidencial</span></div>
       <div style="font-size:12px;color:var(--gray2);margin-bottom:12px;line-height:1.6">Relatório executivo completo: MRR, ARR, margem, análise de viabilidade por conta, churn, risco de carteira e pipeline de renovações/expansão. Uso interno exclusivo da liderança da Creare.</div>
       <div class="fg" style="margin-bottom:11px"><label>Escopo</label><select id="relEscopoDir"><option value="geral">Carteira completa</option><option value="cliente">Cliente específico</option></select></div>
@@ -2256,8 +2256,12 @@ const PTITLES={dashboard:'Dashboard',hoje:'Painel do Dia',clientes:'Gestão de C
 const PICONS={dashboard:'ti-layout-dashboard',hoje:'ti-sun',clientes:'ti-building','novo-cliente':'ti-building-plus',reunioes:'ti-calendar',planos:'ti-clipboard-list',agenda:'ti-calendar-week',timeline:'ti-timeline',nps:'ti-star',exec:'ti-chart-bar',alertas:'ti-bell',importar:'ti-table-import',config:'ti-settings',onboarding:'ti-rocket',churn:'ti-trending-down',pipeline:'ti-arrows-right',voc:'ti-ear',engajamento:'ti-activity',emails:'ti-mail',cliente360:'ti-user-circle',grupos:'ti-building-community',relatorios:'ti-file-report',usuarios:'ti-users'};
 
 // ═══ NAV ═══
+const _PAGINAS_RESTRITAS_CONSULTOR=new Set(['exec','importar','metas','regua','config','usuarios']);
 function nav(el,p){
-  if(p==='config'){const _s=CS_DB.getSession();if(_s&&_s.papel==='consultor'){toast('Configurações disponíveis apenas para administradores.','warn');return;}}
+  const _s=CS_DB.getSession();
+  if(_s&&_s.papel==='consultor'&&_PAGINAS_RESTRITAS_CONSULTOR.has(p)){
+    toast('Acesso restrito ao seu perfil.','warn');return;
+  }
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
@@ -4368,6 +4372,13 @@ async function initApp(){
     const avEl=document.getElementById('av');
     if(avEl)avEl.textContent=sess.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     if(sess.papel==='admin'){const nu=document.getElementById('navUsuarios');if(nu)nu.style.display='flex';}
+    // Consultor CS: esconde páginas que não são da sua alçada
+    if(sess.papel==='consultor'){
+      ['exec','importar','metas','regua'].forEach(p=>{
+        const el=document.querySelector(`[data-p="${p}"]`);
+        if(el)el.style.display='none';
+      });
+    }
   }
   seedOnboardingsIfEmpty();
   renderDashboard();renderClientes();renderReunioes();renderKanban();renderAlertas();
@@ -5972,6 +5983,9 @@ function populateRelatoriosSelects(){
   const s2=document.getElementById('relClienteDirSelect');if(s2)s2.innerHTML=opts;
   const escopoSel=document.getElementById('relEscopoDir');
   if(escopoSel)escopoSel.onchange=()=>{document.getElementById('relClienteDirWrap').style.display=escopoSel.value==='cliente'?'block':'none'};
+  // Consultor não acessa relatório de diretoria
+  const cardDir=document.getElementById('cardRelatorioDiretoria');
+  if(cardDir){const s=CS_DB.getSession();cardDir.style.display=(s&&s.papel==='consultor')?'none':'';}
 }
 function registrarRelatorioGerado(nome,tipo){
   relatoriosGerados.unshift({nome,tipo,data:new Date()});
